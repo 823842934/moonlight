@@ -1,45 +1,29 @@
 ---
 import FrameLayout from "../layouts/FrameLayout.astro";
 ---
-<FrameLayout title="Brandyura">
+<FrameLayout title="brandyura">
   <section class="hero">
-    <div class="rule"></div>
-    <h1>Brandyura</h1>
-    <div class="rule"></div>
+    <h1>brandyura</h1>
   </section>
 
   <style>
     .hero {
       min-height: 100svh;
       display: flex;
-      flex-direction: column;
       align-items: center;
       justify-content: center;
       background: white;
-      padding: 0 24px;
+      padding: 0 5vw;
     }
 
     h1 {
       font-family: "ABC Diatype", system-ui, sans-serif;
       font-weight: 700;
-      font-size: clamp(42px, 12vw, 128px);
-      letter-spacing: -0.04em;
-      margin: 12px 0;
+      font-size: clamp(48px, 14vw, 220px);
+      letter-spacing: -0.05em;
       line-height: 1;
-      text-align: center;
-    }
-
-    .rule {
       width: 100%;
-      max-width: 72ch;
-      height: 1px;
-      background: black;
-    }
-
-    @media (max-width: 600px) {
-      .rule {
-        max-width: 90%;
-      }
+      text-align: center;
     }
   </style>
 </FrameLayout>
