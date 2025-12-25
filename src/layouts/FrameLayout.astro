@@ -48,7 +48,6 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
       --s4:24px;
       --s5:36px;
 
-      --r:14px;
       --max:1100px;
     }
 
@@ -109,7 +108,6 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
       *{ animation:none !important; transition:none !important; }
     }
 
-    /* Mobile-first: top nav */
     header{
       position:sticky;
       top:0;
@@ -118,23 +116,26 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
       backdrop-filter:blur(10px);
       border-bottom:1px solid var(--hair);
     }
+
     .bar{
       max-width:var(--max);
       margin:0 auto;
-      padding:14px 12px;
+      padding:16px 14px;
       display:flex;
       align-items:center;
       justify-content:space-between;
       gap:12px;
     }
+
     .brand{
       text-decoration:none;
       font-weight:700;
-      letter-spacing:-0.02em;
-      font-size:16px;
+      letter-spacing:-0.03em;
+      font-size:20px; /* bigger */
       line-height:1;
       white-space:nowrap;
     }
+
     nav{
       display:flex;
       gap:8px;
@@ -166,52 +167,24 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
     main{
       max-width:var(--max);
       margin:0 auto;
-      padding:0 12px;
+      padding:0 14px;
     }
+
     .wrap{
       animation:enter .22s ease both;
     }
 
-    /* Desktop: convert to left rail */
     @media (min-width: 980px){
-      body{
-        display:grid;
-        grid-template-columns: 260px 1fr;
-      }
-
-      header{
-        position:sticky;
-        top:0;
-        height:100vh;
-        border-bottom:none;
-        border-right:1px solid var(--hair);
-        background:var(--bg);
-        backdrop-filter:none;
-      }
-
       .bar{
-        height:100%;
-        padding:28px 18px;
-        flex-direction:column;
-        align-items:flex-start;
-        justify-content:flex-start;
-        gap:18px;
+        padding:18px 22px;
       }
 
-      nav{
-        flex-direction:column;
-        overflow:visible;
-        width:100%;
-      }
-
-      nav a{
-        width:100%;
-        border-radius:12px;
-        padding:10px 12px;
+      .brand{
+        font-size:24px; /* bigger on desktop */
       }
 
       main{
-        padding:0 28px;
+        padding:0 22px;
       }
     }
   </style>
