@@ -85,7 +85,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     /* Prevent layout shift by giving the tree area a stable viewport */
     .tree-viewport {
       position: relative;
-      min-height: 12.5rem; /* keeps "brandyura" static when swapping views */
+      min-height: 12.5rem;
     }
 
     .root {
@@ -160,18 +160,17 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       pointer-events: auto;
     }
 
-    /* Cascade items (study subfolders) */
+    /* Cascade items: come in from RIGHT -> LEFT + fade */
     .cascade {
       opacity: 0;
-      transform: translateY(6px);
-      filter: blur(0px);
+      transform: translateX(16px);
       transition: opacity 260ms ease, transform 260ms ease;
+      will-change: opacity, transform;
     }
 
-    /* When study view becomes active, animate children in with stagger */
     .view--active .cascade {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateX(0);
     }
 
     .view--active .cascade[data-cascade="1"] { transition-delay: 70ms; }
@@ -221,27 +220,25 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       });
     }
 
-    function resetCascade() {
+    function replayCascade() {
       if (!studyView) return;
       const nodes = studyView.querySelectorAll(".cascade");
-      nodes.forEach((n) => {
-        n.style.transitionDelay = "0ms";
-        // force reset by removing and re-adding a trigger class via reflow
-        n.classList.remove("cascade-ready");
-      });
-      // trigger reflow so transitions replay consistently
-      void studyView.offsetHeight;
-      nodes.forEach((n) => n.classList.add("cascade-ready"));
+
+      // reset to initial state
+      nodes.forEach((n) => n.classList.remove("cascade-play"));
+      void studyView.offsetHeight; // reflow
+      nodes.forEach((n) => n.classList.add("cascade-play"));
     }
 
     function showStudy(studyName) {
       if (studyRoot) studyRoot.textContent = studyName;
 
-      // reset cascade animation so it replays each time
-      resetCascade();
-
+      // switch view
       if (galleryView) galleryView.classList.remove("view--active");
       if (studyView) studyView.classList.add("view--active");
+
+      // replay cascade each time
+      replayCascade();
     }
 
     function showGallery() {
