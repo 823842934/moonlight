@@ -1,1 +1,54 @@
-
+---
+const { title = "Site" } = Astro.props;
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>{title}</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: system-ui, sans-serif;
+      background: white;
+      color: black;
+    }
+    .frame {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      height: 100vh;
+    }
+    nav {
+      border-right: 1px solid #ddd;
+      padding: 24px 16px;
+    }
+    nav a {
+      display: block;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      text-decoration: none;
+      color: black;
+      border-radius: 6px;
+    }
+    nav a:hover {
+      background: #f2f2f2;
+    }
+    main {
+      padding: 40px;
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <nav>
+      <a href="/">Home</a>
+      <a href="/gallery">Gallery</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+    <main>
+      <slot />
+    </main>
+  </div>
+</body>
+</html>
