@@ -1,5 +1,8 @@
 ---
 const { title = "Site" } = Astro.props;
+
+const path = Astro.url?.pathname ?? "/";
+const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href));
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -27,7 +30,22 @@ const { title = "Site" } = Astro.props;
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#ffffff" />
 
+  <!-- Font preloads (performance) -->
+  <link rel="preload" href="/fonts/BrandonGrotesque-Light.woff?v=1" as="font" type="font/woff" crossorigin />
+  <link rel="preload" href="/fonts/BrandonGrotesque-Bold.woff?v=1" as="font" type="font/woff" crossorigin />
+
   <style>
+    :root {
+      /* Spacing + layout tokens */
+      --gap-1: 8px;
+      --gap-2: 16px;
+      --gap-3: 24px;
+      --radius: 16px;
+
+      --nav-w: 240px;
+      --content-max: 980px;
+    }
+
     @font-face {
       font-family: "Brandon Grotesque";
       src: url("/fonts/BrandonGrotesque-Light.woff?v=1") format("woff");
@@ -50,17 +68,46 @@ const { title = "Site" } = Astro.props;
       background: white;
       color: black;
       font-weight: 300;
+
+      /* Typography polish */
+      font-size: 16px;
+      line-height: 1.55;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    h1, h2, h3 {
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.1;
+      margin: 0 0 var(--gap-2);
+    }
+
+    p {
+      margin: 0 0 var(--gap-2);
+    }
+
+    /* Motion + reduced motion */
+    @keyframes enter {
+      from { opacity: 0; transform: translateY(6px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
     }
 
     .frame {
       display: grid;
-      grid-template-columns: 200px 1fr;
-      height: 100vh;
+      grid-template-columns: var(--nav-w) 1fr;
+      min-height: 100vh;
     }
 
     nav {
-      border-right: 1px solid #ddd;
-      padding: 24px 16px;
+      /* Removed the vertical divider bar */
+      border-right: none;
+
+      padding: var(--gap-3) var(--gap-2);
     }
 
     nav a {
@@ -69,32 +116,64 @@ const { title = "Site" } = Astro.props;
       margin-bottom: 6px;
       text-decoration: none;
       color: black;
-      border-radius: 6px;
+      border-radius: 10px;
+
+      /* Keep nav light */
       font-weight: 300;
       letter-spacing: 0.02em;
       text-transform: uppercase;
+      font-size: 14px;
+
+      transition: color .18s ease, background-color .18s ease, transform .18s ease;
     }
 
     nav a:hover {
-      background: #f2f2f2;
+      background: rgba(0, 0, 0, 0.06);
+      transform: translateY(-1px);
+    }
+
+    nav a[aria-current="page"] {
+      background: rgba(0, 0, 0, 0.09);
     }
 
     main {
-      padding: 40px;
+      padding: var(--gap-3);
+      animation: enter .35s ease both;
+    }
+
+    .content {
+      max-width: var(--content-max);
+      margin: 0 auto;
+      padding: var(--gap-3);
+    }
+
+    /* Image/gallery polish */
+    img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+
+      border-radius: var(--radius);
+      border: 1px solid rgba(0, 0, 0, 0.08);
+
+      transition: transform .25s ease;
+    }
+
+    img:hover {
+      transform: scale(1.02);
     }
 
     @media (max-width: 800px) {
       .frame {
         grid-template-columns: 1fr;
-        height: auto;
-        min-height: 100vh;
       }
 
       nav {
-        border-right: none;
-        border-bottom: 1px solid #ddd;
+        /* Keep top bar clean; no divider */
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+
         display: flex;
-        gap: 8px;
+        gap: var(--gap-1);
         overflow-x: auto;
         padding: 12px;
       }
@@ -105,7 +184,11 @@ const { title = "Site" } = Astro.props;
       }
 
       main {
-        padding: 20px;
+        padding: var(--gap-2);
+      }
+
+      .content {
+        padding: var(--gap-2);
       }
     }
   </style>
@@ -113,13 +196,16 @@ const { title = "Site" } = Astro.props;
 <body>
   <div class="frame">
     <nav>
-      <a href="/">Home</a>
-      <a href="/gallery">Gallery</a>
-      <a href="/about">About</a>
-      <a href="/contact">Contact</a>
+      <a href="/" aria-current={isActive("/") ? "page" : undefined}>Home</a>
+      <a href="/gallery" aria-current={isActive("/gallery") ? "page" : undefined}>Gallery</a>
+      <a href="/about" aria-current={isActive("/about") ? "page" : undefined}>About</a>
+      <a href="/contact" aria-current={isActive("/contact") ? "page" : undefined}>Contact</a>
     </nav>
-    <main>
-      <slot />
+
+    <main id="main">
+      <div class="content">
+        <slot />
+      </div>
     </main>
   </div>
 </body>
