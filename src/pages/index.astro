@@ -28,7 +28,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
           <!-- STUDY VIEW -->
           <div id="studyView" class="view" aria-live="polite">
-            <button id="backBtn" class="back" type="button">← back</button>
+            <button id="backBtn" class="back" type="button"><span class="arrow">←</span><span class="label"> back</span></button>
 
             <div id="studyRoot" class="root">study</div>
 
@@ -85,7 +85,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .tree-viewport {
       position: relative;
       min-height: 12.5rem;
-      /* IMPORTANT: keep the interactive area tightly wrapped */
       width: fit-content;
       max-width: 100%;
     }
@@ -98,7 +97,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       margin-top: 0.35rem;
       display: grid;
       gap: 0.18rem;
-      width: fit-content; /* prevents huge invisible clickable area */
+      width: fit-content;
       max-width: 100%;
     }
 
@@ -106,10 +105,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       white-space: pre;
       display: block;
       line-height: 1.25;
-      width: fit-content; /* keep each line only as wide as its text */
+      width: fit-content;
     }
 
-    /* Clickable rows look like plain text, and only click where text is */
     .item-btn {
       appearance: none;
       background: transparent;
@@ -121,10 +119,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       color: inherit;
       cursor: pointer;
       line-height: 1.25;
-
-      display: inline-block;  /* key fix */
-      width: fit-content;     /* key fix */
-      justify-self: start;    /* key fix (grid) */
+      display: inline-block;
+      width: fit-content;
+      justify-self: start;
     }
 
     .item-btn:active {
@@ -142,9 +139,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       color: inherit;
       cursor: pointer;
       line-height: 1.25;
-
-      display: inline-block;
-      width: fit-content;
+      display: inline-flex; /* keep arrow + text on one line */
+      align-items: center;
+      gap: 0.15em;
+      white-space: nowrap;  /* prevent wrapping */
     }
 
     .back:active {
@@ -222,7 +220,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     const backBtn = document.getElementById("backBtn");
     const studyButtons = document.querySelectorAll("[data-study]");
 
-    // Mobile tap blur for title
     if (logo) {
       logo.addEventListener("touchstart", (e) => {
         e.preventDefault();
@@ -241,10 +238,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     function showStudy(studyName) {
       if (studyRoot) studyRoot.textContent = studyName;
-
       if (galleryView) galleryView.classList.remove("view--active");
       if (studyView) studyView.classList.add("view--active");
-
       replayCascade();
     }
 
