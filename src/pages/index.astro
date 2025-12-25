@@ -3,7 +3,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 ---
 <FrameLayout title="brandyura">
   <section class="hero">
-    <h1>brandyura</h1>
+    <h1 id="logo">brandyura</h1>
   </section>
 
   <style>
@@ -25,6 +25,32 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 100%;
       text-align: center;
       color: inherit;
+      transition: filter 0.25s ease;
+      cursor: pointer;
+    }
+
+    /* Desktop hover blur */
+    h1:hover {
+      filter: blur(2px);
+    }
+
+    /* Mobile tap blur class */
+    .blur-temp {
+      filter: blur(2px);
     }
   </style>
+
+  <script>
+    const logo = document.getElementById("logo");
+
+    if (logo) {
+      logo.addEventListener("touchstart", () => {
+        logo.classList.add("blur-temp");
+
+        setTimeout(() => {
+          logo.classList.remove("blur-temp");
+        }, 600);
+      });
+    }
+  </script>
 </FrameLayout>
