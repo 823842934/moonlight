@@ -1,6 +1,7 @@
 ---
 import FrameLayout from "../layouts/FrameLayout.astro";
 ---
+
 <FrameLayout title="brandyura">
   <section class="hero">
     <div class="stack">
@@ -52,9 +53,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       padding: 0 5vw;
     }
 
+    /* One shared content width so h1 + tree align.
+       This prevents any "shift" when tree view changes. */
     .stack {
       width: 100%;
-      max-width: 100%;
+      max-width: 1100px;
     }
 
     h1 {
@@ -73,18 +76,28 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       filter: blur(6px);
     }
 
+    /* Align the tree block to the LEFT edge of the same stack that contains the centered h1 */
     .tree {
       margin-top: 0.5rem;
       font-family: "ABC Diatype", system-ui, sans-serif;
       font-size: clamp(14px, 3.5vw, 18px);
       letter-spacing: 0.02em;
+
+      /* key: left align under the same container as the logo */
+      width: 100%;
+      display: flex;
+      justify-content: flex-start;
+
+      /* keep your slight indent */
       padding-left: 0.15em;
+      box-sizing: border-box;
     }
 
+    /* reserve space so switching views can't reflow anything above */
     .tree-viewport {
       position: relative;
       min-height: 12.5rem;
-      width: fit-content;
+      width: 100%;
       max-width: 100%;
       overflow: visible;
       transform-origin: center left;
@@ -113,6 +126,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       display: grid;
       gap: 0.18rem;
       width: fit-content;
+    }
+
+    .children--indented {
+      padding-left: 2ch;
     }
 
     .item {
@@ -145,9 +162,12 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       margin-bottom: 0.35rem;
     }
 
+    /* Both views occupy the same reserved area (100% width of viewport).
+       Only opacity changes, so nothing reflows and the logo won't shift. */
     .view {
       position: absolute;
       inset: 0;
+      width: 100%;
       transition: opacity 260ms ease, transform 260ms ease;
     }
 
@@ -205,18 +225,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       logo.classList.remove("logo-blur");
     }
 
+    // click is enough on mobile too; touchstart + preventDefault can cause weirdness
     studyButtons.forEach((btn) => {
       btn.addEventListener("click", () => showStudy(btn.dataset.study));
-      btn.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        showStudy(btn.dataset.study);
-      });
     });
 
     backBtn.addEventListener("click", showGallery);
-    backBtn.addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      showGallery();
-    });
   </script>
 </FrameLayout>
