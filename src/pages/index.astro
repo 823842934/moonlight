@@ -5,7 +5,23 @@ import FrameLayout from "../layouts/FrameLayout.astro";
   <section class="hero">
     <div class="stack">
       <h1 id="logo">brandyura</h1>
-      <div class="sub">gallery</div>
+
+      <div class="tree" aria-label="gallery tree">
+        <div class="root">gallery</div>
+
+        <div class="children">
+          <div class="item">├─ study1</div>
+          <div class="item">├─ study2</div>
+          <div class="item">├─ study3</div>
+          <div class="item">├─ study4</div>
+          <div class="item">├─ study5</div>
+          <div class="item">├─ study6</div>
+          <div class="item">├─ study7</div>
+          <div class="item">├─ study8</div>
+          <div class="item">├─ study9</div>
+          <div class="item">└─ study10</div>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -38,7 +54,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       cursor: pointer;
     }
 
-    .sub {
+    .tree {
       margin-top: 0.5rem;
       font-family: "ABC Diatype", system-ui, sans-serif;
       font-weight: 400;
@@ -46,6 +62,24 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       letter-spacing: 0.02em;
       text-align: left;
       padding-left: 0.15em; /* tiny optical alignment */
+    }
+
+    .root {
+      margin: 0;
+    }
+
+    .children {
+      margin-top: 0.35rem;
+      display: grid;
+      gap: 0.18rem;
+      /* keep connector lines aligned nicely */
+      font-variant-ligatures: none;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: geometricPrecision;
+    }
+
+    .item {
+      white-space: pre;
     }
 
     /* Desktop hover blur only */
