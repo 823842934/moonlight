@@ -73,9 +73,38 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       color: #000000;
       overflow-x: hidden;
     }
+
+    /* Corner plus marks */
+    :root {
+      --corner-inset: 22px;  /* distance from each edge */
+      --corner-size: 28px;   /* visual size */
+    }
+
+    .corner-plus {
+      position: fixed;
+      z-index: 9999;
+      font-family: "ABC Diatype", system-ui, sans-serif;
+      font-weight: 700;
+      font-size: var(--corner-size);
+      line-height: 1;
+      color: #000;
+      user-select: none;
+      pointer-events: none;
+      transform: translateZ(0);
+    }
+
+    .corner-plus.tl { top: var(--corner-inset); left: var(--corner-inset); }
+    .corner-plus.tr { top: var(--corner-inset); right: var(--corner-inset); }
+    .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
+    .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
   </style>
 </head>
 <body>
+  <div class="corner-plus tl" aria-hidden="true">＋</div>
+  <div class="corner-plus tr" aria-hidden="true">＋</div>
+  <div class="corner-plus bl" aria-hidden="true">＋</div>
+  <div class="corner-plus br" aria-hidden="true">＋</div>
+
   <slot />
 </body>
 </html>
