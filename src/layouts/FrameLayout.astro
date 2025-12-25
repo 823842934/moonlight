@@ -76,8 +76,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     /* Corner plus marks */
     :root {
-      --corner-inset: 22px;  /* distance from each edge */
-      --corner-size: 28px;   /* visual size */
+      --corner-inset: 22px;   /* distance from each edge */
+      --corner-size: 28px;    /* visual size */
+      --spin-ms: 520ms;       /* spin duration */
     }
 
     .corner-plus {
@@ -91,12 +92,22 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       user-select: none;
       pointer-events: none;
       transform: translateZ(0);
+      will-change: transform;
     }
 
     .corner-plus.tl { top: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.tr { top: var(--corner-inset); right: var(--corner-inset); }
     .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
+
+    @keyframes cornerSpin {
+      from { transform: rotate(0deg) translateZ(0); }
+      to   { transform: rotate(360deg) translateZ(0); }
+    }
+
+    .corner-plus.spin {
+      animation: cornerSpin var(--spin-ms) ease-in-out;
+    }
   </style>
 </head>
 <body>
@@ -106,5 +117,42 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <div class="corner-plus br" aria-hidden="true">＋</div>
 
   <slot />
+
+  <script is:inline>
+    (() => {
+      const pluses = Array.from(document.querySelectorAll(".corner-plus"));
+      const SPIN_CLASS = "spin";
+
+      const triggerSpin = () => {
+        // restart animation reliably
+        for (const el of pluses) {
+          el.classList.remove(SPIN_CLASS);
+          // force reflow
+          void el.offsetWidth;
+          el.classList.add(SPIN_CLASS);
+        }
+      };
+
+      // event delegation: catch clicks anywhere
+      document.addEventListener("click", (e) => {
+        const a = e.target && e.target.closest ? e.target.closest("a") : null;
+        if (!a) return;
+
+        const href = a.getAttribute("href") || "";
+        // matches: study:[//000-00001] (and any similar)
+        if (href.startsWith("study:[//")) {
+          triggerSpin();
+        }
+      }, { capture: true });
+
+      // clean up after animation ends
+      document.addEventListener("animationend", (e) => {
+        const t = e.target;
+        if (t && t.classList && t.classList.contains("corner-plus")) {
+          t.classList.remove(SPIN_CLASS);
+        }
+      }, true);
+    })();
+  </script>
 </body>
 </html>
