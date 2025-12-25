@@ -2,14 +2,12 @@
 const {
   title = "brandyura",
   description = "brandyura",
-  ogWide = "/og-wide.png",
-  ogSquare = "/og.png",
+  ogImage = "/og.png",
 } = Astro.props;
 
 const siteUrl = "https://brandyura.com";
 const canonical = new URL(Astro.url.pathname, siteUrl).toString();
-const ogWideAbs = new URL(ogWide, siteUrl).toString();
-const ogSquareAbs = new URL(ogSquare, siteUrl).toString();
+const ogImageAbs = new URL(ogImage, siteUrl).toString();
 ---
 <!doctype html>
 <html lang="en">
@@ -21,28 +19,24 @@ const ogSquareAbs = new URL(ogSquare, siteUrl).toString();
   <link rel="canonical" href={canonical} />
   <meta name="description" content={description} />
 
-  <!-- Open Graph -->
+  <!-- Open Graph (square only) -->
   <meta property="og:site_name" content="brandyura" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content={title} />
   <meta property="og:description" content={description} />
   <meta property="og:url" content={canonical} />
 
-  <!-- Primary (wide) image: best for most link preview slots -->
-  <meta property="og:image" content={ogWideAbs} />
-  <meta property="og:image:width" content="1200" />
-  <meta property="og:image:height" content="630" />
-
-  <!-- Secondary (square) image: some platforms may choose this -->
-  <meta property="og:image" content={ogSquareAbs} />
+  <meta property="og:image" content={ogImageAbs} />
   <meta property="og:image:width" content="960" />
   <meta property="og:image:height" content="960" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:alt" content="brandyura preview" />
 
-  <!-- Twitter/X -->
-  <meta name="twitter:card" content="summary_large_image" />
+  <!-- Twitter/X (square-style card) -->
+  <meta name="twitter:card" content="summary" />
   <meta name="twitter:title" content={title} />
   <meta name="twitter:description" content={description} />
-  <meta name="twitter:image" content={ogWideAbs} />
+  <meta name="twitter:image" content={ogImageAbs} />
 
   <link rel="icon" href="/favicon.ico" />
 
