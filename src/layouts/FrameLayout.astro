@@ -30,45 +30,43 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#ffffff" />
 
-  <link rel="preload" href="/fonts/BrandonGrotesque-Light.woff?v=1" as="font" type="font/woff" crossorigin />
-  <link rel="preload" href="/fonts/BrandonGrotesque-Bold.woff?v=1" as="font" type="font/woff" crossorigin />
+  <link rel="preload" href="/fonts/ABCDiatype-Regular-Trial.woff" as="font" type="font/woff" crossorigin />
+  <link rel="preload" href="/fonts/ABCDiatype-Bold-Trial.woff" as="font" type="font/woff" crossorigin />
 
   <style>
     :root {
       --gap-1: 8px;
       --gap-2: 16px;
       --gap-3: 24px;
-      --radius: 16px;
+      --radius: 14px;
       --nav-w: 240px;
       --content-max: 980px;
     }
 
     @font-face {
-      font-family: "Brandon Grotesque";
-      src: url("/fonts/BrandonGrotesque-Light.woff?v=1") format("woff");
-      font-weight: 300;
+      font-family: "ABC Diatype";
+      src: url("/fonts/ABCDiatype-Regular-Trial.woff") format("woff");
+      font-weight: 400;
       font-style: normal;
       font-display: swap;
     }
 
     @font-face {
-      font-family: "Brandon Grotesque";
-      src: url("/fonts/BrandonGrotesque-Bold.woff?v=1") format("woff");
+      font-family: "ABC Diatype";
+      src: url("/fonts/ABCDiatype-Bold-Trial.woff") format("woff");
       font-weight: 700;
       font-style: normal;
       font-display: swap;
     }
 
-    html {
-      scrollbar-gutter: stable;
-    }
+    html { scrollbar-gutter: stable; }
 
     body {
       margin: 0;
-      font-family: "Brandon Grotesque", system-ui, sans-serif;
+      font-family: "ABC Diatype", system-ui, sans-serif;
       background: white;
       color: black;
-      font-weight: 300;
+      font-weight: 400;
       font-size: 16px;
       line-height: 1.55;
       -webkit-font-smoothing: antialiased;
@@ -82,9 +80,7 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
       margin: 0 0 var(--gap-2);
     }
 
-    p {
-      margin: 0 0 var(--gap-2);
-    }
+    p { margin: 0 0 var(--gap-2); }
 
     @keyframes enter {
       from { opacity: 0; transform: translate3d(0, 4px, 0); }
@@ -92,7 +88,7 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
     }
 
     @media (prefers-reduced-motion: reduce) {
-      * { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+      * { animation: none !important; transition: none !important; }
     }
 
     .frame {
@@ -112,25 +108,23 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
       text-decoration: none;
       color: black;
       border-radius: 10px;
-      font-weight: 300;
-      letter-spacing: 0.02em;
+      font-weight: 400;
+      letter-spacing: 0.04em;
       text-transform: uppercase;
-      font-size: 14px;
-      transition: color .18s ease, background-color .18s ease, transform .18s ease;
+      font-size: 12px;
+      transition: background .18s ease, transform .18s ease;
     }
 
     nav a:hover {
-      background: rgba(0, 0, 0, 0.06);
+      background: rgba(0,0,0,0.06);
       transform: translateY(-1px);
     }
 
     nav a[aria-current="page"] {
-      background: rgba(0, 0, 0, 0.09);
+      background: rgba(0,0,0,0.1);
     }
 
-    main {
-      padding: var(--gap-3);
-    }
+    main { padding: var(--gap-3); }
 
     .content {
       max-width: var(--content-max);
@@ -141,21 +135,16 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
 
     img {
       max-width: 100%;
-      height: auto;
       display: block;
       border-radius: var(--radius);
-      border: 1px solid rgba(0, 0, 0, 0.08);
+      border: 1px solid rgba(0,0,0,0.08);
       transition: transform .25s ease;
     }
 
-    img:hover {
-      transform: scale(1.02);
-    }
+    img:hover { transform: scale(1.02); }
 
     @media (max-width: 800px) {
-      .frame {
-        grid-template-columns: 1fr;
-      }
+      .frame { grid-template-columns: 1fr; }
 
       nav {
         border-bottom: 1px solid rgba(0,0,0,0.08);
@@ -170,13 +159,8 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
         white-space: nowrap;
       }
 
-      main {
-        padding: var(--gap-2);
-      }
-
-      .content {
-        padding: var(--gap-2);
-      }
+      main { padding: var(--gap-2); }
+      .content { padding: var(--gap-2); }
     }
   </style>
 </head>
