@@ -7,19 +7,35 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       <h1 id="logo">brandyura</h1>
 
       <div class="tree" aria-label="gallery tree">
-        <div class="root">gallery/</div>
+        <!-- GALLERY VIEW -->
+        <div id="galleryView" class="view view--active">
+          <div class="root">gallery</div>
 
-        <div class="children">
-          <div class="item">├─ study1</div>
-          <div class="item">├─ study2</div>
-          <div class="item">├─ study3</div>
-          <div class="item">├─ study4</div>
-          <div class="item">├─ study5</div>
-          <div class="item">├─ study6</div>
-          <div class="item">├─ study7</div>
-          <div class="item">├─ study8</div>
-          <div class="item">├─ study9</div>
-          <div class="item">└─ study10</div>
+          <div class="children">
+            <button class="item item-btn" type="button" data-study="study1">├─ study1</button>
+            <button class="item item-btn" type="button" data-study="study2">├─ study2</button>
+            <button class="item item-btn" type="button" data-study="study3">├─ study3</button>
+            <button class="item item-btn" type="button" data-study="study4">├─ study4</button>
+            <button class="item item-btn" type="button" data-study="study5">├─ study5</button>
+            <button class="item item-btn" type="button" data-study="study6">├─ study6</button>
+            <button class="item item-btn" type="button" data-study="study7">├─ study7</button>
+            <button class="item item-btn" type="button" data-study="study8">├─ study8</button>
+            <button class="item item-btn" type="button" data-study="study9">├─ study9</button>
+            <button class="item item-btn" type="button" data-study="study10">└─ study10</button>
+          </div>
+        </div>
+
+        <!-- STUDY VIEW -->
+        <div id="studyView" class="view" aria-live="polite">
+          <button id="backBtn" class="back" type="button">← back</button>
+
+          <div id="studyRoot" class="root">study</div>
+
+          <div class="children children--indented">
+            <div class="item">├─ about</div>
+            <div class="item">├─ purpose</div>
+            <div class="item">└─ date</div>
+          </div>
         </div>
       </div>
     </div>
@@ -74,8 +90,71 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       gap: 0.18rem;
     }
 
+    .children--indented {
+      margin-top: 0.35rem;
+    }
+
     .item {
       white-space: pre;
+      display: block;
+    }
+
+    /* Make clickable rows look like plain text */
+    .item-btn {
+      appearance: none;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      margin: 0;
+      text-align: left;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      line-height: 1.25;
+    }
+
+    .item-btn:active {
+      opacity: 0.65;
+    }
+
+    .back {
+      appearance: none;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      margin: 0 0 0.35rem 0;
+      text-align: left;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      line-height: 1.25;
+    }
+
+    .back:active {
+      opacity: 0.65;
+    }
+
+    /* Views + animation */
+    .view {
+      transform-origin: top left;
+      transition: opacity 260ms ease, transform 260ms ease;
+      will-change: opacity, transform;
+    }
+
+    .view:not(.view--active) {
+      opacity: 0;
+      transform: translateY(6px);
+      pointer-events: none;
+      height: 0;
+      overflow: hidden;
+    }
+
+    .view.view--active {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+      height: auto;
+      overflow: visible;
     }
 
     @media (hover: hover) and (pointer: fine) {
@@ -87,19 +166,66 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .blur-temp {
       filter: blur(2px);
     }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      .view {
+        transition: none;
+      }
+      h1 {
+        transition: none;
+      }
+    }
   </style>
 
   <script>
     const logo = document.getElementById("logo");
+    const galleryView = document.getElementById("galleryView");
+    const studyView = document.getElementById("studyView");
+    const studyRoot = document.getElementById("studyRoot");
+    const backBtn = document.getElementById("backBtn");
+    const studyButtons = document.querySelectorAll("[data-study]");
 
+    // Mobile tap blur for title
     if (logo) {
       logo.addEventListener("touchstart", (e) => {
         e.preventDefault();
         logo.classList.add("blur-temp");
+        setTimeout(() => logo.classList.remove("blur-temp"), 1000);
+      });
+    }
 
-        setTimeout(() => {
-          logo.classList.remove("blur-temp");
-        }, 1000);
+    function showStudy(studyName) {
+      if (studyRoot) studyRoot.textContent = studyName;
+
+      if (galleryView) galleryView.classList.remove("view--active");
+      if (studyView) studyView.classList.add("view--active");
+    }
+
+    function showGallery() {
+      if (studyView) studyView.classList.remove("view--active");
+      if (galleryView) galleryView.classList.add("view--active");
+    }
+
+    studyButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const name = btn.getAttribute("data-study");
+        if (name) showStudy(name);
+      });
+
+      // Prevent sticky hover states on some mobile browsers
+      btn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        const name = btn.getAttribute("data-study");
+        if (name) showStudy(name);
+      });
+    });
+
+    if (backBtn) {
+      backBtn.addEventListener("click", showGallery);
+      backBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        showGallery();
       });
     }
   </script>
