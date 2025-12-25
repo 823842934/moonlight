@@ -1,26 +1,30 @@
 ---
+import FrameLayout from "../layouts/FrameLayout.astro";
 ---
-<section class="hero">
-  <h1>brandyura</h1>
-</section>
+<FrameLayout title="brandyura">
+  <section class="hero">
+    <h1>brandyura</h1>
+  </section>
 
-<style>
-  .hero {
-    min-height: 100dvh; /* dynamic viewport height */
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0 5vw;
-    background: white;
-  }
+  <style>
+    .hero {
+      min-height: 100dvh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0 5vw;
+      background: transparent;
+    }
 
-  h1 {
-    font-family: "ABC Diatype", system-ui, sans-serif;
-    font-weight: 700;
-    font-size: clamp(56px, 16vw, 260px); /* slightly bigger */
-    letter-spacing: -0.05em;
-    line-height: 1;
-    width: 100%;
-    text-align: center;
-  }
-</style>
+    h1 {
+      font-family: "ABC Diatype", system-ui, sans-serif;
+      font-weight: 700;
+      font-size: clamp(56px, 16vw, 260px);
+      letter-spacing: -0.05em;
+      line-height: 1;
+      width: 100%;
+      text-align: center;
+      color: inherit;
+    }
+  </style>
+</FrameLayout>
