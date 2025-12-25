@@ -29,9 +29,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       cursor: pointer;
     }
 
-    /* Desktop hover blur */
-    h1:hover {
-      filter: blur(2px);
+    /* Desktop hover blur only */
+    @media (hover: hover) and (pointer: fine) {
+      h1:hover {
+        filter: blur(2px);
+      }
     }
 
     /* Mobile tap blur class */
@@ -44,12 +46,13 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     const logo = document.getElementById("logo");
 
     if (logo) {
-      logo.addEventListener("touchstart", () => {
+      logo.addEventListener("touchstart", (e) => {
+        e.preventDefault(); // prevent sticky hover
         logo.classList.add("blur-temp");
 
         setTimeout(() => {
           logo.classList.remove("blur-temp");
-        }, 600);
+        }, 1000);
       });
     }
   </script>
