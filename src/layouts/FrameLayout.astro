@@ -29,16 +29,16 @@ const { title = "Site" } = Astro.props;
 
   <style>
     @font-face {
-      font-family: "GTWalsheim";
-      src: url("/fonts/gt-walsheim-regular-web.woff?v=1") format("woff");
-      font-weight: 400;
+      font-family: "Brandon Grotesque";
+      src: url("/fonts/BrandonGrotesque-Light.woff?v=1") format("woff");
+      font-weight: 300;
       font-style: normal;
       font-display: swap;
     }
 
     @font-face {
-      font-family: "GTWalsheim";
-      src: url("/fonts/gt-walsheim-bold-web.woff?v=1") format("woff");
+      font-family: "Brandon Grotesque";
+      src: url("/fonts/BrandonGrotesque-Bold.woff?v=1") format("woff");
       font-weight: 700;
       font-style: normal;
       font-display: swap;
@@ -46,10 +46,10 @@ const { title = "Site" } = Astro.props;
 
     body {
       margin: 0;
-      font-family: "GTWalsheim", system-ui, sans-serif;
+      font-family: "Brandon Grotesque", system-ui, sans-serif;
       background: white;
       color: black;
-      font-weight: 400;
+      font-weight: 300;
     }
 
     .frame {
@@ -70,7 +70,9 @@ const { title = "Site" } = Astro.props;
       text-decoration: none;
       color: black;
       border-radius: 6px;
-      font-weight: 500;
+      font-weight: 700;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
     }
 
     nav a:hover {
