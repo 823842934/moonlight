@@ -68,8 +68,12 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 100%;
       text-align: center;
       color: inherit;
-      transition: filter 0.25s ease;
-      cursor: pointer;
+      transition: filter 0.35s ease;
+      cursor: default;
+    }
+
+    .logo-blur {
+      filter: blur(6px);
     }
 
     .tree {
@@ -186,16 +190,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .view--active .cascade[data-cascade="2"] { transition-delay: 140ms; }
     .view--active .cascade[data-cascade="3"] { transition-delay: 210ms; }
 
-    @media (hover: hover) and (pointer: fine) {
-      h1:hover {
-        filter: blur(2px);
-      }
-    }
-
-    .blur-temp {
-      filter: blur(2px);
-    }
-
     @media (prefers-reduced-motion: reduce) {
       .view,
       .cascade,
@@ -222,16 +216,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     function setLogoBlur(on) {
       if (!logo) return;
-      logo.classList.toggle("blur-temp", on);
-    }
-
-    // Mobile tap blur for title
-    if (logo) {
-      logo.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        setLogoBlur(true);
-        setTimeout(() => setLogoBlur(false), 1000);
-      });
+      logo.classList.toggle("logo-blur", on);
     }
 
     function replayCascade() {
