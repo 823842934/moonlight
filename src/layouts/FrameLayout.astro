@@ -1,8 +1,5 @@
 ---
-const { title = "Site" } = Astro.props;
-
-const path = Astro.url?.pathname ?? "/";
-const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href));
+const { title = "brandyura" } = Astro.props;
 ---
 <!doctype html>
 <html lang="en">
@@ -11,205 +8,41 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{title}</title>
 
-  <meta name="description" content="Creative works." />
-
-  <meta property="og:title" content={title} />
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://brandyura.com" />
-  <meta property="og:description" content="Creative works." />
-  <meta property="og:image" content="https://brandyura.com/social-preview.png" />
-
-  <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content={title} />
-  <meta name="twitter:description" content="Creative works." />
-  <meta name="twitter:image" content="https://brandyura.com/social-preview.png" />
-
-  <link rel="icon" href="/favicon.ico" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-  <link rel="manifest" href="/site.webmanifest" />
-  <meta name="theme-color" content="#ffffff" />
-
   <link rel="preload" href="/fonts/ABCDiatype-Regular.woff" as="font" type="font/woff" crossorigin />
   <link rel="preload" href="/fonts/ABCDiatype-Bold.woff" as="font" type="font/woff" crossorigin />
 
   <style>
-    :root{
-      --bg:#ffffff;
-      --fg:#0b0b0c;
-      --muted:rgba(11,11,12,.62);
-      --hair:rgba(11,11,12,.12);
-      --hover:rgba(11,11,12,.06);
-
-      --s1:8px;
-      --s2:12px;
-      --s3:16px;
-      --s4:24px;
-      --s5:36px;
-
-      --max:1100px;
+    @font-face {
+      font-family: "ABC Diatype";
+      src: url("/fonts/ABCDiatype-Regular.woff") format("woff");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
     }
 
-    @font-face{
-      font-family:"ABC Diatype";
-      src:url("/fonts/ABCDiatype-Regular.woff") format("woff");
-      font-weight:400;
-      font-style:normal;
-      font-display:swap;
-    }
-    @font-face{
-      font-family:"ABC Diatype";
-      src:url("/fonts/ABCDiatype-Bold.woff") format("woff");
-      font-weight:700;
-      font-style:normal;
-      font-display:swap;
+    @font-face {
+      font-family: "ABC Diatype";
+      src: url("/fonts/ABCDiatype-Bold.woff") format("woff");
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
     }
 
-    html{ scrollbar-gutter:stable; }
-    body{
-      margin:0;
-      background:var(--bg);
-      color:var(--fg);
-      font-family:"ABC Diatype", system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
-      font-weight:400;
-      font-size:16px;
-      line-height:1.55;
-      -webkit-font-smoothing:antialiased;
-      text-rendering:optimizeLegibility;
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
     }
 
-    a{ color:inherit; }
-    ::selection{ background:rgba(11,11,12,.12); }
-
-    .skip{
-      position:absolute;
-      left:-999px;
-      top:12px;
-      background:var(--fg);
-      color:var(--bg);
-      padding:10px 12px;
-      border-radius:10px;
-      z-index:999;
-    }
-    .skip:focus{ left:12px; }
-
-    :focus-visible{
-      outline:2px solid var(--fg);
-      outline-offset:3px;
-      border-radius:10px;
-    }
-
-    @keyframes enter{
-      from{ opacity:0; transform:translate3d(0,6px,0); }
-      to{ opacity:1; transform:translate3d(0,0,0); }
-    }
-    @media (prefers-reduced-motion: reduce){
-      *{ animation:none !important; transition:none !important; }
-    }
-
-    header{
-      position:sticky;
-      top:0;
-      z-index:50;
-      background:rgba(255,255,255,.92);
-      backdrop-filter:blur(10px);
-      border-bottom:1px solid var(--hair);
-    }
-
-    .bar{
-      max-width:var(--max);
-      margin:0 auto;
-      padding:16px 14px;
-      display:flex;
-      align-items:center;
-      justify-content:space-between;
-      gap:12px;
-    }
-
-    .brand{
-      text-decoration:none;
-      font-weight:700;
-      letter-spacing:-0.03em;
-      font-size:20px; /* bigger */
-      line-height:1;
-      white-space:nowrap;
-    }
-
-    nav{
-      display:flex;
-      gap:8px;
-      overflow-x:auto;
-      -webkit-overflow-scrolling:touch;
-      scrollbar-width:none;
-    }
-    nav::-webkit-scrollbar{ display:none; }
-
-    nav a{
-      text-decoration:none;
-      color:var(--muted);
-      padding:9px 10px;
-      border-radius:999px;
-      white-space:nowrap;
-      transition:background .18s ease, color .18s ease, transform .18s ease;
-      font-size:14px;
-    }
-    nav a:hover{
-      background:var(--hover);
-      color:var(--fg);
-      transform:translateY(-1px);
-    }
-    nav a[aria-current="page"]{
-      background:rgba(11,11,12,.08);
-      color:var(--fg);
-    }
-
-    main{
-      max-width:var(--max);
-      margin:0 auto;
-      padding:0 14px;
-    }
-
-    .wrap{
-      animation:enter .22s ease both;
-    }
-
-    @media (min-width: 980px){
-      .bar{
-        padding:18px 22px;
-      }
-
-      .brand{
-        font-size:24px; /* bigger on desktop */
-      }
-
-      main{
-        padding:0 22px;
-      }
+    body {
+      font-family: "ABC Diatype", system-ui, sans-serif;
+      color: black;
     }
   </style>
 </head>
-
 <body>
-  <a class="skip" href="#main">Skip to content</a>
-
-  <header>
-    <div class="bar">
-      <a class="brand" href="/">Brandyura</a>
-
-      <nav aria-label="Primary">
-        <a href="/" aria-current={isActive("/") ? "page" : undefined}>Home</a>
-        <a href="/gallery" aria-current={isActive("/gallery") ? "page" : undefined}>Gallery</a>
-        <a href="/about" aria-current={isActive("/about") ? "page" : undefined}>About</a>
-        <a href="/contact" aria-current={isActive("/contact") ? "page" : undefined}>Contact</a>
-      </nav>
-    </div>
-  </header>
-
-  <main id="main">
-    <div class="wrap">
-      <slot />
-    </div>
-  </main>
+  <slot />
 </body>
 </html>
