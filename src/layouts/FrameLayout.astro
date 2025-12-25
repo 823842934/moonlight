@@ -30,18 +30,15 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#ffffff" />
 
-  <!-- Font preloads (performance) -->
   <link rel="preload" href="/fonts/BrandonGrotesque-Light.woff?v=1" as="font" type="font/woff" crossorigin />
   <link rel="preload" href="/fonts/BrandonGrotesque-Bold.woff?v=1" as="font" type="font/woff" crossorigin />
 
   <style>
     :root {
-      /* Spacing + layout tokens */
       --gap-1: 8px;
       --gap-2: 16px;
       --gap-3: 24px;
       --radius: 16px;
-
       --nav-w: 240px;
       --content-max: 980px;
     }
@@ -62,14 +59,16 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
       font-display: swap;
     }
 
+    html {
+      scrollbar-gutter: stable;
+    }
+
     body {
       margin: 0;
       font-family: "Brandon Grotesque", system-ui, sans-serif;
       background: white;
       color: black;
       font-weight: 300;
-
-      /* Typography polish */
       font-size: 16px;
       line-height: 1.55;
       -webkit-font-smoothing: antialiased;
@@ -87,10 +86,9 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
       margin: 0 0 var(--gap-2);
     }
 
-    /* Motion + reduced motion */
     @keyframes enter {
-      from { opacity: 0; transform: translateY(6px); }
-      to   { opacity: 1; transform: translateY(0); }
+      from { opacity: 0; transform: translate3d(0, 4px, 0); }
+      to   { opacity: 1; transform: translate3d(0, 0, 0); }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -104,9 +102,6 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
     }
 
     nav {
-      /* Removed the vertical divider bar */
-      border-right: none;
-
       padding: var(--gap-3) var(--gap-2);
     }
 
@@ -117,13 +112,10 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
       text-decoration: none;
       color: black;
       border-radius: 10px;
-
-      /* Keep nav light */
       font-weight: 300;
       letter-spacing: 0.02em;
       text-transform: uppercase;
       font-size: 14px;
-
       transition: color .18s ease, background-color .18s ease, transform .18s ease;
     }
 
@@ -138,24 +130,21 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
 
     main {
       padding: var(--gap-3);
-      animation: enter .35s ease both;
     }
 
     .content {
       max-width: var(--content-max);
       margin: 0 auto;
       padding: var(--gap-3);
+      animation: enter .22s ease both;
     }
 
-    /* Image/gallery polish */
     img {
       max-width: 100%;
       height: auto;
       display: block;
-
       border-radius: var(--radius);
       border: 1px solid rgba(0, 0, 0, 0.08);
-
       transition: transform .25s ease;
     }
 
@@ -169,9 +158,7 @@ const isActive = (href) => (href === "/" ? path === "/" : path.startsWith(href))
       }
 
       nav {
-        /* Keep top bar clean; no divider */
         border-bottom: 1px solid rgba(0,0,0,0.08);
-
         display: flex;
         gap: var(--gap-1);
         overflow-x: auto;
