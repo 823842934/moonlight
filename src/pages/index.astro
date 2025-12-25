@@ -139,10 +139,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       color: inherit;
       cursor: pointer;
       line-height: 1.25;
-      display: inline-flex; /* keep arrow + text on one line */
+      display: inline-flex;
       align-items: center;
       gap: 0.15em;
-      white-space: nowrap;  /* prevent wrapping */
+      white-space: nowrap;
     }
 
     .back:active {
@@ -220,11 +220,17 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     const backBtn = document.getElementById("backBtn");
     const studyButtons = document.querySelectorAll("[data-study]");
 
+    function setLogoBlur(on) {
+      if (!logo) return;
+      logo.classList.toggle("blur-temp", on);
+    }
+
+    // Mobile tap blur for title
     if (logo) {
       logo.addEventListener("touchstart", (e) => {
         e.preventDefault();
-        logo.classList.add("blur-temp");
-        setTimeout(() => logo.classList.remove("blur-temp"), 1000);
+        setLogoBlur(true);
+        setTimeout(() => setLogoBlur(false), 1000);
       });
     }
 
@@ -240,12 +246,14 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       if (studyRoot) studyRoot.textContent = studyName;
       if (galleryView) galleryView.classList.remove("view--active");
       if (studyView) studyView.classList.add("view--active");
+      setLogoBlur(true);
       replayCascade();
     }
 
     function showGallery() {
       if (studyView) studyView.classList.remove("view--active");
       if (galleryView) galleryView.classList.add("view--active");
+      setLogoBlur(false);
     }
 
     studyButtons.forEach((btn) => {
