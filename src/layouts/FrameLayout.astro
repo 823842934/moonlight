@@ -6,7 +6,6 @@ const { title = "Site" } = Astro.props;
 <head>
   <meta charset="utf-8" />
   <title>{title}</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <link rel="icon" href="/favicon.ico" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
@@ -15,6 +14,11 @@ const { title = "Site" } = Astro.props;
   <link rel="manifest" href="/site.webmanifest" />
   <meta name="theme-color" content="#ffffff" />
 
+
+
+
+
+
   <style>
     body {
       margin: 0;
@@ -22,24 +26,15 @@ const { title = "Site" } = Astro.props;
       background: white;
       color: black;
     }
-
-    img {
-      max-width: 100%;
-      height: auto;
-      display: block;
-    }
-
     .frame {
       display: grid;
       grid-template-columns: 200px 1fr;
       height: 100vh;
     }
-
     nav {
       border-right: 1px solid #ddd;
       padding: 24px 16px;
     }
-
     nav a {
       display: block;
       padding: 10px 12px;
@@ -48,40 +43,11 @@ const { title = "Site" } = Astro.props;
       color: black;
       border-radius: 6px;
     }
-
     nav a:hover {
       background: #f2f2f2;
     }
-
     main {
       padding: 40px;
-    }
-
-    /* Mobile */
-    @media (max-width: 800px) {
-      .frame {
-        grid-template-columns: 1fr;
-        height: auto;
-        min-height: 100vh;
-      }
-
-      nav {
-        border-right: none;
-        border-bottom: 1px solid #ddd;
-        display: flex;
-        gap: 8px;
-        overflow-x: auto;
-        padding: 12px;
-      }
-
-      nav a {
-        margin-bottom: 0;
-        white-space: nowrap;
-      }
-
-      main {
-        padding: 20px;
-      }
     }
   </style>
 </head>
