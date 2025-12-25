@@ -10,16 +10,16 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         <div class="root">gallery</div>
 
         <div class="children">
-          <div class="item">├─ study1</div>
-          <div class="item">├─ study2</div>
-          <div class="item">├─ study3</div>
-          <div class="item">├─ study4</div>
-          <div class="item">├─ study5</div>
-          <div class="item">├─ study6</div>
-          <div class="item">├─ study7</div>
-          <div class="item">├─ study8</div>
-          <div class="item">├─ study9</div>
-          <div class="item">└─ study10</div>
+          <div class="item">|-- study1</div>
+          <div class="item">|-- study2</div>
+          <div class="item">|-- study3</div>
+          <div class="item">|-- study4</div>
+          <div class="item">|-- study5</div>
+          <div class="item">|-- study6</div>
+          <div class="item">|-- study7</div>
+          <div class="item">|-- study8</div>
+          <div class="item">|-- study9</div>
+          <div class="item">`-- study10</div>
         </div>
       </div>
     </div>
@@ -61,7 +61,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       font-size: clamp(14px, 3.5vw, 18px);
       letter-spacing: 0.02em;
       text-align: left;
-      padding-left: 0.15em; /* tiny optical alignment */
+      padding-left: 0.15em;
     }
 
     .root {
@@ -72,24 +72,18 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       margin-top: 0.35rem;
       display: grid;
       gap: 0.18rem;
-      /* keep connector lines aligned nicely */
-      font-variant-ligatures: none;
-      -webkit-font-smoothing: antialiased;
-      text-rendering: geometricPrecision;
     }
 
     .item {
       white-space: pre;
     }
 
-    /* Desktop hover blur only */
     @media (hover: hover) and (pointer: fine) {
       h1:hover {
         filter: blur(2px);
       }
     }
 
-    /* Mobile tap blur class */
     .blur-temp {
       filter: blur(2px);
     }
