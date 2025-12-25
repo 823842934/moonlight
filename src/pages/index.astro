@@ -13,21 +13,21 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             <div class="root">gallery</div>
 
             <div class="children">
-              <button class="item item-btn" type="button" data-study="study:[//000-00001]">├─ study:[//000-00001]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00002]">├─ study:[//000-00002]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00003]">├─ study:[//000-00003]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00004]">├─ study:[//000-00004]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00005]">├─ study:[//000-00005]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00006]">├─ study:[//000-00006]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00007]">├─ study:[//000-00007]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00008]">├─ study:[//000-00008]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00009]">├─ study:[//000-00009]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00001]" data-idx="0">├─ study:[//000-00001]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00002]" data-idx="1">├─ study:[//000-00002]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00003]" data-idx="2">├─ study:[//000-00003]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00004]" data-idx="3">├─ study:[//000-00004]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00005]" data-idx="4">├─ study:[//000-00005]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00006]" data-idx="5">├─ study:[//000-00006]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00007]" data-idx="6">├─ study:[//000-00007]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00008]" data-idx="7">├─ study:[//000-00008]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00009]" data-idx="8">├─ study:[//000-00009]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00010]" data-idx="9">└─ study:[//000-00010]</button>
             </div>
           </div>
 
           <!-- STUDY VIEW -->
-          <div id="studyView" class="view zoomed">
+          <div id="studyView" class="view zoomed" aria-live="polite">
             <button id="backBtn" class="back" type="button"><span class="arrow">←</span><span class="label"> back</span></button>
 
             <div id="studyRoot" class="root">study</div>
@@ -70,7 +70,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     .logo-blur {
-      filter: blur(6px);
+      filter: blur(8px);
     }
 
     .tree {
@@ -87,12 +87,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: fit-content;
       max-width: 100%;
       overflow: visible;
-      transform-origin: center left;
-      transition: transform 500ms cubic-bezier(.4,0,.2,1);
-    }
-
-    .tree-viewport.zoom-in {
-      transform: scale(1.25) translateX(40px);
     }
 
     /* HARD no-wrap everywhere for the directory labels */
@@ -130,6 +124,28 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       text-align: left;
       display: inline-block;
       width: fit-content;
+
+      transition: opacity 240ms ease, transform 420ms cubic-bezier(.4,0,.2,1);
+      transform-origin: left center;
+      will-change: opacity, transform;
+    }
+
+    .item-btn:active {
+      opacity: 0.65;
+    }
+
+    /* Selected line "zooms" (only this line, not the whole list) */
+    #galleryView.is-entering .item-btn.is-selected {
+      transform: scale(1.25) translateX(40px);
+      opacity: 1;
+      pointer-events: none;
+    }
+
+    /* Everyone else fades toward the selected line (sandwich effect) */
+    #galleryView.is-entering .item-btn.is-fading {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(var(--toward, 0px));
     }
 
     .back {
@@ -158,6 +174,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     .view.view--active {
       opacity: 1;
+      pointer-events: auto;
     }
 
     .zoomed {
@@ -179,44 +196,112 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .view--active .cascade[data-cascade="1"] { transition-delay: 80ms; }
     .view--active .cascade[data-cascade="2"] { transition-delay: 160ms; }
     .view--active .cascade[data-cascade="3"] { transition-delay: 240ms; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .item-btn,
+      .view,
+      .cascade,
+      h1 {
+        transition: none;
+      }
+      #galleryView.is-entering .item-btn.is-fading {
+        opacity: 0;
+        transform: none;
+      }
+      #galleryView.is-entering .item-btn.is-selected {
+        transform: none;
+      }
+      .zoomed { transform: none; }
+      .cascade { opacity: 1; transform: none; }
+    }
   </style>
 
   <script>
     const logo = document.getElementById("logo");
-    const viewport = document.getElementById("viewport");
     const galleryView = document.getElementById("galleryView");
     const studyView = document.getElementById("studyView");
     const studyRoot = document.getElementById("studyRoot");
     const backBtn = document.getElementById("backBtn");
-    const studyButtons = document.querySelectorAll("[data-study]");
+    const studyButtons = Array.from(document.querySelectorAll("[data-study]"));
 
-    function showStudy(name) {
-      studyRoot.textContent = name;
-      galleryView.classList.remove("view--active");
-      studyView.classList.add("view--active");
-      viewport.classList.add("zoom-in");
-      logo.classList.add("logo-blur");
+    let isTransitioning = false;
+    const ENTER_MS = 420; // must match the longest line transition above
+
+    function clearGalleryAnimationState() {
+      if (!galleryView) return;
+      galleryView.classList.remove("is-entering");
+      studyButtons.forEach((b) => {
+        b.classList.remove("is-selected", "is-fading");
+        b.style.removeProperty("--toward");
+        b.style.transitionDelay = "";
+      });
+      isTransitioning = false;
+    }
+
+    function showStudyFinal(name) {
+      if (studyRoot) studyRoot.textContent = name;
+      if (galleryView) galleryView.classList.remove("view--active");
+      if (studyView) studyView.classList.add("view--active");
+      if (logo) logo.classList.add("logo-blur");
+    }
+
+    function showStudyAnimated(clickedBtn) {
+      if (!clickedBtn || isTransitioning) return;
+      isTransitioning = true;
+
+      const selectedIdx = Number(clickedBtn.getAttribute("data-idx") || "0");
+      const name = clickedBtn.getAttribute("data-study") || "study";
+
+      if (galleryView) galleryView.classList.add("is-entering");
+
+      studyButtons.forEach((btn) => {
+        const idx = Number(btn.getAttribute("data-idx") || "0");
+        const dist = Math.abs(idx - selectedIdx);
+        const delay = dist * 40; // sandwich timing (1&10 first, then 2&9, etc.)
+        btn.style.transitionDelay = `${delay}ms`;
+
+        if (btn === clickedBtn) {
+          btn.classList.add("is-selected");
+        } else {
+          btn.classList.add("is-fading");
+          // move toward selected: above moves down (+), below moves up (-)
+          const toward = idx < selectedIdx ? "12px" : "-12px";
+          btn.style.setProperty("--toward", toward);
+        }
+      });
+
+      // after the fade/zoom completes, switch to study view (bigger)
+      const maxDist = Math.max(selectedIdx, studyButtons.length - 1 - selectedIdx);
+      const totalWait = ENTER_MS + (maxDist * 40);
+
+      window.setTimeout(() => {
+        showStudyFinal(name);
+        clearGalleryAnimationState();
+      }, totalWait);
     }
 
     function showGallery() {
-      studyView.classList.remove("view--active");
-      galleryView.classList.add("view--active");
-      viewport.classList.remove("zoom-in");
-      logo.classList.remove("logo-blur");
+      if (isTransitioning) return;
+      if (studyView) studyView.classList.remove("view--active");
+      if (galleryView) galleryView.classList.add("view--active");
+      if (logo) logo.classList.remove("logo-blur");
+      clearGalleryAnimationState();
     }
 
     studyButtons.forEach((btn) => {
-      btn.addEventListener("click", () => showStudy(btn.dataset.study));
+      btn.addEventListener("click", () => showStudyAnimated(btn));
       btn.addEventListener("touchstart", (e) => {
         e.preventDefault();
-        showStudy(btn.dataset.study);
+        showStudyAnimated(btn);
       });
     });
 
-    backBtn.addEventListener("click", showGallery);
-    backBtn.addEventListener("touchstart", (e) => {
-      e.preventDefault();
-      showGallery();
-    });
+    if (backBtn) {
+      backBtn.addEventListener("click", showGallery);
+      backBtn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        showGallery();
+      });
+    }
   </script>
 </FrameLayout>
