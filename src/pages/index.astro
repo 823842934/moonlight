@@ -1,3 +1,4 @@
+```astro
 ---
 import FrameLayout from "../layouts/FrameLayout.astro";
 ---
@@ -82,10 +83,12 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       padding-left: 0.15em;
     }
 
-    /* Prevent layout shift by giving the tree area a stable viewport */
     .tree-viewport {
       position: relative;
       min-height: 12.5rem;
+      /* IMPORTANT: keep the interactive area tightly wrapped */
+      width: fit-content;
+      max-width: 100%;
     }
 
     .root {
@@ -96,15 +99,18 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       margin-top: 0.35rem;
       display: grid;
       gap: 0.18rem;
+      width: fit-content; /* prevents huge invisible clickable area */
+      max-width: 100%;
     }
 
     .item {
       white-space: pre;
       display: block;
       line-height: 1.25;
+      width: fit-content; /* keep each line only as wide as its text */
     }
 
-    /* Clickable rows look like plain text */
+    /* Clickable rows look like plain text, and only click where text is */
     .item-btn {
       appearance: none;
       background: transparent;
@@ -116,6 +122,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       color: inherit;
       cursor: pointer;
       line-height: 1.25;
+
+      display: inline-block;  /* key fix */
+      width: fit-content;     /* key fix */
+      justify-self: start;    /* key fix (grid) */
     }
 
     .item-btn:active {
@@ -133,13 +143,15 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       color: inherit;
       cursor: pointer;
       line-height: 1.25;
+
+      display: inline-block;
+      width: fit-content;
     }
 
     .back:active {
       opacity: 0.65;
     }
 
-    /* Views: crossfade/slide within a fixed viewport (no pushing the title) */
     .view {
       position: absolute;
       inset: 0;
@@ -160,12 +172,12 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       pointer-events: auto;
     }
 
-    /* Cascade items: come in from RIGHT -> LEFT + fade */
     .cascade {
       opacity: 0;
       transform: translateX(16px);
       transition: opacity 260ms ease, transform 260ms ease;
       will-change: opacity, transform;
+      width: fit-content;
     }
 
     .view--active .cascade {
@@ -223,21 +235,17 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     function replayCascade() {
       if (!studyView) return;
       const nodes = studyView.querySelectorAll(".cascade");
-
-      // reset to initial state
       nodes.forEach((n) => n.classList.remove("cascade-play"));
-      void studyView.offsetHeight; // reflow
+      void studyView.offsetHeight;
       nodes.forEach((n) => n.classList.add("cascade-play"));
     }
 
     function showStudy(studyName) {
       if (studyRoot) studyRoot.textContent = studyName;
 
-      // switch view
       if (galleryView) galleryView.classList.remove("view--active");
       if (studyView) studyView.classList.add("view--active");
 
-      // replay cascade each time
       replayCascade();
     }
 
@@ -268,3 +276,4 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
   </script>
 </FrameLayout>
+```
