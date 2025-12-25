@@ -29,5 +29,96 @@ const { title = "Site" } = Astro.props;
 
   <style>
     @font-face {
-      font-family: "GT Walsheim";
-      src: url("/fonts/gt-w
+      font-family: "GTWalsheim";
+      src: url("/fonts/gt-walsheim-regular-web.woff?v=1") format("woff");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "GTWalsheim";
+      src: url("/fonts/gt-walsheim-bold-web.woff?v=1") format("woff");
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    body {
+      margin: 0;
+      font-family: "GTWalsheim", system-ui, sans-serif;
+      background: white;
+      color: black;
+      font-weight: 400;
+    }
+
+    .frame {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      height: 100vh;
+    }
+
+    nav {
+      border-right: 1px solid #ddd;
+      padding: 24px 16px;
+    }
+
+    nav a {
+      display: block;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      text-decoration: none;
+      color: black;
+      border-radius: 6px;
+      font-weight: 500;
+    }
+
+    nav a:hover {
+      background: #f2f2f2;
+    }
+
+    main {
+      padding: 40px;
+    }
+
+    @media (max-width: 800px) {
+      .frame {
+        grid-template-columns: 1fr;
+        height: auto;
+        min-height: 100vh;
+      }
+
+      nav {
+        border-right: none;
+        border-bottom: 1px solid #ddd;
+        display: flex;
+        gap: 8px;
+        overflow-x: auto;
+        padding: 12px;
+      }
+
+      nav a {
+        margin-bottom: 0;
+        white-space: nowrap;
+      }
+
+      main {
+        padding: 20px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="frame">
+    <nav>
+      <a href="/">Home</a>
+      <a href="/gallery">Gallery</a>
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+    </nav>
+    <main>
+      <slot />
+    </main>
+  </div>
+</body>
+</html>
