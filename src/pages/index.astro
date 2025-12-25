@@ -86,12 +86,24 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       min-height: 12.5rem;
       width: fit-content;
       max-width: 100%;
+      overflow: visible;
       transform-origin: center left;
       transition: transform 500ms cubic-bezier(.4,0,.2,1);
     }
 
     .tree-viewport.zoom-in {
       transform: scale(1.25) translateX(40px);
+    }
+
+    /* HARD no-wrap everywhere for the directory labels */
+    .root,
+    .item,
+    .item-btn,
+    .back {
+      white-space: nowrap;
+      overflow-wrap: normal;
+      word-break: normal;
+      hyphens: none;
     }
 
     .root { margin: 0; }
@@ -104,7 +116,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     .item {
-      white-space: nowrap;
       line-height: 1.25;
       width: fit-content;
     }
@@ -117,7 +128,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       color: inherit;
       cursor: pointer;
       text-align: left;
-      white-space: nowrap;
+      display: inline-block;
+      width: fit-content;
     }
 
     .back {
@@ -131,7 +143,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       align-items: center;
       gap: 0.15em;
       margin-bottom: 0.35rem;
-      white-space: nowrap;
     }
 
     .view {
@@ -194,10 +205,18 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       logo.classList.remove("logo-blur");
     }
 
-    studyButtons.forEach(btn => {
+    studyButtons.forEach((btn) => {
       btn.addEventListener("click", () => showStudy(btn.dataset.study));
+      btn.addEventListener("touchstart", (e) => {
+        e.preventDefault();
+        showStudy(btn.dataset.study);
+      });
     });
 
     backBtn.addEventListener("click", showGallery);
+    backBtn.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      showGallery();
+    });
   </script>
 </FrameLayout>
