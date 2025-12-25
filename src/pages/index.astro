@@ -7,7 +7,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       <h1 id="logo">brandyura</h1>
 
       <div class="tree" aria-label="gallery tree">
-        <div class="tree-viewport">
+        <div class="tree-viewport" id="viewport">
           <!-- GALLERY VIEW -->
           <div id="galleryView" class="view view--active">
             <div class="root">gallery</div>
@@ -27,7 +27,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           </div>
 
           <!-- STUDY VIEW -->
-          <div id="studyView" class="view" aria-live="polite">
+          <div id="studyView" class="view zoomed">
             <button id="backBtn" class="back" type="button"><span class="arrow">←</span><span class="label"> back</span></button>
 
             <div id="studyRoot" class="root">study</div>
@@ -50,7 +50,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       align-items: center;
       justify-content: center;
       padding: 0 5vw;
-      background: transparent;
     }
 
     .stack {
@@ -67,9 +66,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       margin: 0;
       width: 100%;
       text-align: center;
-      color: inherit;
       transition: filter 0.35s ease;
-      cursor: default;
     }
 
     .logo-blur {
@@ -79,10 +76,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .tree {
       margin-top: 0.5rem;
       font-family: "ABC Diatype", system-ui, sans-serif;
-      font-weight: 400;
       font-size: clamp(14px, 3.5vw, 18px);
       letter-spacing: 0.02em;
-      text-align: left;
       padding-left: 0.15em;
     }
 
@@ -91,94 +86,76 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       min-height: 12.5rem;
       width: fit-content;
       max-width: 100%;
+      transform-origin: center left;
+      transition: transform 500ms cubic-bezier(.4,0,.2,1);
     }
 
-    .root {
-      margin: 0;
+    .tree-viewport.zoom-in {
+      transform: scale(1.25) translateX(40px);
     }
+
+    .root { margin: 0; }
 
     .children {
       margin-top: 0.35rem;
       display: grid;
       gap: 0.18rem;
       width: fit-content;
-      max-width: 100%;
     }
 
     .item {
       white-space: pre;
-      display: block;
       line-height: 1.25;
       width: fit-content;
     }
 
     .item-btn {
-      appearance: none;
-      background: transparent;
+      background: none;
       border: 0;
       padding: 0;
-      margin: 0;
-      text-align: left;
       font: inherit;
       color: inherit;
       cursor: pointer;
-      line-height: 1.25;
-      display: inline-block;
-      width: fit-content;
-      justify-self: start;
-    }
-
-    .item-btn:active {
-      opacity: 0.65;
+      text-align: left;
     }
 
     .back {
-      appearance: none;
-      background: transparent;
+      background: none;
       border: 0;
       padding: 0;
-      margin: 0 0 0.35rem 0;
-      text-align: left;
       font: inherit;
       color: inherit;
       cursor: pointer;
-      line-height: 1.25;
       display: inline-flex;
       align-items: center;
       gap: 0.15em;
-      white-space: nowrap;
-    }
-
-    .back:active {
-      opacity: 0.65;
+      margin-bottom: 0.35rem;
     }
 
     .view {
       position: absolute;
       inset: 0;
-      transform-origin: top left;
       transition: opacity 260ms ease, transform 260ms ease;
-      will-change: opacity, transform;
     }
 
     .view:not(.view--active) {
       opacity: 0;
-      transform: translateY(6px);
       pointer-events: none;
     }
 
     .view.view--active {
       opacity: 1;
-      transform: translateY(0);
-      pointer-events: auto;
+    }
+
+    .zoomed {
+      transform: scale(1.15);
+      transform-origin: top left;
     }
 
     .cascade {
       opacity: 0;
       transform: translateX(16px);
       transition: opacity 260ms ease, transform 260ms ease;
-      will-change: opacity, transform;
-      width: fit-content;
     }
 
     .view--active .cascade {
@@ -186,80 +163,39 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       transform: translateX(0);
     }
 
-    .view--active .cascade[data-cascade="1"] { transition-delay: 70ms; }
-    .view--active .cascade[data-cascade="2"] { transition-delay: 140ms; }
-    .view--active .cascade[data-cascade="3"] { transition-delay: 210ms; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .view,
-      .cascade,
-      h1 {
-        transition: none;
-      }
-      .cascade {
-        opacity: 1;
-        transform: none;
-      }
-      .view {
-        transform: none;
-      }
-    }
+    .view--active .cascade[data-cascade="1"] { transition-delay: 80ms; }
+    .view--active .cascade[data-cascade="2"] { transition-delay: 160ms; }
+    .view--active .cascade[data-cascade="3"] { transition-delay: 240ms; }
   </style>
 
   <script>
     const logo = document.getElementById("logo");
+    const viewport = document.getElementById("viewport");
     const galleryView = document.getElementById("galleryView");
     const studyView = document.getElementById("studyView");
     const studyRoot = document.getElementById("studyRoot");
     const backBtn = document.getElementById("backBtn");
     const studyButtons = document.querySelectorAll("[data-study]");
 
-    function setLogoBlur(on) {
-      if (!logo) return;
-      logo.classList.toggle("logo-blur", on);
-    }
-
-    function replayCascade() {
-      if (!studyView) return;
-      const nodes = studyView.querySelectorAll(".cascade");
-      nodes.forEach((n) => n.classList.remove("cascade-play"));
-      void studyView.offsetHeight;
-      nodes.forEach((n) => n.classList.add("cascade-play"));
-    }
-
-    function showStudy(studyName) {
-      if (studyRoot) studyRoot.textContent = studyName;
-      if (galleryView) galleryView.classList.remove("view--active");
-      if (studyView) studyView.classList.add("view--active");
-      setLogoBlur(true);
-      replayCascade();
+    function showStudy(name) {
+      studyRoot.textContent = name;
+      galleryView.classList.remove("view--active");
+      studyView.classList.add("view--active");
+      viewport.classList.add("zoom-in");
+      logo.classList.add("logo-blur");
     }
 
     function showGallery() {
-      if (studyView) studyView.classList.remove("view--active");
-      if (galleryView) galleryView.classList.add("view--active");
-      setLogoBlur(false);
+      studyView.classList.remove("view--active");
+      galleryView.classList.add("view--active");
+      viewport.classList.remove("zoom-in");
+      logo.classList.remove("logo-blur");
     }
 
-    studyButtons.forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const name = btn.getAttribute("data-study");
-        if (name) showStudy(name);
-      });
-
-      btn.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        const name = btn.getAttribute("data-study");
-        if (name) showStudy(name);
-      });
+    studyButtons.forEach(btn => {
+      btn.addEventListener("click", () => showStudy(btn.dataset.study));
     });
 
-    if (backBtn) {
-      backBtn.addEventListener("click", showGallery);
-      backBtn.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        showGallery();
-      });
-    }
+    backBtn.addEventListener("click", showGallery);
   </script>
 </FrameLayout>
