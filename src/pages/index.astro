@@ -74,17 +74,21 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     .tree {
-      margin-top: 0.5rem;
+      margin-top: 0.55rem;
       font-family: "ABC Diatype", system-ui, sans-serif;
-      font-size: clamp(14px, 3.5vw, 18px);
-      letter-spacing: 0.02em;
-      padding-left: 0.15em;
+      font-weight: 400;
+      font-size: 15px;
+      letter-spacing: -0.01em;
+      width: fit-content;
+      margin-left: auto;
+      margin-right: auto;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
     }
 
     .tree-viewport {
-      position: relative;
-      min-height: 12.5rem;
-      width: fit-content;
+      width: 100%;
       max-width: 100%;
       overflow: visible;
       transform-origin: center left;
@@ -132,6 +136,25 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: fit-content;
     }
 
+    /* Hover wave effect for study buttons */
+    .item-btn .prefix {
+      display: inline-block;
+    }
+
+    .item-btn .wave-char {
+      display: inline-block;
+      transform: scale(var(--wave-scale, 1));
+      transform-origin: center bottom;
+      transition: transform 90ms ease;
+      will-change: transform;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .item-btn .wave-char {
+        transition: none;
+      }
+    }
+
     .back {
       background: none;
       border: 0;
@@ -142,21 +165,18 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       display: inline-flex;
       align-items: center;
       gap: 0.15em;
-      margin-bottom: 0.35rem;
     }
+
+    .arrow { display: inline-block; transform: translateY(-0.02em); }
 
     .view {
-      position: absolute;
-      inset: 0;
-      transition: opacity 260ms ease, transform 260ms ease;
-    }
-
-    .view:not(.view--active) {
+      display: none;
       opacity: 0;
-      pointer-events: none;
+      transition: opacity 180ms ease;
     }
 
-    .view.view--active {
+    .view--active {
+      display: block;
       opacity: 1;
     }
 
@@ -182,30 +202,93 @@ import FrameLayout from "../layouts/FrameLayout.astro";
   </style>
 
   <script>
-    const logo = document.getElementById("logo");
     const viewport = document.getElementById("viewport");
+    const logo = document.getElementById("logo");
     const galleryView = document.getElementById("galleryView");
     const studyView = document.getElementById("studyView");
     const studyRoot = document.getElementById("studyRoot");
     const backBtn = document.getElementById("backBtn");
-    const studyButtons = document.querySelectorAll("[data-study]");
+    const studyButtons = document.querySelectorAll(".item-btn");
 
-    function showStudy(name) {
-      studyRoot.textContent = name;
+    function initWaveButton(btn) {
+      const raw = (btn.textContent || "").replace(/\s+$/g, "");
+      const match = raw.match(/^([├└]─\s*)(.*)$/);
+      const prefix = match ? match[1] : "";
+      const label = match ? match[2] : raw;
+
+      // Build character spans for the label portion only (keeps the tree glyphs stable)
+      const chars = Array.from(label);
+      btn.innerHTML =
+        (prefix ? `<span class="prefix">${prefix}</span>` : "") +
+        chars
+          .map((ch) => {
+            const safe =
+              ch === " "
+                ? "&nbsp;"
+                : ch
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;");
+            return `<span class="wave-char">${safe}</span>`;
+          })
+          .join("");
+
+      const spans = Array.from(btn.querySelectorAll(".wave-char"));
+      if (!spans.length) return;
+
+      let raf = 0;
+      let lastX = 0;
+
+      function applyWave() {
+        raf = 0;
+        const sigma = Math.max(14, parseFloat(getComputedStyle(btn).fontSize) * 0.9);
+        const amp = 0.55;
+
+        for (const sp of spans) {
+          const r = sp.getBoundingClientRect();
+          const cx = r.left + r.width / 2;
+          const d = cx - lastX;
+          const scale = 1 + amp * Math.exp(-(d * d) / (2 * sigma * sigma));
+          sp.style.setProperty("--wave-scale", scale.toFixed(3));
+        }
+      }
+
+      btn.addEventListener("pointermove", (e) => {
+        lastX = e.clientX;
+        if (!raf) raf = requestAnimationFrame(applyWave);
+      });
+
+      btn.addEventListener("pointerleave", () => {
+        if (raf) cancelAnimationFrame(raf);
+        raf = 0;
+        for (const sp of spans) sp.style.setProperty("--wave-scale", "1");
+      });
+    }
+
+    function showStudy(studyName) {
+      // Blur the logo and zoom the viewport (existing animation)
+      logo.classList.add("logo-blur");
+      viewport.classList.add("zoom-in");
+
       galleryView.classList.remove("view--active");
       studyView.classList.add("view--active");
-      viewport.classList.add("zoom-in");
-      logo.classList.add("logo-blur");
+
+      // Update the "study" root label
+      studyRoot.textContent = studyName || "study";
     }
 
     function showGallery() {
+      // Remove blur and zoom (existing animation)
+      logo.classList.remove("logo-blur");
+      viewport.classList.remove("zoom-in");
+
       studyView.classList.remove("view--active");
       galleryView.classList.add("view--active");
-      viewport.classList.remove("zoom-in");
-      logo.classList.remove("logo-blur");
     }
 
     studyButtons.forEach((btn) => {
+      initWaveButton(btn);
+
       btn.addEventListener("click", () => showStudy(btn.dataset.study));
       btn.addEventListener("touchstart", (e) => {
         e.preventDefault();
