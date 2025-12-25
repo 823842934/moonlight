@@ -9,25 +9,25 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       <div class="tree" aria-label="gallery tree">
         <div class="tree-viewport" id="viewport">
           <!-- GALLERY VIEW -->
-          <div id="galleryView" class="view view--active" aria-label="gallery view">
+          <div id="galleryView" class="view view--active">
             <div class="root">gallery</div>
 
             <div class="children">
-              <button class="item item-btn" type="button" data-study="study:[//000-00001]" data-idx="0">├─ study:[//000-00001]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00002]" data-idx="1">├─ study:[//000-00002]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00003]" data-idx="2">├─ study:[//000-00003]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00004]" data-idx="3">├─ study:[//000-00004]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00005]" data-idx="4">├─ study:[//000-00005]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00006]" data-idx="5">├─ study:[//000-00006]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00007]" data-idx="6">├─ study:[//000-00007]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00008]" data-idx="7">├─ study:[//000-00008]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00009]" data-idx="8">├─ study:[//000-00009]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00010]" data-idx="9">└─ study:[//000-00010]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00001]">├─ study:[//000-00001]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00002]">├─ study:[//000-00002]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00003]">├─ study:[//000-00003]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00004]">├─ study:[//000-00004]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00005]">├─ study:[//000-00005]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00006]">├─ study:[//000-00006]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00007]">├─ study:[//000-00007]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00008]">├─ study:[//000-00008]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00009]">├─ study:[//000-00009]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
             </div>
           </div>
 
           <!-- STUDY VIEW -->
-          <div id="studyView" class="view zoomed" aria-live="polite">
+          <div id="studyView" class="view zoomed">
             <button id="backBtn" class="back" type="button"><span class="arrow">←</span><span class="label"> back</span></button>
 
             <div id="studyRoot" class="root">study</div>
@@ -70,7 +70,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     .logo-blur {
-      filter: blur(8px);
+      filter: blur(6px);
     }
 
     .tree {
@@ -87,9 +87,15 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: fit-content;
       max-width: 100%;
       overflow: visible;
+      transform-origin: center left;
+      transition: transform 500ms cubic-bezier(.4,0,.2,1);
     }
 
-    /* HARD no-wrap */
+    .tree-viewport.zoom-in {
+      transform: scale(1.25) translateX(40px);
+    }
+
+    /* HARD no-wrap everywhere for the directory labels */
     .root,
     .item,
     .item-btn,
@@ -114,7 +120,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: fit-content;
     }
 
-    /* Base line transitions so we can do one continuous "enter" motion */
     .item-btn {
       background: none;
       border: 0;
@@ -125,50 +130,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       text-align: left;
       display: inline-block;
       width: fit-content;
-
-      transition:
-        opacity 260ms ease,
-        transform 520ms cubic-bezier(.4,0,.2,1);
-      transform-origin: left center;
-      will-change: opacity, transform;
-    }
-
-    /* Selected line zooms in smoothly */
-    #galleryView.is-entering .item-btn.is-selected {
-      transform: scale(1.25) translateX(40px);
-      opacity: 1;
-      pointer-events: none;
-    }
-
-    /* Other lines fade and drift toward the selected line, sandwich style */
-    #galleryView.is-entering .item-btn.is-fading {
-      opacity: 0;
-      pointer-events: none;
-      transform: translateY(var(--toward, 0px));
-    }
-
-    /* Crossfade between views (kept subtle so the "enter" motion feels continuous) */
-    .view {
-      position: absolute;
-      inset: 0;
-      transition: opacity 180ms ease;
-      will-change: opacity;
-    }
-
-    .view:not(.view--active) {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .view.view--active {
-      opacity: 1;
-      pointer-events: auto;
-    }
-
-    /* Study view is the "zoomed in" destination */
-    .zoomed {
-      transform: scale(1.15);
-      transform-origin: top left;
     }
 
     .back {
@@ -184,12 +145,30 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       margin-bottom: 0.35rem;
     }
 
-    /* Cascade */
+    .view {
+      position: absolute;
+      inset: 0;
+      transition: opacity 260ms ease, transform 260ms ease;
+    }
+
+    .view:not(.view--active) {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .view.view--active {
+      opacity: 1;
+    }
+
+    .zoomed {
+      transform: scale(1.15);
+      transform-origin: top left;
+    }
+
     .cascade {
       opacity: 0;
       transform: translateX(16px);
       transition: opacity 260ms ease, transform 260ms ease;
-      will-change: opacity, transform;
     }
 
     .view--active .cascade {
@@ -200,130 +179,44 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .view--active .cascade[data-cascade="1"] { transition-delay: 80ms; }
     .view--active .cascade[data-cascade="2"] { transition-delay: 160ms; }
     .view--active .cascade[data-cascade="3"] { transition-delay: 240ms; }
-
-    @media (prefers-reduced-motion: reduce) {
-      .item-btn,
-      .view,
-      .cascade,
-      h1 {
-        transition: none;
-      }
-      #galleryView.is-entering .item-btn.is-fading {
-        opacity: 0;
-        transform: none;
-      }
-      #galleryView.is-entering .item-btn.is-selected {
-        transform: none;
-      }
-      .zoomed { transform: none; }
-      .cascade { opacity: 1; transform: none; }
-    }
   </style>
 
   <script>
     const logo = document.getElementById("logo");
+    const viewport = document.getElementById("viewport");
     const galleryView = document.getElementById("galleryView");
     const studyView = document.getElementById("studyView");
     const studyRoot = document.getElementById("studyRoot");
     const backBtn = document.getElementById("backBtn");
-    const studyButtons = Array.from(document.querySelectorAll("[data-study]"));
+    const studyButtons = document.querySelectorAll("[data-study]");
 
-    let isTransitioning = false;
-
-    function setLogoBlur(on) {
-      if (!logo) return;
-      logo.classList.toggle("logo-blur", on);
+    function showStudy(name) {
+      studyRoot.textContent = name;
+      galleryView.classList.remove("view--active");
+      studyView.classList.add("view--active");
+      viewport.classList.add("zoom-in");
+      logo.classList.add("logo-blur");
     }
 
-    function clearGalleryAnimationState() {
-      if (!galleryView) return;
-      galleryView.classList.remove("is-entering");
-      studyButtons.forEach((b) => {
-        b.classList.remove("is-selected", "is-fading");
-        b.style.removeProperty("--toward");
-        b.style.transitionDelay = "";
-      });
-      isTransitioning = false;
-    }
-
-    function enterStudy(clickedBtn) {
-      if (!clickedBtn || isTransitioning) return;
-      isTransitioning = true;
-
-      const selectedIdx = Number(clickedBtn.getAttribute("data-idx") || "0");
-      const name = clickedBtn.getAttribute("data-study") || "study";
-
-      // Prep destination text early so the view swap feels seamless
-      if (studyRoot) studyRoot.textContent = name;
-
-      // Start the "one continuous motion" on the gallery lines
-      galleryView.classList.add("is-entering");
-      setLogoBlur(true);
-
-      // Sandwich fade towards selected, while selected zooms
-      let maxDist = 0;
-      studyButtons.forEach((btn) => {
-        const idx = Number(btn.getAttribute("data-idx") || "0");
-        const dist = Math.abs(idx - selectedIdx);
-        maxDist = Math.max(maxDist, dist);
-
-        const delay = dist * 40; // 1&10 then 2&9 then 3&8...
-        btn.style.transitionDelay = `${delay}ms`;
-
-        if (btn === clickedBtn) {
-          btn.classList.add("is-selected");
-        } else {
-          btn.classList.add("is-fading");
-          const toward = idx < selectedIdx ? "12px" : "-12px";
-          btn.style.setProperty("--toward", toward);
-        }
-      });
-
-      // Swap views BEFORE the line motion finishes so it feels continuous
-      // (crossfade is short so you mostly perceive one zoom gesture)
-      const swapAt = 180; // ms
-      window.setTimeout(() => {
-        galleryView.classList.remove("view--active");
-        studyView.classList.add("view--active");
-      }, swapAt);
-
-      // Clear gallery animation state after everything is done
-      const lineMotionMs = 520; // must match transform duration in CSS
-      const total = (maxDist * 40) + lineMotionMs;
-
-      window.setTimeout(() => {
-        clearGalleryAnimationState();
-      }, total + 40);
-    }
-
-    function backToGallery() {
-      if (isTransitioning) return;
-
-      // swap back immediately
+    function showGallery() {
       studyView.classList.remove("view--active");
       galleryView.classList.add("view--active");
-
-      // unblur title
-      setLogoBlur(false);
-
-      // ensure gallery is clean
-      clearGalleryAnimationState();
+      viewport.classList.remove("zoom-in");
+      logo.classList.remove("logo-blur");
     }
 
     studyButtons.forEach((btn) => {
-      btn.addEventListener("click", () => enterStudy(btn));
+      btn.addEventListener("click", () => showStudy(btn.dataset.study));
       btn.addEventListener("touchstart", (e) => {
         e.preventDefault();
-        enterStudy(btn);
+        showStudy(btn.dataset.study);
       });
     });
 
-    if (backBtn) {
-      backBtn.addEventListener("click", backToGallery);
-      backBtn.addEventListener("touchstart", (e) => {
-        e.preventDefault();
-        backToGallery();
-      });
-    }
+    backBtn.addEventListener("click", showGallery);
+    backBtn.addEventListener("touchstart", (e) => {
+      e.preventDefault();
+      showGallery();
+    });
   </script>
 </FrameLayout>
