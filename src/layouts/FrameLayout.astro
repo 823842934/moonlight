@@ -66,12 +66,18 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
+      /* ripple timing */
       --cascade-ms: 420ms;
       --cascade-stagger: 80ms;
 
-      --cascade-from-opacity: 0.25;
-      --cascade-from-y: -10px;
+      /* ripple “from” look */
+      --cascade-from-opacity: 0.22;
+      --cascade-from-y: 12px;       /* distance AWAY from center item */
       --cascade-from-blur: 1px;
+
+      /* bolding */
+      --study-active-weight: 700;
+      --study-inactive-weight: 400;
     }
 
     html, body {
@@ -90,7 +96,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       overflow-x: clip;
     }
 
-    /* Intro */
     .page-intro-wrap {
       min-height: 100%;
       transition:
@@ -120,7 +125,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.is-intro .intro-wash { opacity: 1; }
 
-    /* Corner plus marks */
     .corner-plus {
       position: fixed;
       z-index: 9999;
@@ -148,11 +152,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       animation: cornerSpin var(--spin-ms) ease-in-out;
     }
 
-    /* ✅ Faded cascade keyframes */
-    @keyframes studyCascadeIn {
+    /* ✅ Ripple in: items move AWAY from the clicked one (up above it, down below it), then settle */
+    @keyframes studyRippleIn {
       from {
         opacity: var(--cascade-from-opacity);
-        transform: translateY(var(--cascade-from-y));
+        transform: translateY(var(--ripple-y, 0px));
         filter: blur(var(--cascade-from-blur));
       }
       to {
@@ -184,6 +188,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <script is:inline>
     (() => {
       const SPIN_CLASS = "spin";
+      const LAST_STUDY_KEY = "brandyura:lastStudyToken";
 
       const getPluses = () => Array.from(document.querySelectorAll(".corner-plus"));
 
@@ -215,45 +220,97 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return Number.isFinite(n) ? n : fallback;
       };
 
-      const animateStudyListCascade = () => {
-        // DOM order = top-to-bottom cascade (assuming your list is in DOM order)
+      const parseStudyToken = (el) => {
+        // expects: study:[//000-00006]
+        const raw = el.getAttribute("data-study") || "";
+        let val = raw;
+        try { val = decodeURIComponent(val); } catch {}
+        const m = val.match(/\[\/\/([0-9]{3}-[0-9]{5})\]/i);
+        return m ? m[1] : null; // e.g. "000-00006"
+      };
+
+      const setLastStudyToken = (token) => {
+        if (!token) return;
+        try { sessionStorage.setItem(LAST_STUDY_KEY, token); } catch {}
+      };
+
+      const getLastStudyToken = () => {
+        try { return sessionStorage.getItem(LAST_STUDY_KEY); } catch { return null; }
+      };
+
+      const animateStudyListRipple = () => {
         const items = Array.from(document.querySelectorAll("[data-study]"))
           .filter((el) => el instanceof HTMLElement && isStudyTrigger(el));
 
         if (!items.length) return false;
 
-        const stagger = cssNum("--cascade-stagger", 48);
-        const ms = cssNum("--cascade-ms", 240);
+        const lastToken = getLastStudyToken();
+        let activeIndex = -1;
+
+        if (lastToken) {
+          activeIndex = items.findIndex((el) => parseStudyToken(el) === lastToken);
+        }
+
+        // fallback: if we can't find it, just ripple from the top
+        if (activeIndex < 0) activeIndex = 0;
+
+        const ms = cssNum("--cascade-ms", 420);
+        const stagger = cssNum("--cascade-stagger", 80);
+        const fromOpacity = cssNum("--cascade-from-opacity", 0.22);
+        const fromY = cssNum("--cascade-from-y", 12);
+        const fromBlur = cssNum("--cascade-from-blur", 1);
+
+        const activeWeight = cssNum("--study-active-weight", 700);
+        const inactiveWeight = cssNum("--study-inactive-weight", 400);
 
         items.forEach((el, i) => {
-          // reset into a *faded* state (not invisible)
-          el.style.animation = "none";
-          el.style.opacity = String(cssNum("--cascade-from-opacity", 0.25));
-          el.style.transform = `translateY(${cssNum("--cascade-from-y", -10)}px)`;
-          el.style.filter = `blur(${cssNum("--cascade-from-blur", 1)}px)`;
+          const dist = Math.abs(i - activeIndex);
+          const delay = dist * stagger;
 
-          // force reflow so the next animation restarts cleanly
+          const isActive = i === activeIndex;
+
+          // bold the clicked one, normalize others
+          el.style.fontWeight = String(isActive ? activeWeight : inactiveWeight);
+
+          // reset base visuals
+          el.style.animation = "none";
+          el.style.opacity = String(isActive ? 1 : fromOpacity);
+          el.style.filter = `blur(${isActive ? 0 : fromBlur}px)`;
+
+          // direction: above active goes UP (negative), below goes DOWN (positive)
+          let dir = 0;
+          if (i < activeIndex) dir = -1;
+          if (i > activeIndex) dir =  1;
+
+          // each element gets its own custom start Y via CSS var
+          const rippleY = `${dir * fromY}px`;
+          el.style.setProperty("--ripple-y", rippleY);
+
+          // force reflow
           void el.offsetWidth;
 
-          const delay = i * stagger;
-          el.style.animation = `studyCascadeIn ${ms}ms cubic-bezier(.22,.61,.36,1) ${delay}ms forwards`;
-
-          // safety: if animation is interrupted, ensure blur doesn't stick
-          el.addEventListener("animationend", () => {
+          // active item can still animate subtly if you want; currently it snaps (clean)
+          if (!isActive) {
+            el.style.animation = `studyRippleIn ${ms}ms cubic-bezier(.22,.61,.36,1) ${delay}ms forwards`;
+            el.addEventListener("animationend", () => {
+              el.style.filter = "blur(0)";
+            }, { once: true });
+          } else {
+            // ensure active is crisp
+            el.style.opacity = "1";
+            el.style.transform = "translateY(0)";
             el.style.filter = "blur(0)";
-          }, { once: true });
+          }
         });
 
         return true;
       };
 
-      const triggerCascadeAfterBack = () => {
-        // Try immediately
-        if (animateStudyListCascade()) return;
+      const triggerRippleAfterBack = () => {
+        if (animateStudyListRipple()) return;
 
-        // Otherwise watch for DOM changes briefly (SPA-ish transitions)
         const obs = new MutationObserver(() => {
-          if (animateStudyListCascade()) obs.disconnect();
+          if (animateStudyListRipple()) obs.disconnect();
         });
 
         obs.observe(document.body, { childList: true, subtree: true });
@@ -266,6 +323,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
+          const token = parseStudyToken(studyEl);
+          setLastStudyToken(token);
           triggerSpin();
           return;
         }
@@ -273,7 +332,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           triggerSpin();
-          triggerCascadeAfterBack();
+          triggerRippleAfterBack();
         }
       }, { capture: true });
 
@@ -284,7 +343,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         }
       }, true);
 
-      // Intro: remove class after first paint so transitions run
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
