@@ -186,6 +186,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     (() => {
       const SPIN_CLASS = "spin";
 
+      /* ---------- corner spin ---------- */
       const getPluses = () => Array.from(document.querySelectorAll(".corner-plus"));
 
       const triggerSpin = () => {
@@ -197,6 +198,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         }
       };
 
+      /* ---------- helpers ---------- */
       const isStudyTrigger = (el) => {
         const v = el.getAttribute("data-study") || "";
         let val = v;
@@ -216,6 +218,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return Number.isFinite(n) ? n : fallback;
       };
 
+      /* ---------- normal cascade on back ---------- */
       const animateStudyListCascade = () => {
         const items = Array.from(document.querySelectorAll("[data-study]"))
           .filter((el) => el instanceof HTMLElement && isStudyTrigger(el));
@@ -255,18 +258,79 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         setTimeout(() => obs.disconnect(), 1200);
       };
 
+      /* ---------- // spinner while inside a study ---------- */
+      const SLASH_FRAMES = ["//", "--", "\\\\", "| |"];
+      const SLASH_MS = 90;
+
+      const slashIntervals = new WeakMap(); // HTMLElement -> intervalId
+      const originalText = new WeakMap();   // HTMLElement -> string
+
+      const replaceBracketsToken = (txt, token) => {
+        // replaces only the "[//" that begins the token inside brackets
+        return txt.replace(/\[\s*\/\/(?=[0-9]{3}-[0-9]{5}\])/g, `[${token}`);
+      };
+
+      const stopSlashSpinnerOn = (el) => {
+        const id = slashIntervals.get(el);
+        if (typeof id === "number") {
+          clearInterval(id);
+          slashIntervals.delete(el);
+        }
+        const orig = originalText.get(el);
+        if (typeof orig === "string") {
+          el.textContent = orig; // restore normal //
+          originalText.delete(el);
+        }
+      };
+
+      const stopAllSlashSpinners = () => {
+        const items = Array.from(document.querySelectorAll("[data-study]"));
+        for (const el of items) stopSlashSpinnerOn(el);
+      };
+
+      const startSlashSpinnerOn = (el) => {
+        if (!(el instanceof HTMLElement)) return;
+
+        stopSlashSpinnerOn(el);
+
+        const txt = el.textContent || "";
+        if (!/\[\s*\/\/(?=[0-9]{3}-[0-9]{5}\])/.test(txt)) return;
+
+        originalText.set(el, txt);
+
+        let i = 0;
+        const tick = () => {
+          const base = originalText.get(el) || (el.textContent || "");
+          const token = SLASH_FRAMES[i % SLASH_FRAMES.length];
+          el.textContent = replaceBracketsToken(base, token);
+          i++;
+        };
+
+        tick();
+        const id = window.setInterval(tick, SLASH_MS);
+        slashIntervals.set(el, id);
+      };
+
+      window.addEventListener("pagehide", () => stopAllSlashSpinners());
+      window.addEventListener("visibilitychange", () => {
+        if (document.visibilityState !== "visible") stopAllSlashSpinners();
+      });
+
+      /* ---------- click handlers ---------- */
       document.addEventListener("click", (e) => {
         const target = e.target;
         if (!target || !target.closest) return;
 
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
+          startSlashSpinnerOn(studyEl);
           triggerSpin();
           return;
         }
 
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
+          stopAllSlashSpinners();
           triggerSpin();
           triggerCascadeAfterBack();
         }
@@ -279,6 +343,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         }
       }, true);
 
+      /* ---------- intro ---------- */
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
