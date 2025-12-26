@@ -255,39 +255,32 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       stack.style.setProperty("--logo-left", `${left}px`);
     }
 
-    /* ===== Intro-only gallery cascade (runs once per tab session) ===== */
     function runGalleryIntroCascadeOnce() {
-      const key = "galleryIntroCascadeDone";
-      if (sessionStorage.getItem(key) === "1") return;
+  const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
+  if (!lines.length) return;
 
-      const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
-      if (!lines.length) return;
+  document.body.classList.add("gallery-intro-cascade");
 
-      document.body.classList.add("gallery-intro-cascade");
+  const stagger = 80; // ms between each line
+  lines.forEach((el, i) => {
+    el.style.animationDelay = `${i * stagger}ms`;
+  });
 
-      const stagger = 80; // ms between each line (tweak)
-      lines.forEach((el, i) => {
-        el.style.animationDelay = `${i * stagger}ms`;
-      });
+  const ms = 420; // must match CSS duration
+  const total = ms + (lines.length - 1) * stagger + 60;
 
-      const ms = 420; // must match CSS duration above
-      const total = ms + (lines.length - 1) * stagger + 60;
+  setTimeout(() => {
+    document.body.classList.remove("gallery-intro-cascade");
+    lines.forEach((el) => {
+      el.style.animationDelay = "";
+      el.style.opacity = "";
+      el.style.transform = "";
+      el.style.filter = "";
+    });
+  }, total);
+}
 
-      setTimeout(() => {
-        document.body.classList.remove("gallery-intro-cascade");
-        lines.forEach((el) => {
-          el.style.animationDelay = "";
-          el.style.opacity = "";
-          el.style.transform = "";
-          el.style.filter = "";
-        });
-      }, total);
-
-      sessionStorage.setItem(key, "1");
-    }
-
-    // expose so FrameLayout can call it right when intro ends
-    window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
+window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
 
     // ===== Glyph animation (fixed width) =====
     const GLYPHS = ["//", "--", "\\\\", "| |"];
