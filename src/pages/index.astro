@@ -11,19 +11,19 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         <div class="tree-viewport" id="viewport">
           <!-- GALLERY VIEW -->
           <div id="galleryView" class="view view--active">
-            <div class="root">gallery</div>
+            <div class="root gallery-line">gallery</div>
 
             <div class="children">
-              <button class="item item-btn" type="button" data-study="study:[//000-00001]">├─ study:[//000-00001]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00002]">├─ study:[//000-00002]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00003]">├─ study:[//000-00003]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00004]">├─ study:[//000-00004]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00005]">├─ study:[//000-00005]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00006]">├─ study:[//000-00006]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00007]">├─ study:[//000-00007]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00008]">├─ study:[//000-00008]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00009]">├─ study:[//000-00009]</button>
-              <button class="item item-btn" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00001]">├─ study:[//000-00001]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00002]">├─ study:[//000-00002]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00003]">├─ study:[//000-00003]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00004]">├─ study:[//000-00004]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00005]">├─ study:[//000-00005]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00006]">├─ study:[//000-00006]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00007]">├─ study:[//000-00007]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00008]">├─ study:[//000-00008]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00009]">├─ study:[//000-00009]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
             </div>
           </div>
 
@@ -197,6 +197,40 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 2ch;            /* always reserve 2 characters */
       text-align: center;
     }
+
+    /* ================================
+       Intro-only GALLERY cascade
+       ================================ */
+    @keyframes galleryIntroCascade {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+        filter: blur(1px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+      }
+    }
+
+    /* default normal state */
+    .gallery-line { opacity: 1; }
+
+    /* while intro cascade is active */
+    body.gallery-intro-cascade .gallery-line {
+      opacity: 0;
+      animation: galleryIntroCascade 420ms cubic-bezier(.25,.8,.25,1) forwards;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      body.gallery-intro-cascade .gallery-line {
+        opacity: 1;
+        animation: none !important;
+        transform: none !important;
+        filter: none !important;
+      }
+    }
   </style>
 
   <script>
@@ -220,6 +254,40 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       const left = Math.max(0, logoRect.left - stackRect.left);
       stack.style.setProperty("--logo-left", `${left}px`);
     }
+
+    /* ===== Intro-only gallery cascade (runs once per tab session) ===== */
+    function runGalleryIntroCascadeOnce() {
+      const key = "galleryIntroCascadeDone";
+      if (sessionStorage.getItem(key) === "1") return;
+
+      const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
+      if (!lines.length) return;
+
+      document.body.classList.add("gallery-intro-cascade");
+
+      const stagger = 80; // ms between each line (tweak)
+      lines.forEach((el, i) => {
+        el.style.animationDelay = `${i * stagger}ms`;
+      });
+
+      const ms = 420; // must match CSS duration above
+      const total = ms + (lines.length - 1) * stagger + 60;
+
+      setTimeout(() => {
+        document.body.classList.remove("gallery-intro-cascade");
+        lines.forEach((el) => {
+          el.style.animationDelay = "";
+          el.style.opacity = "";
+          el.style.transform = "";
+          el.style.filter = "";
+        });
+      }, total);
+
+      sessionStorage.setItem(key, "1");
+    }
+
+    // expose so FrameLayout can call it right when intro ends
+    window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
 
     // ===== Glyph animation (fixed width) =====
     const GLYPHS = ["//", "--", "\\\\", "| |"];
