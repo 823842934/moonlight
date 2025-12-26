@@ -73,10 +73,17 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
 
-      /* merge animation */
+      /* merge */
       --merge-ms: 520ms;
       --merge-ease: cubic-bezier(.2,.9,.2,1);
       --merge-scale: 1.65;
+
+      /* populated by JS */
+      --dx-tr: 0px;
+      --dy-tr: 0px;
+      --dx-br: 0px;
+      --dy-br: 0px;
+      --fade-delay: 480ms; /* JS sets to ~0.92 * --merge-ms */
     }
 
     html, body {
@@ -138,12 +145,42 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       pointer-events: none;
       transform-origin: center;
       will-change: transform, opacity;
+
+      /* default state */
+      transform: translate3d(0,0,0) rotate(0deg) scale(1);
+      opacity: 1;
+
+      transition:
+        transform var(--merge-ms) var(--merge-ease),
+        opacity 120ms var(--merge-ease);
     }
 
     .corner-plus.tl { top: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.tr { top: var(--corner-inset); right: var(--corner-inset); }
     .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
+
+    /* merged state (triggered by body.plus-merged) */
+    body.plus-merged .corner-plus.tl,
+    body.plus-merged .corner-plus.bl {
+      transform: translate3d(0,0,0) rotate(360deg) scale(var(--merge-scale));
+    }
+
+    body.plus-merged .corner-plus.tr {
+      transform: translate3d(var(--dx-tr), var(--dy-tr), 0) rotate(360deg) scale(var(--merge-scale));
+      opacity: 0;
+      transition:
+        transform var(--merge-ms) var(--merge-ease),
+        opacity 120ms var(--merge-ease) var(--fade-delay);
+    }
+
+    body.plus-merged .corner-plus.br {
+      transform: translate3d(var(--dx-br), var(--dy-br), 0) rotate(360deg) scale(var(--merge-scale));
+      opacity: 0;
+      transition:
+        transform var(--merge-ms) var(--merge-ease),
+        opacity 120ms var(--merge-ease) var(--fade-delay);
+    }
 
     /* ✅ Normal cascade (faded -> full) */
     @keyframes studyCascadeIn {
@@ -165,8 +202,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         --cascade-ms: 0ms;
         --cascade-stagger: 0ms;
         --merge-ms: 0ms;
+        --fade-delay: 0ms;
       }
       .intro-wash { display: none; }
+      .corner-plus { transition: none !important; }
     }
   </style>
 </head>
@@ -185,12 +224,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
   <script is:inline>
     (() => {
-      const state = { mode: "rest", anims: [] };
-
-      const prefersReduced = () =>
-        window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
       const $ = (sel) => document.querySelector(sel);
+      const root = document.documentElement;
 
       const getPluses = () => ({
         tl: $(".corner-plus.tl"),
@@ -213,146 +248,57 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       };
 
       const cssMs = (name, fallback) => {
-        const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-        if (!raw) return fallback;
+        const raw = getComputedStyle(root).getPropertyValue(name).trim();
         const n = parseFloat(raw);
         return Number.isFinite(n) ? n : fallback;
       };
 
-      const cssNum = (name, fallback) => {
-        const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-        if (!raw) return fallback;
-        const n = parseFloat(raw);
-        return Number.isFinite(n) ? n : fallback;
-      };
-
-      const cssStr = (name, fallback) => {
-        const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-        return raw || fallback;
-      };
-
-      const cancelAll = () => {
-        for (const a of state.anims) {
-          try { a.cancel(); } catch {}
-        }
-        state.anims = [];
-      };
-
-      const clearInline = () => {
+      const setMergeVars = () => {
         const { tl, tr, bl, br } = getPluses();
-        for (const el of [tl, tr, bl, br]) {
-          if (!el) continue;
-          el.style.transform = "";
-          el.style.opacity = "";
-        }
-      };
-
-      const setInstantMerged = () => {
-        const { tl, tr, bl, br } = getPluses();
-        if (!tl || !tr || !bl || !br) return;
+        if (!tl || !tr || !bl || !br) return false;
 
         const rTL = tl.getBoundingClientRect();
         const rTR = tr.getBoundingClientRect();
         const rBL = bl.getBoundingClientRect();
         const rBR = br.getBoundingClientRect();
 
-        const dxTR = (rTL.left + rTL.width/2) - (rTR.left + rTR.width/2);
-        const dyTR = (rTL.top  + rTL.height/2) - (rTR.top  + rTR.height/2);
-        const dxBR = (rBL.left + rBL.width/2) - (rBR.left + rBR.width/2);
-        const dyBR = (rBL.top  + rBL.height/2) - (rBR.top  + rBR.height/2);
+        const cTLx = rTL.left + rTL.width / 2;
+        const cTLy = rTL.top + rTL.height / 2;
+        const cTRx = rTR.left + rTR.width / 2;
+        const cTRy = rTR.top + rTR.height / 2;
 
-        const s = cssNum("--merge-scale", 1.65);
+        const cBLx = rBL.left + rBL.width / 2;
+        const cBLy = rBL.top + rBL.height / 2;
+        const cBRx = rBR.left + rBR.width / 2;
+        const cBRy = rBR.top + rBR.height / 2;
 
-        tr.style.transform = `translate(${dxTR}px, ${dyTR}px) rotate(360deg) scale(${s})`;
-        tr.style.opacity = "0";
-
-        br.style.transform = `translate(${dxBR}px, ${dyBR}px) rotate(360deg) scale(${s})`;
-        br.style.opacity = "0";
-
-        tl.style.transform = `rotate(360deg) scale(${s})`;
-        bl.style.transform = `rotate(360deg) scale(${s})`;
-
-        state.mode = "merged";
-      };
-
-      const mergePluses = () => {
-        if (state.mode === "merged") return;
-        const { tl, tr, bl, br } = getPluses();
-        if (!tl || !tr || !bl || !br) return;
-
-        cancelAll();
-
-        if (prefersReduced()) {
-          setInstantMerged();
-          return;
-        }
+        root.style.setProperty("--dx-tr", `${(cTLx - cTRx).toFixed(2)}px`);
+        root.style.setProperty("--dy-tr", `${(cTLy - cTRy).toFixed(2)}px`);
+        root.style.setProperty("--dx-br", `${(cBLx - cBRx).toFixed(2)}px`);
+        root.style.setProperty("--dy-br", `${(cBLy - cBRy).toFixed(2)}px`);
 
         const ms = cssMs("--merge-ms", 520);
-        const easing = cssStr("--merge-ease", "cubic-bezier(.2,.9,.2,1)");
-        const s = cssNum("--merge-scale", 1.65);
-
-        const rTL = tl.getBoundingClientRect();
-        const rTR = tr.getBoundingClientRect();
-        const rBL = bl.getBoundingClientRect();
-        const rBR = br.getBoundingClientRect();
-
-        const dxTR = (rTL.left + rTL.width/2) - (rTR.left + rTR.width/2);
-        const dyTR = (rTL.top  + rTL.height/2) - (rTR.top  + rTR.height/2);
-        const dxBR = (rBL.left + rBL.width/2) - (rBR.left + rBR.width/2);
-        const dyBR = (rBL.top  + rBL.height/2) - (rBR.top  + rBR.height/2);
-
-        const fly = (el, dx, dy) => el.animate(
-          [
-            { transform: "translate(0px, 0px) rotate(0deg) scale(1)", opacity: 1, offset: 0 },
-            { transform: `translate(${dx}px, ${dy}px) rotate(300deg) scale(${s})`, opacity: 1, offset: 0.92 },
-            { transform: `translate(${dx}px, ${dy}px) rotate(360deg) scale(${s})`, opacity: 0, offset: 1 },
-          ],
-          { duration: ms, easing, fill: "forwards" }
-        );
-
-        const pop = (el) => el.animate(
-          [
-            { transform: "rotate(0deg) scale(1)" },
-            { transform: `rotate(360deg) scale(${s})` }
-          ],
-          { duration: ms, easing, fill: "forwards" }
-        );
-
-        // ensure the browser paints the start state before animating
-        requestAnimationFrame(() => {
-          state.anims = [
-            fly(tr, dxTR, dyTR),
-            fly(br, dxBR, dyBR),
-            pop(tl),
-            pop(bl),
-          ];
-        });
-
-        state.mode = "merged";
+        root.style.setProperty("--fade-delay", `${Math.round(ms * 0.92)}ms`);
+        return true;
       };
 
-      const unmergePluses = () => {
-        if (state.mode === "rest") return;
+      const merge = () => {
+        if (document.body.classList.contains("plus-merged")) return;
+        setMergeVars();
+        // force a paint so transitions always fire
+        void document.body.offsetWidth;
+        document.body.classList.add("plus-merged");
+      };
 
-        if (prefersReduced()) {
-          clearInline();
-          state.mode = "rest";
-          return;
-        }
+      const unmerge = () => {
+        document.body.classList.remove("plus-merged");
+      };
 
-        if (state.anims.length) {
-          for (const a of state.anims) {
-            try { a.reverse(); } catch {}
-          }
-          Promise.allSettled(state.anims.map(a => a.finished)).then(() => {
-            cancelAll();
-            clearInline();
-          });
-        } else {
-          clearInline();
-        }
-
-        state.mode = "rest";
+      // keep your cascade logic
+      const cssNum = (name, fallback) => {
+        const raw = getComputedStyle(root).getPropertyValue(name);
+        const n = parseFloat(raw);
+        return Number.isFinite(n) ? n : fallback;
       };
 
       const animateStudyListCascade = () => {
@@ -398,36 +344,41 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const target = e.target;
         if (!target || !target.closest) return;
 
-        // STUDY CLICK: if it's a real <a href>, delay navigation so the fly animation is visible
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
           const link = studyEl.closest("a[href]");
           if (link) {
             e.preventDefault();
             const href = link.getAttribute("href");
-            mergePluses();
+
+            merge();
+
             const ms = cssMs("--merge-ms", 520);
             setTimeout(() => { window.location.href = href; }, Math.max(0, ms - 40));
           } else {
-            mergePluses();
+            merge();
           }
           return;
         }
 
-        // BACK CLICK
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
-          unmergePluses();
+          unmerge();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
 
-      // Intro removal
+      // intro removal
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
         });
       });
+
+      // if layout changes (resize), keep merge distances correct
+      window.addEventListener("resize", () => {
+        if (document.body.classList.contains("plus-merged")) setMergeVars();
+      }, { passive: true });
     })();
   </script>
 </body>
