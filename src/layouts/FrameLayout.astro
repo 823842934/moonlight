@@ -37,7 +37,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <meta name="twitter:image" content={ogImageAbs} />
 
   <link rel="icon" href="/favicon.ico" />
-
   <link rel="preload" href="/fonts/ABCDiatype-Regular.woff" as="font" type="font/woff" crossorigin />
   <link rel="preload" href="/fonts/ABCDiatype-Bold.woff" as="font" type="font/woff" crossorigin />
 
@@ -49,7 +48,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       font-style: normal;
       font-display: swap;
     }
-
     @font-face {
       font-family: "ABC Diatype";
       src: url("/fonts/ABCDiatype-Bold.woff") format("woff");
@@ -130,7 +128,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       };
 
       const isStudyTrigger = (el) => {
-        if (!el) return false;
         const v = el.getAttribute("data-study") || "";
         let val = v;
         try { val = decodeURIComponent(val); } catch {}
@@ -138,14 +135,23 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return val.startsWith("study:") && val.includes("[//");
       };
 
+      const isBackTrigger = (el) => {
+        const txt = (el.textContent || "").trim().toLowerCase();
+        return txt === "<- back" || txt === "← back" || txt === "back";
+      };
+
       document.addEventListener("click", (e) => {
         const target = e.target;
         if (!target || !target.closest) return;
 
-        const el = target.closest("[data-study]");
-        if (!el) return;
+        const studyEl = target.closest("[data-study]");
+        if (studyEl && isStudyTrigger(studyEl)) {
+          triggerSpin();
+          return;
+        }
 
-        if (isStudyTrigger(el)) {
+        const backEl = target.closest("button, a");
+        if (backEl && isBackTrigger(backEl)) {
           triggerSpin();
         }
       }, { capture: true });
