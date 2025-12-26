@@ -74,7 +74,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
 
-      /* slash animation speed */
+      /* slash loop speed */
       --slash-ms: 90ms;
     }
 
@@ -166,10 +166,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       }
     }
 
-    /* Optional: keeps the animated slashes visually stable */
+    /* keeps the animated slashes stable width so the label doesn't jitter */
     .slash-anim {
       display: inline-block;
-      width: 2ch; /* so it doesn’t jitter */
+      width: 2ch;
       text-align: left;
     }
 
@@ -195,12 +195,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <script is:inline>
     (() => {
       const SPIN_CLASS = "spin";
+      const LAST_STUDY_KEY = "brandyura:lastStudyToken";
 
-      // Slash loop frames: //, /\ , \/ , \\
       const SLASH_FRAMES = ["//", "/\\", "\\/", "\\\\"];
 
       let slashTimer = null;
-      let slashHostEl = null;
+      let slashSpan = null;
+      let slashWrappedEl = null;
       let slashOriginalText = null;
 
       const getPluses = () => Array.from(document.querySelectorAll(".corner-plus"));
@@ -233,19 +234,70 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return Number.isFinite(n) ? n : fallback;
       };
 
+      const parseStudyTokenFromDataAttr = (el) => {
+        const raw = el.getAttribute("data-study") || "";
+        let val = raw;
+        try { val = decodeURIComponent(val); } catch {}
+        const m = val.match(/\[\/\/([0-9]{3}-[0-9]{5})\]/i);
+        return m ? m[1] : null; // "000-00006"
+      };
+
+      const setLastStudyToken = (token) => {
+        if (!token) return;
+        try { sessionStorage.setItem(LAST_STUDY_KEY, token); } catch {}
+      };
+
+      const getLastStudyToken = () => {
+        try { return sessionStorage.getItem(LAST_STUDY_KEY); } catch { return null; }
+      };
+
+      const clearLastStudyToken = () => {
+        try { sessionStorage.removeItem(LAST_STUDY_KEY); } catch {}
+      };
+
       const stopSlashLoop = () => {
         if (slashTimer) {
           clearInterval(slashTimer);
           slashTimer = null;
         }
-        if (slashHostEl && typeof slashOriginalText === "string") {
-          slashHostEl.textContent = slashOriginalText; // restore plain //
+        if (slashWrappedEl && typeof slashOriginalText === "string") {
+          // restore original label text (no span)
+          slashWrappedEl.textContent = slashOriginalText;
         }
-        slashHostEl = null;
+        slashSpan = null;
+        slashWrappedEl = null;
         slashOriginalText = null;
       };
 
-      const startSlashLoopOn = (el) => {
+      const wrapFirstDoubleSlash = (el) => {
+        // Wrap the first occurrence of "//" that appears inside "[//"
+        // Uses textContent -> rebuild DOM safely (no regex innerHTML risks on links)
+        const txt = el.textContent || "";
+        const idx = txt.indexOf("[//");
+        if (idx === -1) return null;
+
+        const before = txt.slice(0, idx + 1);     // includes "["
+        const after = txt.slice(idx + 1);         // starts with "//...."
+
+        if (!after.startsWith("//")) return null;
+
+        // Build: before + span("//") + rest (after without leading "//")
+        const rest = after.slice(2);
+
+        el.textContent = ""; // clear
+        el.appendChild(document.createTextNode(before));
+
+        const span = document.createElement("span");
+        span.className = "slash-anim";
+        span.setAttribute("data-slash-anim", "1");
+        span.textContent = "//";
+        el.appendChild(span);
+
+        el.appendChild(document.createTextNode(rest));
+        return span;
+      };
+
+      const startSlashLoopOnElement = (el) => {
         stopSlashLoop();
 
         if (!(el instanceof HTMLElement)) return;
@@ -253,35 +305,87 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const txt = el.textContent || "";
         if (!txt.includes("[//")) return;
 
-        slashHostEl = el;
+        slashWrappedEl = el;
         slashOriginalText = txt;
 
-        // Wrap ONLY the first occurrence of "[//" into a span for animation
-        // Example: "study:[//000-00006]" -> "study:[<span>//</span>000-00006]"
-        const html =
-          slashOriginalText.replace(
-            "[//",
-            `[<span class="slash-anim" data-slash-anim>//</span>`
-          );
-
-        el.innerHTML = html;
-
-        const span = el.querySelector("[data-slash-anim]");
+        const span = wrapFirstDoubleSlash(el);
         if (!span) return;
 
-        let i = 0;
-        const ms = Math.max(0, cssNum("--slash-ms", 90));
+        slashSpan = span;
 
-        // If reduced motion makes it 0, just show //
+        const ms = Math.max(0, cssNum("--slash-ms", 90));
         if (ms === 0) {
           span.textContent = "//";
           return;
         }
 
+        let i = 0;
         slashTimer = setInterval(() => {
           i = (i + 1) % SLASH_FRAMES.length;
-          span.textContent = SLASH_FRAMES[i];
+          if (slashSpan) slashSpan.textContent = SLASH_FRAMES[i];
         }, ms);
+      };
+
+      const findStudyLabelForToken = (token) => {
+        if (!token) return null;
+
+        // 1) Prefer elements that already have data-study (your system)
+        const candidates = Array.from(document.querySelectorAll("[data-study]"))
+          .filter((el) => el instanceof HTMLElement)
+          .filter((el) => {
+            const t = parseStudyTokenFromDataAttr(el);
+            return t === token;
+          });
+
+        // If the big label is not data-study, we still try a text search fallback:
+        // 2) Any element whose text includes: [//TOKEN]
+        if (!candidates.length) {
+          const needle = `[//${token}]`.toLowerCase();
+          const all = Array.from(document.querySelectorAll("h1,h2,h3,p,div,span,a,button,li"))
+            .filter((el) => el instanceof HTMLElement);
+
+          for (const el of all) {
+            const t = (el.textContent || "").toLowerCase();
+            if (t.includes(needle)) return el;
+          }
+          return null;
+        }
+
+        // Heuristic: pick the most “headline-ish” (largest font size)
+        let best = candidates[0];
+        let bestSize = 0;
+        for (const el of candidates) {
+          const size = parseFloat(getComputedStyle(el).fontSize) || 0;
+          if (size > bestSize) {
+            bestSize = size;
+            best = el;
+          }
+        }
+        return best;
+      };
+
+      const huntAndStartSlashLoop = () => {
+        const token = getLastStudyToken();
+        if (!token) return;
+
+        // Try now
+        const immediate = findStudyLabelForToken(token);
+        if (immediate) {
+          startSlashLoopOnElement(immediate);
+          return;
+        }
+
+        // Otherwise watch briefly for DOM changes (Astro view transitions / client nav)
+        const obs = new MutationObserver(() => {
+          const el = findStudyLabelForToken(token);
+          if (el) {
+            obs.disconnect();
+            startSlashLoopOnElement(el);
+          }
+        });
+
+        obs.observe(document.body, { childList: true, subtree: true });
+        setTimeout(() => obs.disconnect(), 1500);
       };
 
       const animateStudyListCascade = () => {
@@ -329,17 +433,26 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
+          // store which study was clicked so the next page can animate its label
+          const token = parseStudyTokenFromDataAttr(studyEl);
+          setLastStudyToken(token);
+
           triggerSpin();
-          // ✅ start looping the slashes on the clicked study label
-          startSlashLoopOn(studyEl);
+
+          // also attempt immediately (works if your UI doesn't navigate)
+          // if it navigates, huntAndStartSlashLoop() will run on the next page load
+          huntAndStartSlashLoop();
           return;
         }
 
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           triggerSpin();
-          // ✅ restore normal //
+
+          // stop and restore //
           stopSlashLoop();
+          clearLastStudyToken();
+
           triggerCascadeAfterBack();
         }
       }, { capture: true });
@@ -351,9 +464,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         }
       }, true);
 
+      // Intro + also try slash loop on initial paint (for direct loads on a study page)
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
+          huntAndStartSlashLoop();
         });
       });
     })();
