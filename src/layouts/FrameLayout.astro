@@ -271,6 +271,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
         tl.style.transform = `rotate(360deg) scale(${s})`;
         bl.style.transform = `rotate(360deg) scale(${s})`;
+
+        state.mode = "merged";
       };
 
       const mergePluses = () => {
@@ -282,7 +284,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
         if (prefersReduced()) {
           setInstantMerged();
-          state.mode = "merged";
           return;
         }
 
@@ -302,8 +303,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
         const fly = (el, dx, dy) => el.animate(
           [
-            { transform: "translate(0px, 0px) rotate(0deg) scale(1)", opacity: 1 },
-            { transform: `translate(${dx}px, ${dy}px) rotate(360deg) scale(${s})`, opacity: 0 }
+            { transform: "translate(0px, 0px) rotate(0deg) scale(1)", opacity: 1, offset: 0 },
+            { transform: `translate(${dx}px, ${dy}px) rotate(300deg) scale(${s})`, opacity: 1, offset: 0.92 },
+            { transform: `translate(${dx}px, ${dy}px) rotate(360deg) scale(${s})`, opacity: 0, offset: 1 },
           ],
           { duration: ms, easing, fill: "forwards" }
         );
@@ -316,12 +318,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           { duration: ms, easing, fill: "forwards" }
         );
 
-        state.anims = [
-          fly(tr, dxTR, dyTR),
-          fly(br, dxBR, dyBR),
-          pop(tl),
-          pop(bl),
-        ];
+        // ensure the browser paints the start state before animating
+        requestAnimationFrame(() => {
+          state.anims = [
+            fly(tr, dxTR, dyTR),
+            fly(br, dxBR, dyBR),
+            pop(tl),
+            pop(bl),
+          ];
+        });
 
         state.mode = "merged";
       };
@@ -393,12 +398,23 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const target = e.target;
         if (!target || !target.closest) return;
 
+        // STUDY CLICK: if it's a real <a href>, delay navigation so the fly animation is visible
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
-          mergePluses();
+          const link = studyEl.closest("a[href]");
+          if (link) {
+            e.preventDefault();
+            const href = link.getAttribute("href");
+            mergePluses();
+            const ms = cssMs("--merge-ms", 520);
+            setTimeout(() => { window.location.href = href; }, Math.max(0, ms - 40));
+          } else {
+            mergePluses();
+          }
           return;
         }
 
+        // BACK CLICK
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           unmergePluses();
@@ -406,6 +422,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         }
       }, { capture: true });
 
+      // Intro removal
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
