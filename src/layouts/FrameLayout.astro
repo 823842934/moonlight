@@ -61,10 +61,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --corner-size: 28px;
       --spin-ms: 520ms;
 
-      --intro-ms: 1200ms;
+      --intro-ms: 800ms;
       --intro-ease: cubic-bezier(.2,.9,.2,1);
       --intro-blur: 18px;
       --intro-scale: 0.985;
+
+      --cascade-ms: 220ms;     /* per-item animation */
+      --cascade-stagger: 28ms; /* delay between items */
     }
 
     html, body {
@@ -73,15 +76,17 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       width: 100%;
       height: 100%;
       background: #ffffff;
+      max-width: 100%;
+      overflow-x: hidden;
     }
 
     body {
       font-family: "ABC Diatype", system-ui, sans-serif;
       color: #000000;
-      overflow-x: hidden;
+      overflow-x: clip;
     }
 
-    /* Wrap all page content so we can animate it */
+    /* Intro wrapper anim */
     .page-intro-wrap {
       min-height: 100%;
       transition:
@@ -90,19 +95,17 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       will-change: filter, transform;
     }
 
-    /* White wash overlay that fades away */
     .intro-wash {
       position: fixed;
       inset: 0;
       background: #ffffff;
-      z-index: 9000; /* below corner-plus */
+      z-index: 9000;
       pointer-events: none;
       opacity: 0;
       transition: opacity var(--intro-ms) var(--intro-ease);
       will-change: opacity;
     }
 
-    /* Intro initial state */
     body.is-intro {
       overflow: hidden;
     }
@@ -145,23 +148,25 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       animation: cornerSpin var(--spin-ms) ease-in-out;
     }
 
-    @media (prefers-reduced-motion: reduce) {
-      :root { --intro-ms: 0ms; --spin-ms: 0ms; }
-      .intro-wash { display: none; }
+    /* Cascade-in for the study list */
+    @keyframes cascadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-html, body {
-  max-width: 100%;
-  overflow-x: hidden;
-}
+    /* We target your exact study buttons: <button class="item item-btn" data-study="..."> */
+    button.item.item-btn[data-study].cascade-in {
+      opacity: 0;
+      transform: translateY(-8px);
+      animation: cascadeIn var(--cascade-ms) ease-out forwards;
+      animation-delay: calc(var(--i, 0) * var(--cascade-stagger));
+      will-change: opacity, transform;
+    }
 
-body {
-  overflow-x: clip;
-}
-
-
-
-
+    @media (prefers-reduced-motion: reduce) {
+      :root { --intro-ms: 0ms; --spin-ms: 0ms; --cascade-ms: 0ms; --cascade-stagger: 0ms; }
+      .intro-wash { display: none; }
+    }
   </style>
 </head>
 
@@ -205,6 +210,28 @@ body {
         return txt === "<- back" || txt === "← back" || txt === "back";
       };
 
+      const triggerCascade = () => {
+        // Wait a tick so the UI has time to render the list view after "back"
+        setTimeout(() => {
+          const items = Array.from(document.querySelectorAll("button.item.item-btn[data-study]"));
+
+          for (let i = 0; i < items.length; i++) {
+            const el = items[i];
+            el.classList.remove("cascade-in");
+            el.style.removeProperty("--i");
+          }
+
+          // Force reflow to restart animations reliably
+          void document.body.offsetWidth;
+
+          for (let i = 0; i < items.length; i++) {
+            const el = items[i];
+            el.style.setProperty("--i", String(i));
+            el.classList.add("cascade-in");
+          }
+        }, 30);
+      };
+
       document.addEventListener("click", (e) => {
         const target = e.target;
         if (!target || !target.closest) return;
@@ -218,17 +245,25 @@ body {
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           triggerSpin();
+          triggerCascade();
         }
       }, { capture: true });
 
       document.addEventListener("animationend", (e) => {
         const t = e.target;
+
         if (t && t.classList && t.classList.contains("corner-plus")) {
           t.classList.remove(SPIN_CLASS);
         }
+
+        // Clean up cascade class so it doesn't stay "stuck" on items
+        if (t && t.matches && t.matches("button.item.item-btn[data-study].cascade-in")) {
+          t.classList.remove("cascade-in");
+          t.style.removeProperty("--i");
+        }
       }, true);
 
-      // Run intro once per load: remove class AFTER the browser paints the intro state
+      // Intro: remove class after first paint so transitions run
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
