@@ -66,8 +66,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
-      --cascade-ms: 420ms;
-      --cascade-stagger: 65ms;
+      --cascade-ms: 220ms;
+      --cascade-stagger: 28ms;
     }
 
     html, body {
@@ -86,6 +86,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       overflow-x: clip;
     }
 
+    /* Intro */
     .page-intro-wrap {
       min-height: 100%;
       transition:
@@ -115,6 +116,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.is-intro .intro-wash { opacity: 1; }
 
+    /* Corner plus marks */
     .corner-plus {
       position: fixed;
       z-index: 9999;
@@ -142,8 +144,14 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       animation: cornerSpin var(--spin-ms) ease-in-out;
     }
 
+    /* Cascade keyframes (we'll apply inline styles via JS) */
+    @keyframes studyCascadeIn {
+      from { opacity: 0; transform: translateY(-8px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      :root { --intro-ms: 0ms; --spin-ms: 0ms; }
+      :root { --intro-ms: 0ms; --spin-ms: 0ms; --cascade-ms: 0ms; --cascade-stagger: 0ms; }
       .intro-wash { display: none; }
     }
   </style>
@@ -189,50 +197,44 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return txt === "<- back" || txt === "← back" || txt === "back";
       };
 
-      // BULLETPROOF fade+slide cascade using inline transitions (not keyframes)
       const animateStudyListCascade = () => {
         const items = Array.from(document.querySelectorAll("[data-study]"))
           .filter((el) => el instanceof HTMLElement && isStudyTrigger(el));
 
         if (!items.length) return false;
 
-        const root = getComputedStyle(document.documentElement);
-        const ms = parseFloat(root.getPropertyValue("--cascade-ms")) || 420;
-        const stagger = parseFloat(root.getPropertyValue("--cascade-stagger")) || 65;
-
-        // Reset everyone to invisible immediately
-        items.forEach((el) => {
-          el.style.transition = "none";
+        items.forEach((el, i) => {
+          // reset
+          el.style.animation = "none";
           el.style.opacity = "0";
           el.style.transform = "translateY(-8px)";
-        });
+          // force reflow per element
+          void el.offsetWidth;
 
-        // Force a paint so the next changes transition
-        void document.body.offsetWidth;
+          const delay = i * parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cascade-stagger")) || (i * 28);
+          const ms = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cascade-ms")) || 220;
 
-        // Stagger in
-        items.forEach((el, i) => {
-          const delay = i * stagger;
-
-          setTimeout(() => {
-            el.style.transition = `opacity ${ms}ms cubic-bezier(.2,.9,.2,1), transform ${ms}ms cubic-bezier(.2,.9,.2,1)`;
-            el.style.opacity = "1";
-            el.style.transform = "translateY(0px)";
-          }, delay);
+          el.style.animation = `studyCascadeIn ${ms}ms ease-out ${delay}ms forwards`;
         });
 
         return true;
       };
 
       const triggerCascadeAfterBack = () => {
+        // Try immediately (sometimes it’s already there)
         if (animateStudyListCascade()) return;
 
+        // Otherwise watch for DOM changes for a short window
         const obs = new MutationObserver(() => {
-          if (animateStudyListCascade()) obs.disconnect();
+          if (animateStudyListCascade()) {
+            obs.disconnect();
+          }
         });
 
         obs.observe(document.body, { childList: true, subtree: true });
-        setTimeout(() => obs.disconnect(), 1500);
+
+        // stop watching after 1.2s no matter what
+        setTimeout(() => obs.disconnect(), 1200);
       };
 
       document.addEventListener("click", (e) => {
@@ -259,6 +261,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         }
       }, true);
 
+      // Intro: remove class after first paint so transitions run
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
