@@ -66,8 +66,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
-      --cascade-ms: 220ms;
-      --cascade-stagger: 28ms;
+      --cascade-ms: 240ms;
+      --cascade-stagger: 48ms;
+
+      --cascade-from-opacity: 0.25;
+      --cascade-from-y: -10px;
+      --cascade-from-blur: 1px;
     }
 
     html, body {
@@ -144,10 +148,18 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       animation: cornerSpin var(--spin-ms) ease-in-out;
     }
 
-    /* Cascade keyframes (we'll apply inline styles via JS) */
+    /* ✅ Faded cascade keyframes */
     @keyframes studyCascadeIn {
-      from { opacity: 0; transform: translateY(-8px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: var(--cascade-from-opacity);
+        transform: translateY(var(--cascade-from-y));
+        filter: blur(var(--cascade-from-blur));
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -197,43 +209,54 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return txt === "<- back" || txt === "← back" || txt === "back";
       };
 
+      const cssNum = (name, fallback) => {
+        const raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+        const n = parseFloat(raw);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
       const animateStudyListCascade = () => {
+        // DOM order = top-to-bottom cascade (assuming your list is in DOM order)
         const items = Array.from(document.querySelectorAll("[data-study]"))
           .filter((el) => el instanceof HTMLElement && isStudyTrigger(el));
 
         if (!items.length) return false;
 
+        const stagger = cssNum("--cascade-stagger", 48);
+        const ms = cssNum("--cascade-ms", 240);
+
         items.forEach((el, i) => {
-          // reset
+          // reset into a *faded* state (not invisible)
           el.style.animation = "none";
-          el.style.opacity = "0";
-          el.style.transform = "translateY(-8px)";
-          // force reflow per element
+          el.style.opacity = String(cssNum("--cascade-from-opacity", 0.25));
+          el.style.transform = `translateY(${cssNum("--cascade-from-y", -10)}px)`;
+          el.style.filter = `blur(${cssNum("--cascade-from-blur", 1)}px)`;
+
+          // force reflow so the next animation restarts cleanly
           void el.offsetWidth;
 
-          const delay = i * parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cascade-stagger")) || (i * 28);
-          const ms = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cascade-ms")) || 220;
-
+          const delay = i * stagger;
           el.style.animation = `studyCascadeIn ${ms}ms ease-out ${delay}ms forwards`;
+
+          // safety: if animation is interrupted, ensure blur doesn't stick
+          el.addEventListener("animationend", () => {
+            el.style.filter = "blur(0)";
+          }, { once: true });
         });
 
         return true;
       };
 
       const triggerCascadeAfterBack = () => {
-        // Try immediately (sometimes it’s already there)
+        // Try immediately
         if (animateStudyListCascade()) return;
 
-        // Otherwise watch for DOM changes for a short window
+        // Otherwise watch for DOM changes briefly (SPA-ish transitions)
         const obs = new MutationObserver(() => {
-          if (animateStudyListCascade()) {
-            obs.disconnect();
-          }
+          if (animateStudyListCascade()) obs.disconnect();
         });
 
         obs.observe(document.body, { childList: true, subtree: true });
-
-        // stop watching after 1.2s no matter what
         setTimeout(() => obs.disconnect(), 1200);
       };
 
