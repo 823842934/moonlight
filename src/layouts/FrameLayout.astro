@@ -60,7 +60,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --corner-inset: 22px;
       --corner-size: 28px;
 
-      --intro-ms: 3000ms;
+      --intro-ms: 800ms;
       --intro-ease: cubic-bezier(.2,.9,.2,1);
       --intro-blur: 18px;
       --intro-scale: 0.985;
@@ -71,6 +71,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --cascade-from-opacity: 0.25;
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
+
+      /* intro-only cascade (gallery text, etc.) */
+      --intro-cascade-ms: 520ms;
+      --intro-cascade-stagger: 90ms;
+      --intro-cascade-from-opacity: 0;
+      --intro-cascade-from-y: -10px;
+      --intro-cascade-from-blur: 2px;
 
       /* plus transform (no movement) */
       --plus-ms: 520ms;
@@ -180,7 +187,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       z-index: 9998;
       width: var(--connector-width);
       background: #000;
-      border-radius: 0; /* ✅ sharp corners */
+      border-radius: 0;
 
       left: -9999px;
       top: -9999px;
@@ -196,7 +203,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.plus-merged .left-connector { opacity: 1; }
 
-    /* ✅ Normal cascade (faded -> full) */
+    /* Normal cascade (used for study list, etc.) */
     @keyframes studyCascadeIn {
       from {
         opacity: var(--cascade-from-opacity);
@@ -210,11 +217,27 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       }
     }
 
+    /* Intro-only cascade (gallery text + subsets) */
+    @keyframes introCascadeIn {
+      from {
+        opacity: var(--intro-cascade-from-opacity);
+        transform: translateY(var(--intro-cascade-from-y));
+        filter: blur(var(--intro-cascade-from-blur));
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+        filter: blur(0);
+      }
+    }
+
     @media (prefers-reduced-motion: reduce) {
       :root {
         --intro-ms: 0ms;
         --cascade-ms: 0ms;
         --cascade-stagger: 0ms;
+        --intro-cascade-ms: 0ms;
+        --intro-cascade-stagger: 0ms;
         --plus-ms: 0ms;
         --connector-ms: 0ms;
       }
@@ -268,13 +291,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return Number.isFinite(n) ? n : fallback;
       };
 
-      // ✅ Estimate plus "arm" thickness from font-size (works well for most fonts)
+      // Estimate plus "arm" thickness from font-size
       const updateConnectorWidth = () => {
         const tl = $(".corner-plus.tl");
         if (!tl) return;
         const fs = parseFloat(getComputedStyle(tl).fontSize) || 28;
-
-        // tweakable: ~10% of font size usually matches the stroke weight visually
         const w = Math.max(2, Math.round(fs * 0.10));
         root.style.setProperty("--connector-width", `${w}px`);
       };
@@ -349,6 +370,40 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return true;
       };
 
+      // Intro-only cascade: target elements you mark with data-intro-cascade
+      let didIntroCascade = false;
+      const animateIntroCascade = () => {
+        if (didIntroCascade) return false;
+
+        const items = Array.from(document.querySelectorAll("[data-intro-cascade]"))
+          .filter((el) => el instanceof HTMLElement);
+
+        if (!items.length) return false;
+
+        didIntroCascade = true;
+
+        const stagger = cssNum("--intro-cascade-stagger", 90);
+        const ms = cssNum("--intro-cascade-ms", 520);
+
+        items.forEach((el, i) => {
+          el.style.animation = "none";
+          el.style.opacity = "0";
+          el.style.transform = `translateY(${cssNum("--intro-cascade-from-y", -10)}px)`;
+          el.style.filter = `blur(${cssNum("--intro-cascade-from-blur", 2)}px)`;
+
+          void el.offsetWidth;
+
+          const delay = i * stagger;
+          el.style.animation = `introCascadeIn ${ms}ms cubic-bezier(.25,.8,.25,1) ${delay}ms forwards`;
+
+          el.addEventListener("animationend", () => {
+            el.style.filter = "blur(0)";
+          }, { once: true });
+        });
+
+        return true;
+      };
+
       const triggerCascadeAfterBack = () => {
         if (animateStudyListCascade()) return;
 
@@ -395,17 +450,20 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         setConnectorMetrics();
       }, { passive: true });
 
-      // intro removal
+      // intro removal + intro-only cascade
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
           updateConnectorWidth();
           setConnectorMetrics();
+
+          // Run after intro is lifted so it feels tied to that moment
+          requestAnimationFrame(() => {
+            animateIntroCascade();
+          });
         });
       });
     })();
   </script>
 </body>
 </html>
-
-
