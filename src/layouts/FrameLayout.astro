@@ -149,6 +149,19 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       :root { --intro-ms: 0ms; --spin-ms: 0ms; }
       .intro-wash { display: none; }
     }
+
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  overflow-x: clip;
+}
+
+
+
+
   </style>
 </head>
 
