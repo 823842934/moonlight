@@ -216,9 +216,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return Number.isFinite(n) ? n : fallback;
       };
 
-      /* =========================
-         Normal cascade on back
-      ========================= */
       const animateStudyListCascade = () => {
         const items = Array.from(document.querySelectorAll("[data-study]"))
           .filter((el) => el instanceof HTMLElement && isStudyTrigger(el));
@@ -258,86 +255,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         setTimeout(() => obs.disconnect(), 1200);
       };
 
-      /* =========================
-         Glyph loop on study detail
-         // -> -- -> \\ -> | | -> loop
-         Targets: button[data-study^="study:["]
-      ========================= */
-      const GLYPHS = ["//", "--", "\\\\", "| |"];
-      const GLYPH_MS = 110;
-
-      let glyphTimer = null;
-      let glyphIndex = 0;
-      let glyphTargetEl = null;
-      let glyphOriginal = null;
-
-      const startGlyphLoop = () => {
-        if (glyphTimer) return false;
-
-        const el = document.querySelector('button[data-study^="study:["]');
-        if (!el) return false;
-
-        glyphTargetEl = el;
-        glyphOriginal = el.textContent || "";
-
-        // ensure the initial glyph is //
-        glyphTargetEl.textContent = glyphTargetEl.textContent.replace(
-          /(study:\[)(\/\/|--|\\\\|\|\s\|)/i,
-          `$1//`
-        );
-
-        glyphIndex = 0;
-
-        glyphTimer = setInterval(() => {
-          if (!glyphTargetEl) return;
-
-          glyphIndex = (glyphIndex + 1) % GLYPHS.length;
-          const glyph = GLYPHS[glyphIndex];
-
-          glyphTargetEl.textContent = glyphTargetEl.textContent.replace(
-            /(study:\[)(\/\/|--|\\\\|\|\s\|)/i,
-            `$1${glyph}`
-          );
-        }, GLYPH_MS);
-
-        return true;
-      };
-
-      const stopGlyphLoop = () => {
-        if (glyphTimer) {
-          clearInterval(glyphTimer);
-          glyphTimer = null;
-        }
-
-        if (glyphTargetEl && glyphOriginal != null) {
-          glyphTargetEl.textContent = glyphOriginal;
-        }
-
-        glyphIndex = 0;
-        glyphTargetEl = null;
-        glyphOriginal = null;
-      };
-
-      const triggerGlyphLoopAfterEnter = () => {
-        // try after a couple frames (page transition)
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            if (startGlyphLoop()) return;
-
-            // fallback: watch DOM briefly
-            const obs = new MutationObserver(() => {
-              if (startGlyphLoop()) obs.disconnect();
-            });
-
-            obs.observe(document.body, { childList: true, subtree: true });
-            setTimeout(() => obs.disconnect(), 1200);
-          });
-        });
-      };
-
-      /* =========================
-         Click handling
-      ========================= */
       document.addEventListener("click", (e) => {
         const target = e.target;
         if (!target || !target.closest) return;
@@ -345,14 +262,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
           triggerSpin();
-          triggerGlyphLoopAfterEnter();
           return;
         }
 
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           triggerSpin();
-          stopGlyphLoop();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
@@ -364,23 +279,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         }
       }, true);
 
-      // If user loads directly onto a study detail view, start loop on load
-      const bootGlyphLoop = () => {
-        if (startGlyphLoop()) return;
-
-        const obs = new MutationObserver(() => {
-          if (startGlyphLoop()) obs.disconnect();
-        });
-
-        obs.observe(document.body, { childList: true, subtree: true });
-        setTimeout(() => obs.disconnect(), 1200);
-      };
-
-      // Intro: remove class after first paint so transitions run
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
-          bootGlyphLoop();
         });
       });
     })();
