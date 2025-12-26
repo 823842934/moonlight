@@ -59,25 +59,31 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     :root {
       --corner-inset: 22px;
       --corner-size: 28px;
+
       --intro-ms: 800ms;
       --intro-ease: cubic-bezier(.2,.9,.2,1);
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
+      /* normal top-to-bottom cascade */
       --cascade-ms: 420ms;
       --cascade-stagger: 80ms;
       --cascade-from-opacity: 0.25;
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
 
+      /* plus transform (no movement) */
       --plus-ms: 520ms;
       --plus-ease: cubic-bezier(.22,.61,.36,1);
       --left-scale: 2.1;
       --right-scale: 0.45;
 
-      --connector-gap: 14px;
+      /* connector */
+      --connector-gap: 14px;     /* space from each + so ends don't touch */
       --connector-ms: 520ms;
       --connector-ease: cubic-bezier(.22,.61,.36,1);
+
+      /* JS sets this to match the plus "arm" thickness */
       --connector-width: 3px;
     }
 
@@ -97,10 +103,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       overflow-x: clip;
     }
 
+    /* Intro */
     .page-intro-wrap {
       min-height: 100%;
-      transition: filter var(--intro-ms) var(--intro-ease),
-                  transform var(--intro-ms) var(--intro-ease);
+      transition:
+        filter var(--intro-ms) var(--intro-ease),
+        transform var(--intro-ms) var(--intro-ease);
       will-change: filter, transform;
     }
 
@@ -125,6 +133,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.is-intro .intro-wash { opacity: 1; }
 
+    /* Corner plus marks */
     .corner-plus {
       position: fixed;
       z-index: 9999;
@@ -135,12 +144,16 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       color: #000;
       user-select: none;
       pointer-events: none;
+
       transform-origin: center;
       will-change: transform, opacity;
+
       transform: rotate(0deg) scale(1);
       opacity: 1;
-      transition: transform var(--plus-ms) var(--plus-ease),
-                  opacity var(--plus-ms) var(--plus-ease);
+
+      transition:
+        transform var(--plus-ms) var(--plus-ease),
+        opacity var(--plus-ms) var(--plus-ease);
     }
 
     .corner-plus.tl { top: var(--corner-inset); left: var(--corner-inset); }
@@ -148,6 +161,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
 
+    /* merged state: left grows, right shrinks + fades */
     body.plus-merged .corner-plus.tl,
     body.plus-merged .corner-plus.bl {
       transform: rotate(360deg) scale(var(--left-scale));
@@ -160,17 +174,21 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       opacity: 0;
     }
 
+    /* Connector line between left pluses (sharp rectangle, no rounding) */
     .left-connector {
       position: fixed;
       z-index: 9998;
       width: var(--connector-width);
       background: #000;
-      border-radius: 0;
+      border-radius: 0; /* ✅ sharp corners */
+
       left: -9999px;
       top: -9999px;
       height: 0px;
+
       transform: translate(-50%, -50%);
       opacity: 0;
+
       transition: opacity var(--connector-ms) var(--connector-ease);
       will-change: opacity;
       pointer-events: none;
@@ -178,6 +196,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.plus-merged .left-connector { opacity: 1; }
 
+    /* ✅ Normal cascade (faded -> full) */
     @keyframes studyCascadeIn {
       from {
         opacity: var(--cascade-from-opacity);
@@ -190,6 +209,18 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         filter: blur(0);
       }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      :root {
+        --intro-ms: 0ms;
+        --cascade-ms: 0ms;
+        --cascade-stagger: 0ms;
+        --plus-ms: 0ms;
+        --connector-ms: 0ms;
+      }
+      .intro-wash { display: none; }
+      .corner-plus, .left-connector { transition: none !important; }
+    }
   </style>
 </head>
 
@@ -200,6 +231,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <div class="corner-plus br">＋</div>
 
   <div class="left-connector" aria-hidden="true"></div>
+
   <div class="intro-wash" aria-hidden="true"></div>
 
   <div class="page-intro-wrap">
@@ -211,10 +243,38 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       const root = document.documentElement;
       const $ = (sel) => document.querySelector(sel);
 
+      const isStudyTrigger = (el) => {
+        const v = el.getAttribute("data-study") || "";
+        let val = v;
+        try { val = decodeURIComponent(val); } catch {}
+        val = val.trim().toLowerCase();
+        return val.startsWith("study:") && val.includes("[//");
+      };
+
+      const isBackTrigger = (el) => {
+        const txt = (el.textContent || "").trim().toLowerCase();
+        return txt === "<- back" || txt === "← back" || txt === "back";
+      };
+
+      const cssNum = (name, fallback) => {
+        const raw = getComputedStyle(root).getPropertyValue(name).trim();
+        const n = parseFloat(raw);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
+      const cssMs = (name, fallback) => {
+        const raw = getComputedStyle(root).getPropertyValue(name).trim();
+        const n = parseFloat(raw);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
+      // ✅ Estimate plus "arm" thickness from font-size (works well for most fonts)
       const updateConnectorWidth = () => {
         const tl = $(".corner-plus.tl");
         if (!tl) return;
         const fs = parseFloat(getComputedStyle(tl).fontSize) || 28;
+
+        // tweakable: ~10% of font size usually matches the stroke weight visually
         const w = Math.max(2, Math.round(fs * 0.10));
         root.style.setProperty("--connector-width", `${w}px`);
       };
@@ -229,28 +289,119 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const rBL = bl.getBoundingClientRect();
 
         const cx = rTL.left + rTL.width / 2;
-        const gap = 14;
-        const topY = rTL.bottom + gap;
-        const bottomY = rBL.top - gap;
+
+        const gap = cssNum("--connector-gap", 14);
+        const topY = (rTL.bottom + gap);
+        const bottomY = (rBL.top - gap);
         const h = Math.max(0, bottomY - topY);
-        const cy = topY + h / 2;
+        const cy = topY + (h / 2);
 
         conn.style.left = `${cx}px`;
         conn.style.top = `${cy}px`;
         conn.style.height = `${h}px`;
       };
 
+      const merge = () => {
+        if (document.body.classList.contains("plus-merged")) return;
+
+        updateConnectorWidth();
+        setConnectorMetrics();
+
+        document.body.classList.remove("plus-merged");
+        void document.body.offsetWidth;
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            document.body.classList.add("plus-merged");
+          });
+        });
+      };
+
+      const unmerge = () => {
+        document.body.classList.remove("plus-merged");
+      };
+
+      const animateStudyListCascade = () => {
+        const items = Array.from(document.querySelectorAll("[data-study]"))
+          .filter((el) => el instanceof HTMLElement && isStudyTrigger(el));
+
+        if (!items.length) return false;
+
+        const stagger = cssNum("--cascade-stagger", 80);
+        const ms = cssNum("--cascade-ms", 420);
+
+        items.forEach((el, i) => {
+          el.style.animation = "none";
+          el.style.opacity = String(cssNum("--cascade-from-opacity", 0.25));
+          el.style.transform = `translateY(${cssNum("--cascade-from-y", -10)}px)`;
+          el.style.filter = `blur(${cssNum("--cascade-from-blur", 1)}px)`;
+
+          void el.offsetWidth;
+
+          const delay = i * stagger;
+          el.style.animation = `studyCascadeIn ${ms}ms cubic-bezier(.25,.8,.25,1) ${delay}ms forwards`;
+
+          el.addEventListener("animationend", () => {
+            el.style.filter = "blur(0)";
+          }, { once: true });
+        });
+
+        return true;
+      };
+
+      const triggerCascadeAfterBack = () => {
+        if (animateStudyListCascade()) return;
+
+        const obs = new MutationObserver(() => {
+          if (animateStudyListCascade()) obs.disconnect();
+        });
+
+        obs.observe(document.body, { childList: true, subtree: true });
+        setTimeout(() => obs.disconnect(), 1200);
+      };
+
+      document.addEventListener("click", (e) => {
+        const target = e.target;
+        if (!target || !target.closest) return;
+
+        // STUDY CLICK (delay nav if it's a real link)
+        const studyEl = target.closest("[data-study]");
+        if (studyEl && isStudyTrigger(studyEl)) {
+          const link = studyEl.closest("a[href]");
+          if (link) {
+            e.preventDefault();
+            const href = link.getAttribute("href");
+
+            merge();
+
+            const ms = cssMs("--plus-ms", 520);
+            setTimeout(() => { window.location.href = href; }, Math.max(0, ms + 40));
+          } else {
+            merge();
+          }
+          return;
+        }
+
+        // BACK CLICK
+        const backEl = target.closest("button, a");
+        if (backEl && isBackTrigger(backEl)) {
+          unmerge();
+          triggerCascadeAfterBack();
+        }
+      }, { capture: true });
+
+      window.addEventListener("resize", () => {
+        updateConnectorWidth();
+        setConnectorMetrics();
+      }, { passive: true });
+
+      // intro removal
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
           updateConnectorWidth();
           setConnectorMetrics();
         });
-      });
-
-      window.addEventListener("resize", () => {
-        updateConnectorWidth();
-        setConnectorMetrics();
       });
     })();
   </script>
