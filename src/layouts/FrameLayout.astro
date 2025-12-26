@@ -68,7 +68,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       /* normal top-to-bottom cascade */
       --cascade-ms: 420ms;
       --cascade-stagger: 80ms;
-
       --cascade-from-opacity: 0.25;
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
@@ -79,11 +78,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --left-scale: 2.1;
       --right-scale: 0.45;
 
-      /* connector line */
-      --connector-width: 3px;   /* thickness */
-      --connector-gap: 14px;    /* space from each + so ends don't touch */
+      /* connector */
+      --connector-gap: 14px;     /* space from each + so ends don't touch */
       --connector-ms: 520ms;
       --connector-ease: cubic-bezier(.22,.61,.36,1);
+
+      /* JS sets this to match the plus "arm" thickness */
+      --connector-width: 3px;
     }
 
     html, body {
@@ -173,15 +174,14 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       opacity: 0;
     }
 
-    /* Connector line between left pluses */
+    /* Connector line between left pluses (sharp rectangle, no rounding) */
     .left-connector {
       position: fixed;
-      z-index: 9998; /* just under the pluses */
+      z-index: 9998;
       width: var(--connector-width);
       background: #000;
-      border-radius: 999px;
+      border-radius: 0; /* ✅ sharp corners */
 
-      /* JS sets: left, top, height */
       left: -9999px;
       top: -9999px;
       height: 0px;
@@ -189,15 +189,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       transform: translate(-50%, -50%);
       opacity: 0;
 
-      transition:
-        opacity var(--connector-ms) var(--connector-ease);
+      transition: opacity var(--connector-ms) var(--connector-ease);
       will-change: opacity;
       pointer-events: none;
     }
 
-    body.plus-merged .left-connector {
-      opacity: 1;
-    }
+    body.plus-merged .left-connector { opacity: 1; }
 
     /* ✅ Normal cascade (faded -> full) */
     @keyframes studyCascadeIn {
@@ -271,6 +268,17 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return Number.isFinite(n) ? n : fallback;
       };
 
+      // ✅ Estimate plus "arm" thickness from font-size (works well for most fonts)
+      const updateConnectorWidth = () => {
+        const tl = $(".corner-plus.tl");
+        if (!tl) return;
+        const fs = parseFloat(getComputedStyle(tl).fontSize) || 28;
+
+        // tweakable: ~10% of font size usually matches the stroke weight visually
+        const w = Math.max(2, Math.round(fs * 0.10));
+        root.style.setProperty("--connector-width", `${w}px`);
+      };
+
       const setConnectorMetrics = () => {
         const tl = $(".corner-plus.tl");
         const bl = $(".corner-plus.bl");
@@ -280,16 +288,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const rTL = tl.getBoundingClientRect();
         const rBL = bl.getBoundingClientRect();
 
-        // center X aligned to the TL plus glyph
         const cx = rTL.left + rTL.width / 2;
 
-        // connector spans between TL bottom and BL top, with extra gaps
         const gap = cssNum("--connector-gap", 14);
         const topY = (rTL.bottom + gap);
         const bottomY = (rBL.top - gap);
         const h = Math.max(0, bottomY - topY);
-
-        // center vertically in the span
         const cy = topY + (h / 2);
 
         conn.style.left = `${cx}px`;
@@ -300,9 +304,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       const merge = () => {
         if (document.body.classList.contains("plus-merged")) return;
 
+        updateConnectorWidth();
         setConnectorMetrics();
 
-        // ensure transitions fire cleanly
         document.body.classList.remove("plus-merged");
         void document.body.offsetWidth;
 
@@ -387,6 +391,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       }, { capture: true });
 
       window.addEventListener("resize", () => {
+        updateConnectorWidth();
         setConnectorMetrics();
       }, { passive: true });
 
@@ -394,6 +399,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
+          updateConnectorWidth();
+          setConnectorMetrics();
         });
       });
     })();
