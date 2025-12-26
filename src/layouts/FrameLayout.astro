@@ -72,17 +72,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
 
-      /* merge tuning */
-      --merge-ms: 980ms;
-      --merge-ease: cubic-bezier(.22,.61,.36,1);
-      --merge-scale: 2.2;
-
-      /* populated by JS */
-      --dx-tr: 0px;
-      --dy-tr: 0px;
-      --dx-br: 0px;
-      --dy-br: 0px;
-      --fade-delay: 980ms; /* JS sets to exactly --merge-ms */
+      /* plus transform */
+      --plus-ms: 520ms;
+      --plus-ease: cubic-bezier(.22,.61,.36,1);
+      --left-scale: 2.1;
+      --right-scale: 0.45;
     }
 
     html, body {
@@ -146,12 +140,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       transform-origin: center;
       will-change: transform, opacity;
 
-      transform: translate3d(0,0,0) rotate(0deg) scale(1);
+      transform: rotate(0deg) scale(1);
       opacity: 1;
 
       transition:
-        transform var(--merge-ms) var(--merge-ease),
-        opacity 0ms linear;
+        transform var(--plus-ms) var(--plus-ease),
+        opacity var(--plus-ms) var(--plus-ease);
     }
 
     .corner-plus.tl { top: var(--corner-inset); left: var(--corner-inset); }
@@ -159,27 +153,17 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
 
-    /* merged state */
+    /* merged state: left grows, right shrinks + fades */
     body.plus-merged .corner-plus.tl,
     body.plus-merged .corner-plus.bl {
-      transform: translate3d(0,0,0) rotate(360deg) scale(var(--merge-scale));
+      transform: rotate(360deg) scale(var(--left-scale));
+      opacity: 1;
     }
 
-    /* IMPORTANT: right pluses stay visible during travel, then snap-hide at the very end */
-    body.plus-merged .corner-plus.tr {
-      transform: translate3d(var(--dx-tr), var(--dy-tr), 0) rotate(360deg) scale(var(--merge-scale));
-      opacity: 0;
-      transition:
-        transform var(--merge-ms) var(--merge-ease),
-        opacity 0ms linear var(--fade-delay);
-    }
-
+    body.plus-merged .corner-plus.tr,
     body.plus-merged .corner-plus.br {
-      transform: translate3d(var(--dx-br), var(--dy-br), 0) rotate(360deg) scale(var(--merge-scale));
+      transform: rotate(360deg) scale(var(--right-scale));
       opacity: 0;
-      transition:
-        transform var(--merge-ms) var(--merge-ease),
-        opacity 0ms linear var(--fade-delay);
     }
 
     /* ✅ Normal cascade (faded -> full) */
@@ -201,8 +185,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         --intro-ms: 0ms;
         --cascade-ms: 0ms;
         --cascade-stagger: 0ms;
-        --merge-ms: 0ms;
-        --fade-delay: 0ms;
+        --plus-ms: 0ms;
       }
       .intro-wash { display: none; }
       .corner-plus { transition: none !important; }
@@ -224,15 +207,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
   <script is:inline>
     (() => {
-      const $ = (sel) => document.querySelector(sel);
       const root = document.documentElement;
-
-      const getPluses = () => ({
-        tl: $(".corner-plus.tl"),
-        tr: $(".corner-plus.tr"),
-        bl: $(".corner-plus.bl"),
-        br: $(".corner-plus.br"),
-      });
 
       const isStudyTrigger = (el) => {
         const v = el.getAttribute("data-study") || "";
@@ -253,40 +228,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return Number.isFinite(n) ? n : fallback;
       };
 
-      const setMergeVars = () => {
-        const { tl, tr, bl, br } = getPluses();
-        if (!tl || !tr || !bl || !br) return false;
-
-        const rTL = tl.getBoundingClientRect();
-        const rTR = tr.getBoundingClientRect();
-        const rBL = bl.getBoundingClientRect();
-        const rBR = br.getBoundingClientRect();
-
-        const cTLx = rTL.left + rTL.width / 2;
-        const cTLy = rTL.top + rTL.height / 2;
-        const cTRx = rTR.left + rTR.width / 2;
-        const cTRy = rTR.top + rTR.height / 2;
-
-        const cBLx = rBL.left + rBL.width / 2;
-        const cBLy = rBL.top + rBL.height / 2;
-        const cBRx = rBR.left + rBR.width / 2;
-        const cBRy = rBR.top + rBR.height / 2;
-
-        root.style.setProperty("--dx-tr", `${(cTLx - cTRx).toFixed(2)}px`);
-        root.style.setProperty("--dy-tr", `${(cTLy - cTRy).toFixed(2)}px`);
-        root.style.setProperty("--dx-br", `${(cBLx - cBRx).toFixed(2)}px`);
-        root.style.setProperty("--dy-br", `${(cBLy - cBRy).toFixed(2)}px`);
-
-        const ms = cssMs("--merge-ms", 980);
-        root.style.setProperty("--fade-delay", `${Math.round(ms)}ms`);
-        return true;
-      };
-
       const merge = () => {
         if (document.body.classList.contains("plus-merged")) return;
-        setMergeVars();
 
-        // guarantee transitions fire from the real start state
+        // ensure transitions always fire from the real base state
         document.body.classList.remove("plus-merged");
         void document.body.offsetWidth;
 
@@ -351,7 +296,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const target = e.target;
         if (!target || !target.closest) return;
 
-        // STUDY CLICK: delay navigation so the full slow travel is visible
+        // STUDY CLICK (delay navigation if it's a real link)
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
           const link = studyEl.closest("a[href]");
@@ -361,8 +306,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
             merge();
 
-            const ms = cssMs("--merge-ms", 980);
-            setTimeout(() => { window.location.href = href; }, Math.max(0, ms + 60));
+            const ms = cssMs("--plus-ms", 520);
+            setTimeout(() => { window.location.href = href; }, Math.max(0, ms + 40));
           } else {
             merge();
           }
@@ -376,10 +321,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
-
-      window.addEventListener("resize", () => {
-        if (document.body.classList.contains("plus-merged")) setMergeVars();
-      }, { passive: true });
 
       // intro removal
       requestAnimationFrame(() => {
