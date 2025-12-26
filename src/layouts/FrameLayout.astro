@@ -66,8 +66,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
-      --cascade-ms: 240ms;
-      --cascade-stagger: 48ms;
+      --cascade-ms: 420ms;
+      --cascade-stagger: 80ms;
 
       --cascade-from-opacity: 0.25;
       --cascade-from-y: -10px;
@@ -236,7 +236,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           void el.offsetWidth;
 
           const delay = i * stagger;
-          el.style.animation = `studyCascadeIn ${ms}ms ease-out ${delay}ms forwards`;
+          el.style.animation = `studyCascadeIn ${ms}ms cubic-bezier(.22,.61,.36,1) ${delay}ms forwards`;
 
           // safety: if animation is interrupted, ensure blur doesn't stick
           el.addEventListener("animationend", () => {
