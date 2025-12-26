@@ -38,16 +38,16 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
             </div>
 
-            <!-- ✅ image goes here -->
-            <div class="study-media" aria-hidden="false">
+            <!-- ✅ image slot (only shown for specific studies) -->
+            <div class="study-media" aria-hidden="true">
               <img
                 id="studyImg"
                 class="study-img"
                 src=""
                 alt=""
                 hidden
-                decoding="async"
                 loading="eager"
+                decoding="async"
               />
             </div>
 
@@ -211,10 +211,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       text-align: center;
     }
 
-    /* ✅ Study image slot (between header and children) */
+    /* ✅ Study image placement: between header and children, aligned to indent */
     .study-media {
-      margin: 0.55rem 0 0.45rem 2ch; /* align with children indentation */
-      width: min(520px, 92vw);
+      margin: 0.55rem 0 0.4rem 2ch;
+      width: min(520px, 88vw);
     }
 
     .study-img {
@@ -343,27 +343,42 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       return { glyph: m[1], id: m[2] };
     }
 
+    function hideStudyImage() {
+      if (!studyImg) return;
+      studyImg.hidden = true;
+      studyImg.removeAttribute("src");
+      studyImg.alt = "";
+    }
+
+    function showStudyImageFor(parsed) {
+      if (!studyImg) return;
+
+      // ✅ ONLY show for: study:[| |000-00001]
+      // (glyph must be "| |" and id must be "000-00001")
+      const shouldShow = parsed.glyph === "| |" && parsed.id === "000-00001";
+
+      if (!shouldShow) {
+        hideStudyImage();
+        return;
+      }
+
+      // image is in /public/study001.jpeg -> served at /study001.jpeg
+      studyImg.src = "/study001.jpeg";
+      studyImg.alt = "study 000-00001 image";
+      studyImg.hidden = false;
+    }
+
     function showStudy(name) {
       const parsed = parseStudy(name);
-
       if (parsed) {
         studyGlyph.textContent = "//"; // always start as //
         studyId.textContent = parsed.id;
 
-        // ✅ Show your image when clicking any study (currently using the single file you have)
-        if (studyImg) {
-          studyImg.src = "/study001.jpeg";
-          studyImg.alt = `study ${parsed.id}`;
-          studyImg.hidden = false;
-        }
+        showStudyImageFor(parsed);
       } else {
         // fallback: show raw text if it doesn't match expected format
         studyRoot.textContent = name;
-        if (studyImg) {
-          studyImg.hidden = true;
-          studyImg.src = "";
-          studyImg.alt = "";
-        }
+        hideStudyImage();
       }
 
       galleryView.classList.remove("view--active");
@@ -376,12 +391,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     function showGallery() {
       stopGlyphLoop();
-
-      if (studyImg) {
-        studyImg.hidden = true;
-        studyImg.src = "";
-        studyImg.alt = "";
-      }
+      hideStudyImage();
 
       studyView.classList.remove("view--active");
       galleryView.classList.add("view--active");
