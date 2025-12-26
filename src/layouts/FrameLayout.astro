@@ -65,32 +65,31 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
-      /* normal top-to-bottom cascade */
+      /* normal cascade */
       --cascade-ms: 420ms;
       --cascade-stagger: 80ms;
       --cascade-from-opacity: 0.25;
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
 
-      /* intro-only cascade (gallery text, etc.) */
+      /* intro-only cascade */
       --intro-cascade-ms: 520ms;
       --intro-cascade-stagger: 90ms;
       --intro-cascade-from-opacity: 0;
       --intro-cascade-from-y: -10px;
       --intro-cascade-from-blur: 2px;
 
-      /* plus transform (no movement) */
+      /* plus transform */
       --plus-ms: 520ms;
       --plus-ease: cubic-bezier(.22,.61,.36,1);
       --left-scale: 2.1;
       --right-scale: 0.45;
 
       /* connector */
-      --connector-gap: 14px;     /* space from each + so ends don't touch */
+      --connector-gap: 14px;
       --connector-ms: 520ms;
       --connector-ease: cubic-bezier(.22,.61,.36,1);
 
-      /* JS sets this to match the plus "arm" thickness */
       --connector-width: 3px;
     }
 
@@ -110,7 +109,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       overflow-x: clip;
     }
 
-    /* Intro */
     .page-intro-wrap {
       min-height: 100%;
       transition:
@@ -140,7 +138,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.is-intro .intro-wash { opacity: 1; }
 
-    /* Corner plus marks */
     .corner-plus {
       position: fixed;
       z-index: 9999;
@@ -168,7 +165,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
 
-    /* merged state: left grows, right shrinks + fades */
     body.plus-merged .corner-plus.tl,
     body.plus-merged .corner-plus.bl {
       transform: rotate(360deg) scale(var(--left-scale));
@@ -181,7 +177,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       opacity: 0;
     }
 
-    /* Connector line between left pluses (sharp rectangle, no rounding) */
     .left-connector {
       position: fixed;
       z-index: 9998;
@@ -203,7 +198,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.plus-merged .left-connector { opacity: 1; }
 
-    /* Normal cascade (used for study list, etc.) */
     @keyframes studyCascadeIn {
       from {
         opacity: var(--cascade-from-opacity);
@@ -217,7 +211,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       }
     }
 
-    /* Intro-only cascade (gallery text + subsets) */
     @keyframes introCascadeIn {
       from {
         opacity: var(--intro-cascade-from-opacity);
@@ -254,7 +247,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <div class="corner-plus br">＋</div>
 
   <div class="left-connector" aria-hidden="true"></div>
-
   <div class="intro-wash" aria-hidden="true"></div>
 
   <div class="page-intro-wrap">
@@ -291,7 +283,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return Number.isFinite(n) ? n : fallback;
       };
 
-      // Estimate plus "arm" thickness from font-size
       const updateConnectorWidth = () => {
         const tl = $(".corner-plus.tl");
         if (!tl) return;
@@ -370,9 +361,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return true;
       };
 
-      // Intro-only cascade: target elements you mark with data-intro-cascade
+      // ✅ Intro-only cascade that waits for DOM (Gallery + subsets)
       let didIntroCascade = false;
-      const animateIntroCascade = () => {
+
+      const runIntroCascade = () => {
         if (didIntroCascade) return false;
 
         const items = Array.from(document.querySelectorAll("[data-intro-cascade]"))
@@ -404,6 +396,19 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return true;
       };
 
+      const runIntroCascadeWhenReady = () => {
+        if (runIntroCascade()) return;
+
+        const obs = new MutationObserver(() => {
+          if (runIntroCascade()) obs.disconnect();
+        });
+
+        obs.observe(document.body, { childList: true, subtree: true });
+
+        // stop watching after a moment so it doesn't linger
+        setTimeout(() => obs.disconnect(), 2000);
+      };
+
       const triggerCascadeAfterBack = () => {
         if (animateStudyListCascade()) return;
 
@@ -419,7 +424,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const target = e.target;
         if (!target || !target.closest) return;
 
-        // STUDY CLICK (delay nav if it's a real link)
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
           const link = studyEl.closest("a[href]");
@@ -437,7 +441,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           return;
         }
 
-        // BACK CLICK
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           unmerge();
@@ -450,16 +453,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         setConnectorMetrics();
       }, { passive: true });
 
-      // intro removal + intro-only cascade
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
           updateConnectorWidth();
           setConnectorMetrics();
 
-          // Run after intro is lifted so it feels tied to that moment
+          // ✅ wait for gallery DOM, then cascade
           requestAnimationFrame(() => {
-            animateIntroCascade();
+            runIntroCascadeWhenReady();
           });
         });
       });
