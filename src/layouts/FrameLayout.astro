@@ -65,6 +65,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
+      /* ✅ target-only gallery tree zoom on intro end */
+      --gallery-zoom-ms: 900ms;
+      --gallery-zoom-ease: cubic-bezier(.2,.9,.2,1);
+      --gallery-zoom-from: 0.92;
+      --gallery-zoom-blur: 2px;
+
       /* normal top-to-bottom cascade */
       --cascade-ms: 420ms;
       --cascade-stagger: 80ms;
@@ -132,6 +138,34 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     }
 
     body.is-intro .intro-wash { opacity: 1; }
+
+    /* ✅ Gallery tree zoom (targets ONLY the tree in index.astro) */
+    #tree {
+      transform: scale(1);
+      transform-origin: center left;
+    }
+
+    body.is-intro #tree {
+      transform: scale(var(--gallery-zoom-from));
+      opacity: 0.001;
+    }
+
+    body:not(.is-intro) #tree {
+      animation: galleryTreeZoomIn var(--gallery-zoom-ms) var(--gallery-zoom-ease) both;
+    }
+
+    @keyframes galleryTreeZoomIn {
+      from {
+        transform: scale(var(--gallery-zoom-from));
+        opacity: 0;
+        filter: blur(var(--gallery-zoom-blur));
+      }
+      to {
+        transform: scale(1);
+        opacity: 1;
+        filter: blur(0);
+      }
+    }
 
     /* Corner plus marks */
     .corner-plus {
@@ -217,9 +251,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         --cascade-stagger: 0ms;
         --plus-ms: 0ms;
         --connector-ms: 0ms;
+        --gallery-zoom-ms: 0ms;
       }
       .intro-wash { display: none; }
       .corner-plus, .left-connector { transition: none !important; }
+      body:not(.is-intro) #tree { animation: none !important; }
     }
   </style>
 </head>
