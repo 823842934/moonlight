@@ -33,6 +33,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <span class="arrow">←</span><span class="label"> back</span>
             </button>
 
+            <!-- THIS is what we animate -->
             <div id="studyRoot" class="root">study</div>
 
             <div class="children children--indented">
@@ -54,7 +55,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       padding: 0 5vw;
     }
 
-    /* LOCK the layout width so the logo never re-centers based on tree width */
     .stack {
       width: min(1100px, 100%);
       box-sizing: border-box;
@@ -76,7 +76,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       filter: blur(6px);
     }
 
-    /* Tree spans full stack width, but we will dynamically pad-left to match logo left edge */
     .tree {
       margin-top: 0.5rem;
       font-family: "ABC Diatype", system-ui, sans-serif;
@@ -101,7 +100,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       transform: scale(1.25) translateX(40px);
     }
 
-    /* HARD no-wrap */
     .root,
     .item,
     .item-btn,
@@ -194,7 +192,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
   <script>
     const stack = document.getElementById("stack");
-    const tree = document.getElementById("tree");
     const logo = document.getElementById("logo");
 
     const viewport = document.getElementById("viewport");
@@ -212,15 +209,61 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       stack.style.setProperty("--logo-left", `${left}px`);
     }
 
+    // ===== Glyph animation for studyRoot =====
+    const GLYPHS = ["//", "--", "\\\\", "| |"];
+    const GLYPH_MS = 110;
+
+    let glyphTimer = null;
+    let glyphIndex = 0;
+    let lastStudyValue = null; // the raw "study:[//000-00001]" string
+
+    function setStudyRootGlyph(glyph) {
+      if (!lastStudyValue) return;
+      // Replace only the glyph right after "study:["
+      const next = lastStudyValue.replace(/(study:\[)(\/\/|--|\\\\|\|\s\|)/i, `$1${glyph}`);
+      studyRoot.textContent = next;
+    }
+
+    function startGlyphLoop() {
+      if (glyphTimer) return;
+      glyphIndex = 0;
+      setStudyRootGlyph("//");
+
+      glyphTimer = setInterval(() => {
+        glyphIndex = (glyphIndex + 1) % GLYPHS.length;
+        setStudyRootGlyph(GLYPHS[glyphIndex]);
+      }, GLYPH_MS);
+    }
+
+    function stopGlyphLoop() {
+      if (glyphTimer) {
+        clearInterval(glyphTimer);
+        glyphTimer = null;
+      }
+      glyphIndex = 0;
+
+      // restore normal //
+      if (lastStudyValue) {
+        studyRoot.textContent = lastStudyValue.replace(/(study:\[)(\/\/|--|\\\\|\|\s\|)/i, `$1//`);
+      }
+    }
+
     function showStudy(name) {
+      lastStudyValue = name;      // e.g. "study:[//000-00001]"
       studyRoot.textContent = name;
+
       galleryView.classList.remove("view--active");
       studyView.classList.add("view--active");
       viewport.classList.add("zoom-in");
       logo.classList.add("logo-blur");
+
+      // start glyph loop after view becomes active (avoids timing issues)
+      requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
     }
 
     function showGallery() {
+      stopGlyphLoop();
+
       studyView.classList.remove("view--active");
       galleryView.classList.add("view--active");
       viewport.classList.remove("zoom-in");
