@@ -73,17 +73,16 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
 
-      /* merge (SLOWER + BIGGER) */
-      --merge-ms: 980ms;
+      /* merge tuning */
+      --merge-ms: 1200ms; /* slower forward travel */
       --merge-ease: cubic-bezier(.22,.61,.36,1);
-      --merge-scale: 2.2;
+      --merge-scale: 2.25; /* bigger final left pluses */
 
-      /* populated by JS */
+      /* set by JS each click */
       --dx-tr: 0px;
       --dy-tr: 0px;
       --dx-br: 0px;
       --dy-br: 0px;
-      --fade-delay: 900ms; /* JS sets to ~0.92 * --merge-ms */
     }
 
     html, body {
@@ -149,10 +148,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
       transform: translate3d(0,0,0) rotate(0deg) scale(1);
       opacity: 1;
-
-      transition:
-        transform var(--merge-ms) var(--merge-ease),
-        opacity 120ms var(--merge-ease);
     }
 
     .corner-plus.tl { top: var(--corner-inset); left: var(--corner-inset); }
@@ -160,26 +155,50 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
 
-    /* merged state */
-    body.plus-merged .corner-plus.tl,
-    body.plus-merged .corner-plus.bl {
-      transform: translate3d(0,0,0) rotate(360deg) scale(var(--merge-scale));
+    /* Keyframes (forward) */
+    @keyframes popLeft {
+      0%   { transform: translate3d(0,0,0) rotate(0deg) scale(1); opacity: 1; }
+      100% { transform: translate3d(0,0,0) rotate(360deg) scale(var(--merge-scale)); opacity: 1; }
     }
 
-    body.plus-merged .corner-plus.tr {
-      transform: translate3d(var(--dx-tr), var(--dy-tr), 0) rotate(360deg) scale(var(--merge-scale));
-      opacity: 0;
-      transition:
-        transform var(--merge-ms) var(--merge-ease),
-        opacity 120ms var(--merge-ease) var(--fade-delay);
+    @keyframes flyTR {
+      0%   { transform: translate3d(0,0,0) rotate(0deg) scale(1); opacity: 1; }
+      92%  { transform: translate3d(var(--dx-tr), var(--dy-tr), 0) rotate(330deg) scale(var(--merge-scale)); opacity: 1; }
+      100% { transform: translate3d(var(--dx-tr), var(--dy-tr), 0) rotate(360deg) scale(var(--merge-scale)); opacity: 0; }
     }
 
-    body.plus-merged .corner-plus.br {
-      transform: translate3d(var(--dx-br), var(--dy-br), 0) rotate(360deg) scale(var(--merge-scale));
-      opacity: 0;
-      transition:
-        transform var(--merge-ms) var(--merge-ease),
-        opacity 120ms var(--merge-ease) var(--fade-delay);
+    @keyframes flyBR {
+      0%   { transform: translate3d(0,0,0) rotate(0deg) scale(1); opacity: 1; }
+      92%  { transform: translate3d(var(--dx-br), var(--dy-br), 0) rotate(330deg) scale(var(--merge-scale)); opacity: 1; }
+      100% { transform: translate3d(var(--dx-br), var(--dy-br), 0) rotate(360deg) scale(var(--merge-scale)); opacity: 0; }
+    }
+
+    /* Run forward */
+    body.plus-forward .corner-plus.tl,
+    body.plus-forward .corner-plus.bl {
+      animation: popLeft var(--merge-ms) var(--merge-ease) forwards;
+    }
+
+    body.plus-forward .corner-plus.tr {
+      animation: flyTR var(--merge-ms) var(--merge-ease) forwards;
+    }
+
+    body.plus-forward .corner-plus.br {
+      animation: flyBR var(--merge-ms) var(--merge-ease) forwards;
+    }
+
+    /* Run reverse (same animations, reversed) */
+    body.plus-reverse .corner-plus.tl,
+    body.plus-reverse .corner-plus.bl {
+      animation: popLeft var(--merge-ms) var(--merge-ease) reverse forwards;
+    }
+
+    body.plus-reverse .corner-plus.tr {
+      animation: flyTR var(--merge-ms) var(--merge-ease) reverse forwards;
+    }
+
+    body.plus-reverse .corner-plus.br {
+      animation: flyBR var(--merge-ms) var(--merge-ease) reverse forwards;
     }
 
     /* ✅ Normal cascade (faded -> full) */
@@ -197,15 +216,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     }
 
     @media (prefers-reduced-motion: reduce) {
-      :root {
-        --intro-ms: 0ms;
-        --cascade-ms: 0ms;
-        --cascade-stagger: 0ms;
-        --merge-ms: 0ms;
-        --fade-delay: 0ms;
-      }
+      :root { --intro-ms: 0ms; --cascade-ms: 0ms; --cascade-stagger: 0ms; --merge-ms: 0ms; }
       .intro-wash { display: none; }
-      .corner-plus { transition: none !important; }
+      .corner-plus { animation: none !important; }
     }
   </style>
 </head>
@@ -224,15 +237,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
   <script is:inline>
     (() => {
-      const $ = (sel) => document.querySelector(sel);
       const root = document.documentElement;
 
-      const getPluses = () => ({
-        tl: $(".corner-plus.tl"),
-        tr: $(".corner-plus.tr"),
-        bl: $(".corner-plus.bl"),
-        br: $(".corner-plus.br"),
-      });
+      const $ = (sel) => document.querySelector(sel);
+      const pluses = {
+        tl: () => $(".corner-plus.tl"),
+        tr: () => $(".corner-plus.tr"),
+        bl: () => $(".corner-plus.bl"),
+        br: () => $(".corner-plus.br"),
+      };
 
       const isStudyTrigger = (el) => {
         const v = el.getAttribute("data-study") || "";
@@ -254,7 +267,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       };
 
       const setMergeVars = () => {
-        const { tl, tr, bl, br } = getPluses();
+        const tl = pluses.tl(), tr = pluses.tr(), bl = pluses.bl(), br = pluses.br();
         if (!tl || !tr || !bl || !br) return false;
 
         const rTL = tl.getBoundingClientRect();
@@ -276,31 +289,35 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         root.style.setProperty("--dy-tr", `${(cTLy - cTRy).toFixed(2)}px`);
         root.style.setProperty("--dx-br", `${(cBLx - cBRx).toFixed(2)}px`);
         root.style.setProperty("--dy-br", `${(cBLy - cBRy).toFixed(2)}px`);
-
-        const ms = cssMs("--merge-ms", 980);
-        root.style.setProperty("--fade-delay", `${Math.round(ms * 0.92)}ms`);
         return true;
       };
 
-      const merge = () => {
-        if (document.body.classList.contains("plus-merged")) return;
+      const clearAnimClasses = () => {
+        document.body.classList.remove("plus-forward");
+        document.body.classList.remove("plus-reverse");
+      };
+
+      const runForward = () => {
+        if (document.body.classList.contains("plus-forward")) return;
         setMergeVars();
-
-        document.body.classList.remove("plus-merged");
-        void document.body.offsetWidth;
-
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            document.body.classList.add("plus-merged");
-          });
-        });
+        clearAnimClasses();
+        void document.body.offsetWidth; // flush
+        document.body.classList.add("plus-forward");
       };
 
-      const unmerge = () => {
-        document.body.classList.remove("plus-merged");
+      const runReverse = () => {
+        if (!document.body.classList.contains("plus-forward")) return;
+        clearAnimClasses();
+        void document.body.offsetWidth; // flush
+        document.body.classList.add("plus-reverse");
+
+        const ms = cssMs("--merge-ms", 1200);
+        setTimeout(() => {
+          clearAnimClasses(); // back to default corners
+        }, ms + 30);
       };
 
-      // cascade
+      // cascade helpers (unchanged)
       const cssNum = (name, fallback) => {
         const raw = getComputedStyle(root).getPropertyValue(name);
         const n = parseFloat(raw);
@@ -350,35 +367,41 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const target = e.target;
         if (!target || !target.closest) return;
 
-        // STUDY CLICK: delay navigation so the fly is visible
+        // STUDY click: ALWAYS block navigation until animation finishes
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
           const link = studyEl.closest("a[href]");
+          const ms = cssMs("--merge-ms", 1200);
+
           if (link) {
             e.preventDefault();
+            e.stopPropagation();
             const href = link.getAttribute("href");
 
-            merge();
+            runForward();
 
-            const ms = cssMs("--merge-ms", 980);
-            setTimeout(() => { window.location.href = href; }, Math.max(0, ms + 40));
+            setTimeout(() => {
+              window.location.href = href;
+            }, ms + 60);
           } else {
-            merge();
+            runForward();
           }
           return;
         }
 
-        // BACK CLICK
+        // BACK click
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
-          unmerge();
+          runReverse();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
 
-      // keep merge distances correct on resize
+      // keep distances correct when resized
       window.addEventListener("resize", () => {
-        if (document.body.classList.contains("plus-merged")) setMergeVars();
+        if (document.body.classList.contains("plus-forward") || document.body.classList.contains("plus-reverse")) {
+          setMergeVars();
+        }
       }, { passive: true });
 
       // intro removal
