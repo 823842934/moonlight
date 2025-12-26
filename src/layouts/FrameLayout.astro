@@ -390,21 +390,47 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       };
 
       document.addEventListener("click", (e) => {
-        const target = e.target;
-        if (!target || !target.closest) return;
+  const target = e.target;
+  if (!target || !target.closest) return;
 
-        const studyEl = target.closest("[data-study]");
-        if (studyEl && isStudyTrigger(studyEl)) {
-          mergePluses();
-          return;
-        }
+  const studyEl = target.closest("[data-study]");
+  if (studyEl && isStudyTrigger(studyEl)) {
+    const link = studyEl.closest("a[href]");
+    const ms = cssMs("--merge-ms", 520);
 
-        const backEl = target.closest("button, a");
-        if (backEl && isBackTrigger(backEl)) {
-          unmergePluses();
-          triggerCascadeAfterBack();
-        }
-      }, { capture: true });
+    if (link) {
+      // delay navigation so animation can be seen
+      e.preventDefault();
+      mergePluses();
+      window.setTimeout(() => {
+        window.location.href = link.href;
+      }, ms);
+    } else {
+      mergePluses();
+    }
+    return;
+  }
+
+  const backEl = target.closest("button, a");
+  if (backEl && isBackTrigger(backEl)) {
+    const ms = cssMs("--merge-ms", 520);
+
+    // delay back so reverse can be seen
+    e.preventDefault();
+    unmergePluses();
+    triggerCascadeAfterBack();
+
+    window.setTimeout(() => {
+      if (backEl.tagName === "A" && backEl.getAttribute("href")) {
+        window.location.href = backEl.getAttribute("href");
+      } else {
+        history.back();
+      }
+    }, ms);
+
+    return;
+  }
+}, { capture: true });
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
