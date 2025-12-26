@@ -65,25 +65,22 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
-      /* normal top-to-bottom cascade */
       --cascade-ms: 420ms;
       --cascade-stagger: 80ms;
-
       --cascade-from-opacity: 0.25;
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
 
-      /* merge */
-      --merge-ms: 1200ms;
+      /* merge tuning */
+      --merge-ms: 820ms;
       --merge-ease: cubic-bezier(.22,.61,.36,1);
-      --merge-scale: 3.05;
+      --merge-scale: 2.05;
 
-      /* populated by JS */
       --dx-tr: 0px;
       --dy-tr: 0px;
       --dx-br: 0px;
       --dy-br: 0px;
-      --fade-delay: 480ms; /* JS sets to ~0.92 * --merge-ms */
+      --fade-delay: 0ms;
     }
 
     html, body {
@@ -92,23 +89,17 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       width: 100%;
       height: 100%;
       background: #ffffff;
-      max-width: 100%;
       overflow-x: hidden;
     }
 
     body {
       font-family: "ABC Diatype", system-ui, sans-serif;
       color: #000000;
-      overflow-x: clip;
     }
 
-    /* Intro */
     .page-intro-wrap {
       min-height: 100%;
-      transition:
-        filter var(--intro-ms) var(--intro-ease),
-        transform var(--intro-ms) var(--intro-ease);
-      will-change: filter, transform;
+      transition: filter var(--intro-ms) var(--intro-ease), transform var(--intro-ms) var(--intro-ease);
     }
 
     .intro-wash {
@@ -119,39 +110,24 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       pointer-events: none;
       opacity: 0;
       transition: opacity var(--intro-ms) var(--intro-ease);
-      will-change: opacity;
     }
 
     body.is-intro { overflow: hidden; }
-
     body.is-intro .page-intro-wrap {
       filter: blur(var(--intro-blur));
       transform: scale(var(--intro-scale));
-      transform-origin: center;
     }
-
     body.is-intro .intro-wash { opacity: 1; }
 
-    /* Corner plus marks */
     .corner-plus {
       position: fixed;
       z-index: 9999;
-      font-family: "ABC Diatype", system-ui, sans-serif;
       font-weight: 700;
       font-size: var(--corner-size);
-      line-height: 1;
-      color: #000;
-      user-select: none;
       pointer-events: none;
       transform-origin: center;
-      will-change: transform, opacity;
-
-      /* default state */
-      transform: translate3d(0,0,0) rotate(0deg) scale(1);
-      opacity: 1;
-
       transition:
-        transform var(--merge-ms) var(--merge-ease),
+        transform var(--merge-ms) var(--merge-ease) 20ms,
         opacity 120ms var(--merge-ease);
     }
 
@@ -160,29 +136,23 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
 
-    /* merged state (triggered by body.plus-merged) */
     body.plus-merged .corner-plus.tl,
     body.plus-merged .corner-plus.bl {
-      transform: translate3d(0,0,0) rotate(360deg) scale(var(--merge-scale));
+      transform: rotate(360deg) scale(var(--merge-scale));
     }
 
     body.plus-merged .corner-plus.tr {
       transform: translate3d(var(--dx-tr), var(--dy-tr), 0) rotate(360deg) scale(var(--merge-scale));
       opacity: 0;
-      transition:
-        transform var(--merge-ms) var(--merge-ease),
-        opacity 120ms var(--merge-ease) var(--fade-delay);
+      transition-delay: 0ms, var(--fade-delay);
     }
 
     body.plus-merged .corner-plus.br {
       transform: translate3d(var(--dx-br), var(--dy-br), 0) rotate(360deg) scale(var(--merge-scale));
       opacity: 0;
-      transition:
-        transform var(--merge-ms) var(--merge-ease),
-        opacity 120ms var(--merge-ease) var(--fade-delay);
+      transition-delay: 0ms, var(--fade-delay);
     }
 
-    /* ✅ Normal cascade (faded -> full) */
     @keyframes studyCascadeIn {
       from {
         opacity: var(--cascade-from-opacity);
@@ -195,18 +165,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         filter: blur(0);
       }
     }
-
-    @media (prefers-reduced-motion: reduce) {
-      :root {
-        --intro-ms: 0ms;
-        --cascade-ms: 0ms;
-        --cascade-stagger: 0ms;
-        --merge-ms: 0ms;
-        --fade-delay: 0ms;
-      }
-      .intro-wash { display: none; }
-      .corner-plus { transition: none !important; }
-    }
   </style>
 </head>
 
@@ -216,174 +174,47 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <div class="corner-plus bl">＋</div>
   <div class="corner-plus br">＋</div>
 
-  <div class="intro-wash" aria-hidden="true"></div>
-
-  <div class="page-intro-wrap">
-    <slot />
-  </div>
+  <div class="intro-wash"></div>
+  <div class="page-intro-wrap"><slot /></div>
 
   <script is:inline>
     (() => {
-      const $ = (sel) => document.querySelector(sel);
       const root = document.documentElement;
-
+      const get = (s) => document.querySelector(s);
       const getPluses = () => ({
-        tl: $(".corner-plus.tl"),
-        tr: $(".corner-plus.tr"),
-        bl: $(".corner-plus.bl"),
-        br: $(".corner-plus.br"),
+        tl: get(".corner-plus.tl"),
+        tr: get(".corner-plus.tr"),
+        bl: get(".corner-plus.bl"),
+        br: get(".corner-plus.br"),
       });
-
-      const isStudyTrigger = (el) => {
-        const v = el.getAttribute("data-study") || "";
-        let val = v;
-        try { val = decodeURIComponent(val); } catch {}
-        val = val.trim().toLowerCase();
-        return val.startsWith("study:") && val.includes("[//");
-      };
-
-      const isBackTrigger = (el) => {
-        const txt = (el.textContent || "").trim().toLowerCase();
-        return txt === "<- back" || txt === "← back" || txt === "back";
-      };
-
-      const cssMs = (name, fallback) => {
-        const raw = getComputedStyle(root).getPropertyValue(name).trim();
-        const n = parseFloat(raw);
-        return Number.isFinite(n) ? n : fallback;
-      };
 
       const setMergeVars = () => {
         const { tl, tr, bl, br } = getPluses();
-        if (!tl || !tr || !bl || !br) return false;
-
-        const rTL = tl.getBoundingClientRect();
-        const rTR = tr.getBoundingClientRect();
-        const rBL = bl.getBoundingClientRect();
-        const rBR = br.getBoundingClientRect();
-
-        const cTLx = rTL.left + rTL.width / 2;
-        const cTLy = rTL.top + rTL.height / 2;
-        const cTRx = rTR.left + rTR.width / 2;
-        const cTRy = rTR.top + rTR.height / 2;
-
-        const cBLx = rBL.left + rBL.width / 2;
-        const cBLy = rBL.top + rBL.height / 2;
-        const cBRx = rBR.left + rBR.width / 2;
-        const cBRy = rBR.top + rBR.height / 2;
-
-        root.style.setProperty("--dx-tr", `${(cTLx - cTRx).toFixed(2)}px`);
-        root.style.setProperty("--dy-tr", `${(cTLy - cTRy).toFixed(2)}px`);
-        root.style.setProperty("--dx-br", `${(cBLx - cBRx).toFixed(2)}px`);
-        root.style.setProperty("--dy-br", `${(cBLy - cBRy).toFixed(2)}px`);
-
-        const ms = cssMs("--merge-ms", 520);
-        root.style.setProperty("--fade-delay", `${Math.round(ms * 0.92)}ms`);
-        return true;
+        const rTL = tl.getBoundingClientRect(), rTR = tr.getBoundingClientRect();
+        const rBL = bl.getBoundingClientRect(), rBR = br.getBoundingClientRect();
+        root.style.setProperty("--dx-tr", `${(rTL.left - rTR.left)}px`);
+        root.style.setProperty("--dy-tr", `${(rTL.top - rTR.top)}px`);
+        root.style.setProperty("--dx-br", `${(rBL.left - rBR.left)}px`);
+        root.style.setProperty("--dy-br", `${(rBL.top - rBR.top)}px`);
+        root.style.setProperty("--fade-delay", `${parseFloat(getComputedStyle(root).getPropertyValue("--merge-ms")) * 0.92}ms`);
       };
 
       const merge = () => {
-  if (document.body.classList.contains("plus-merged")) return;
-  setMergeVars();
-  document.body.classList.remove("plus-merged");
-  void document.body.offsetWidth;
-  requestAnimationFrame(() => {
-    requestAnimationFrame(() => {
-      document.body.classList.add("plus-merged");
-    });
-  });
-};
-
-
-      const unmerge = () => {
+        setMergeVars();
         document.body.classList.remove("plus-merged");
+        void document.body.offsetWidth;
+        requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.add("plus-merged")));
       };
 
-      // keep your cascade logic
-      const cssNum = (name, fallback) => {
-        const raw = getComputedStyle(root).getPropertyValue(name);
-        const n = parseFloat(raw);
-        return Number.isFinite(n) ? n : fallback;
-      };
-
-      const animateStudyListCascade = () => {
-        const items = Array.from(document.querySelectorAll("[data-study]"))
-          .filter((el) => el instanceof HTMLElement && isStudyTrigger(el));
-
-        if (!items.length) return false;
-
-        const stagger = cssNum("--cascade-stagger", 80);
-        const ms = cssNum("--cascade-ms", 420);
-
-        items.forEach((el, i) => {
-          el.style.animation = "none";
-          el.style.opacity = String(cssNum("--cascade-from-opacity", 0.25));
-          el.style.transform = `translateY(${cssNum("--cascade-from-y", -10)}px)`;
-          el.style.filter = `blur(${cssNum("--cascade-from-blur", 1)}px)`;
-
-          void el.offsetWidth;
-
-          const delay = i * stagger;
-          el.style.animation = `studyCascadeIn ${ms}ms cubic-bezier(.25,.8,.25,1) ${delay}ms forwards`;
-
-          el.addEventListener("animationend", () => {
-            el.style.filter = "blur(0)";
-          }, { once: true });
-        });
-
-        return true;
-      };
-
-      const triggerCascadeAfterBack = () => {
-        if (animateStudyListCascade()) return;
-
-        const obs = new MutationObserver(() => {
-          if (animateStudyListCascade()) obs.disconnect();
-        });
-
-        obs.observe(document.body, { childList: true, subtree: true });
-        setTimeout(() => obs.disconnect(), 1200);
-      };
+      const unmerge = () => document.body.classList.remove("plus-merged");
 
       document.addEventListener("click", (e) => {
-        const target = e.target;
-        if (!target || !target.closest) return;
+        const t = e.target;
+        if (t.closest("[data-study]")) merge();
+        if (t.closest("a,button")?.textContent?.toLowerCase().includes("back")) unmerge();
+      }, true);
 
-        const studyEl = target.closest("[data-study]");
-        if (studyEl && isStudyTrigger(studyEl)) {
-          const link = studyEl.closest("a[href]");
-          if (link) {
-            e.preventDefault();
-            const href = link.getAttribute("href");
-
-            merge();
-
-            const ms = cssMs("--merge-ms", 520);
-            setTimeout(() => { window.location.href = href; }, Math.max(0, ms - 40));
-          } else {
-            merge();
-          }
-          return;
-        }
-
-        const backEl = target.closest("button, a");
-        if (backEl && isBackTrigger(backEl)) {
-          unmerge();
-          triggerCascadeAfterBack();
-        }
-      }, { capture: true });
-
-      // intro removal
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          document.body.classList.remove("is-intro");
-        });
-      });
-
-      // if layout changes (resize), keep merge distances correct
-      window.addEventListener("resize", () => {
-        if (document.body.classList.contains("plus-merged")) setMergeVars();
-      }, { passive: true });
+      requestAnimationFrame(() => requestAnimationFrame(() => document.body.classList.remove("is-intro")));
     })();
   </script>
 </body>
