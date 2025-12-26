@@ -143,7 +143,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     }
 
     @media (prefers-reduced-motion: reduce) {
-      :root { --intro-ms: 0ms; --spin-ms: 0ms; --cascade-ms: 0ms; --cascade-stagger: 0ms; }
+      :root { --intro-ms: 0ms; --spin-ms: 0ms; }
       .intro-wash { display: none; }
     }
   </style>
@@ -189,6 +189,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return txt === "<- back" || txt === "← back" || txt === "back";
       };
 
+      // BULLETPROOF fade+slide cascade using inline transitions (not keyframes)
       const animateStudyListCascade = () => {
         const items = Array.from(document.querySelectorAll("[data-study]"))
           .filter((el) => el instanceof HTMLElement && isStudyTrigger(el));
@@ -199,21 +200,25 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const ms = parseFloat(root.getPropertyValue("--cascade-ms")) || 420;
         const stagger = parseFloat(root.getPropertyValue("--cascade-stagger")) || 65;
 
-        items.forEach((el, i) => {
-          if (el.getAnimations) el.getAnimations().forEach((a) => a.cancel());
+        // Reset everyone to invisible immediately
+        items.forEach((el) => {
+          el.style.transition = "none";
+          el.style.opacity = "0";
+          el.style.transform = "translateY(-8px)";
+        });
 
-          el.animate(
-            [
-              { opacity: 0, transform: "translateY(-8px)" },
-              { opacity: 1, transform: "translateY(0px)" },
-            ],
-            {
-              duration: ms,
-              delay: i * stagger,
-              easing: "cubic-bezier(.2,.9,.2,1)",
-              fill: "both",
-            }
-          );
+        // Force a paint so the next changes transition
+        void document.body.offsetWidth;
+
+        // Stagger in
+        items.forEach((el, i) => {
+          const delay = i * stagger;
+
+          setTimeout(() => {
+            el.style.transition = `opacity ${ms}ms cubic-bezier(.2,.9,.2,1), transform ${ms}ms cubic-bezier(.2,.9,.2,1)`;
+            el.style.opacity = "1";
+            el.style.transform = "translateY(0px)";
+          }, delay);
         });
 
         return true;
@@ -227,7 +232,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         });
 
         obs.observe(document.body, { childList: true, subtree: true });
-        setTimeout(() => obs.disconnect(), 1200);
+        setTimeout(() => obs.disconnect(), 1500);
       };
 
       document.addEventListener("click", (e) => {
