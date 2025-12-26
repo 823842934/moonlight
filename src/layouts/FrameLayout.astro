@@ -75,7 +75,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
       /* merge */
       --merge-ms: 1200ms;
-      --merge-ease: cubic-bezier(.2,.9,.2,1);
+      --merge-ease: cubic-bezier(.22,.61,.36,1);
       --merge-scale: 3.05;
 
       /* populated by JS */
@@ -283,12 +283,17 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       };
 
       const merge = () => {
-        if (document.body.classList.contains("plus-merged")) return;
-        setMergeVars();
-        // force a paint so transitions always fire
-        void document.body.offsetWidth;
-        document.body.classList.add("plus-merged");
-      };
+  if (document.body.classList.contains("plus-merged")) return;
+  setMergeVars();
+  document.body.classList.remove("plus-merged");
+  void document.body.offsetWidth;
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.body.classList.add("plus-merged");
+    });
+  });
+};
+
 
       const unmerge = () => {
         document.body.classList.remove("plus-merged");
