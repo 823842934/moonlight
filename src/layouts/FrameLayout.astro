@@ -10,7 +10,7 @@ const canonical = new URL(Astro.url.pathname, siteUrl).toString();
 const ogImageAbs = new URL(ogImage, siteUrl).toString();
 ---
 <!doctype html>
-<html lang="en">
+<html lang="en" class="intro-prep">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -76,9 +76,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     /* Corner plus marks */
     :root {
-      --corner-inset: 22px;   /* distance from each edge */
-      --corner-size: 28px;    /* visual size */
-      --spin-ms: 520ms;       /* spin duration */
+      --corner-inset: 22px;
+      --corner-size: 28px;
+      --spin-ms: 520ms;
+
+      /* Intro animation tuning */
+      --intro-duration: 1400ms;   /* zoom-in time */
+      --intro-delay: 1200ms;      /* how long it stays blurred/zoomed out */
+      --intro-blur: 16px;         /* starting blur amount */
+      --intro-scale: 0.72;        /* starting zoomed-out scale */
     }
 
     .corner-plus {
@@ -108,6 +114,47 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     .corner-plus.spin {
       animation: cornerSpin var(--spin-ms) ease-in-out;
     }
+
+    /* Intro wrapper */
+    #app {
+      width: 100%;
+      min-height: 100%;
+      transform-origin: 50% 35%;
+      will-change: transform, filter, opacity;
+    }
+
+    /* Initial state (blurred + zoomed out) */
+    html.intro-prep #app {
+      filter: blur(var(--intro-blur));
+      transform: scale(var(--intro-scale));
+      opacity: 1;
+    }
+
+    /* Animate to normal */
+    html.intro-run #app {
+      animation: introIn var(--intro-duration) cubic-bezier(0.16, 1, 0.3, 1) var(--intro-delay) forwards;
+    }
+
+    @keyframes introIn {
+      from {
+        filter: blur(var(--intro-blur));
+        transform: scale(var(--intro-scale));
+      }
+      to {
+        filter: blur(0px);
+        transform: scale(1);
+      }
+    }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      html.intro-prep #app,
+      html.intro-run #app {
+        animation: none !important;
+        filter: none !important;
+        transform: none !important;
+      }
+    }
   </style>
 </head>
 <body>
@@ -116,57 +163,65 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <div class="corner-plus bl" aria-hidden="true">＋</div>
   <div class="corner-plus br" aria-hidden="true">＋</div>
 
-  <slot />
+  <div id="app">
+    <slot />
+  </div>
 
   <script is:inline>
-  (() => {
-    const SPIN_CLASS = "spin";
+    (() => {
+      const html = document.documentElement;
 
-    const triggerSpin = () => {
-      const pluses = document.querySelectorAll(".corner-plus");
-      pluses.forEach((el) => {
-        el.classList.remove(SPIN_CLASS);
-        void el.offsetWidth; // restart animation
-        el.classList.add(SPIN_CLASS);
+      // kick intro after first paint
+      requestAnimationFrame(() => {
+        html.classList.add("intro-run");
+        // remove prep class so it doesn't fight the animation
+        html.classList.remove("intro-prep");
       });
-    };
 
-    const isStudyTrigger = (val) => {
-      if (!val) return false;
-      let s = val;
-      try { s = decodeURIComponent(s); } catch (_) {}
-      s = s.trim().toLowerCase();
-      return s.startsWith("study:[//");
-    };
+      // spin corners on study clicks
+      const SPIN_CLASS = "spin";
 
-    document.addEventListener(
-      "click",
-      (e) => {
-        const t = e.target;
-        if (!t || !t.closest) return;
+      const triggerSpin = () => {
+        const pluses = document.querySelectorAll(".corner-plus");
+        pluses.forEach((el) => {
+          el.classList.remove(SPIN_CLASS);
+          void el.offsetWidth;
+          el.classList.add(SPIN_CLASS);
+        });
+      };
 
-        const el = t.closest("[data-study]");
-        if (!el) return;
+      const isStudyTrigger = (val) => {
+        if (!val) return false;
+        let s = val;
+        try { s = decodeURIComponent(s); } catch (_) {}
+        s = s.trim().toLowerCase();
+        return s.startsWith("study:[//");
+      };
 
-        const studyVal = el.getAttribute("data-study") || "";
-        if (isStudyTrigger(studyVal)) {
-          triggerSpin();
-        }
-      },
-      { capture: true }
-    );
+      document.addEventListener(
+        "click",
+        (e) => {
+          const t = e.target;
+          if (!t || !t.closest) return;
+          const el = t.closest("[data-study]");
+          if (!el) return;
+          const studyVal = el.getAttribute("data-study") || "";
+          if (isStudyTrigger(studyVal)) triggerSpin();
+        },
+        { capture: true }
+      );
 
-    document.addEventListener(
-      "animationend",
-      (e) => {
-        const t = e.target;
-        if (t && t.classList && t.classList.contains("corner-plus")) {
-          t.classList.remove(SPIN_CLASS);
-        }
-      },
-      true
-    );
-  })();
-</script>
+      document.addEventListener(
+        "animationend",
+        (e) => {
+          const t = e.target;
+          if (t && t.classList && t.classList.contains("corner-plus")) {
+            t.classList.remove(SPIN_CLASS);
+          }
+        },
+        true
+      );
+    })();
+  </script>
 </body>
 </html>
