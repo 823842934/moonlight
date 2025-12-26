@@ -74,11 +74,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --cascade-from-blur: 1px;
 
       /* merge tuning */
-      --merge-ms: 1200ms; /* slower forward travel */
+      --merge-ms: 1200ms;
       --merge-ease: cubic-bezier(.22,.61,.36,1);
-      --merge-scale: 2.25; /* bigger final left pluses */
+      --merge-scale: 2.25;
 
-      /* set by JS each click */
+      /* set by JS */
       --dx-tr: 0px;
       --dy-tr: 0px;
       --dx-br: 0px;
@@ -155,7 +155,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
 
-    /* Keyframes (forward) */
+    /* Keyframes */
     @keyframes popLeft {
       0%   { transform: translate3d(0,0,0) rotate(0deg) scale(1); opacity: 1; }
       100% { transform: translate3d(0,0,0) rotate(360deg) scale(var(--merge-scale)); opacity: 1; }
@@ -173,35 +173,42 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       100% { transform: translate3d(var(--dx-br), var(--dy-br), 0) rotate(360deg) scale(var(--merge-scale)); opacity: 0; }
     }
 
-    /* Run forward */
+    /* Forward */
     body.plus-forward .corner-plus.tl,
     body.plus-forward .corner-plus.bl {
       animation: popLeft var(--merge-ms) var(--merge-ease) forwards;
     }
 
-    body.plus-forward .corner-plus.tr {
-      animation: flyTR var(--merge-ms) var(--merge-ease) forwards;
-    }
+    body.plus-forward .corner-plus.tr { animation: flyTR var(--merge-ms) var(--merge-ease) forwards; }
+    body.plus-forward .corner-plus.br { animation: flyBR var(--merge-ms) var(--merge-ease) forwards; }
 
-    body.plus-forward .corner-plus.br {
-      animation: flyBR var(--merge-ms) var(--merge-ease) forwards;
-    }
-
-    /* Run reverse (same animations, reversed) */
+    /* Reverse */
     body.plus-reverse .corner-plus.tl,
     body.plus-reverse .corner-plus.bl {
       animation: popLeft var(--merge-ms) var(--merge-ease) reverse forwards;
     }
 
-    body.plus-reverse .corner-plus.tr {
-      animation: flyTR var(--merge-ms) var(--merge-ease) reverse forwards;
+    body.plus-reverse .corner-plus.tr { animation: flyTR var(--merge-ms) var(--merge-ease) reverse forwards; }
+    body.plus-reverse .corner-plus.br { animation: flyBR var(--merge-ms) var(--merge-ease) reverse forwards; }
+
+    /* ✅ Static merged end-state (used on the study page after navigation) */
+    body.plus-static .corner-plus.tl,
+    body.plus-static .corner-plus.bl {
+      transform: translate3d(0,0,0) rotate(360deg) scale(var(--merge-scale));
+      opacity: 1;
     }
 
-    body.plus-reverse .corner-plus.br {
-      animation: flyBR var(--merge-ms) var(--merge-ease) reverse forwards;
+    body.plus-static .corner-plus.tr {
+      transform: translate3d(var(--dx-tr), var(--dy-tr), 0) rotate(360deg) scale(var(--merge-scale));
+      opacity: 0;
     }
 
-    /* ✅ Normal cascade (faded -> full) */
+    body.plus-static .corner-plus.br {
+      transform: translate3d(var(--dx-br), var(--dy-br), 0) rotate(360deg) scale(var(--merge-scale));
+      opacity: 0;
+    }
+
+    /* Cascade */
     @keyframes studyCascadeIn {
       from {
         opacity: var(--cascade-from-opacity);
@@ -237,15 +244,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
   <script is:inline>
     (() => {
+      const STORAGE_KEY = "brandyura_pluses_merged";
       const root = document.documentElement;
 
       const $ = (sel) => document.querySelector(sel);
-      const pluses = {
-        tl: () => $(".corner-plus.tl"),
-        tr: () => $(".corner-plus.tr"),
-        bl: () => $(".corner-plus.bl"),
-        br: () => $(".corner-plus.br"),
-      };
 
       const isStudyTrigger = (el) => {
         const v = el.getAttribute("data-study") || "";
@@ -267,7 +269,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       };
 
       const setMergeVars = () => {
-        const tl = pluses.tl(), tr = pluses.tr(), bl = pluses.bl(), br = pluses.br();
+        const tl = $(".corner-plus.tl");
+        const tr = $(".corner-plus.tr");
+        const bl = $(".corner-plus.bl");
+        const br = $(".corner-plus.br");
         if (!tl || !tr || !bl || !br) return false;
 
         const rTL = tl.getBoundingClientRect();
@@ -292,32 +297,42 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return true;
       };
 
-      const clearAnimClasses = () => {
-        document.body.classList.remove("plus-forward");
-        document.body.classList.remove("plus-reverse");
+      const clearPlusClasses = () => {
+        document.body.classList.remove("plus-forward", "plus-reverse", "plus-static");
       };
 
       const runForward = () => {
-        if (document.body.classList.contains("plus-forward")) return;
         setMergeVars();
-        clearAnimClasses();
-        void document.body.offsetWidth; // flush
+        clearPlusClasses();
+        void document.body.offsetWidth;
         document.body.classList.add("plus-forward");
       };
 
       const runReverse = () => {
-        if (!document.body.classList.contains("plus-forward")) return;
-        clearAnimClasses();
-        void document.body.offsetWidth; // flush
+        // allow reverse if we're either in animated-forward OR static-merged
+        if (!document.body.classList.contains("plus-forward") && !document.body.classList.contains("plus-static")) return;
+
+        setMergeVars();
+        clearPlusClasses();
+        void document.body.offsetWidth;
         document.body.classList.add("plus-reverse");
 
         const ms = cssMs("--merge-ms", 1200);
         setTimeout(() => {
-          clearAnimClasses(); // back to default corners
+          clearPlusClasses(); // back to normal corners
         }, ms + 30);
       };
 
-      // cascade helpers (unchanged)
+      // If we navigated into a study page, start in merged end-state so Back can reverse
+      const bootstrapMergedIfNeeded = () => {
+        if (sessionStorage.getItem(STORAGE_KEY) !== "1") return;
+        setMergeVars();
+        clearPlusClasses();
+        document.body.classList.add("plus-static");
+        // keep it set until user clicks Back (we clear it on back)
+      };
+
+      // Cascade helpers (unchanged)
       const cssNum = (name, fallback) => {
         const raw = getComputedStyle(root).getPropertyValue(name);
         const n = parseFloat(raw);
@@ -367,7 +382,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const target = e.target;
         if (!target || !target.closest) return;
 
-        // STUDY click: ALWAYS block navigation until animation finishes
+        // STUDY click: block navigation until forward finishes, and persist merged state across nav
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
           const link = studyEl.closest("a[href]");
@@ -376,7 +391,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           if (link) {
             e.preventDefault();
             e.stopPropagation();
+
             const href = link.getAttribute("href");
+            sessionStorage.setItem(STORAGE_KEY, "1");
 
             runForward();
 
@@ -389,17 +406,21 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           return;
         }
 
-        // BACK click
+        // BACK click: reverse AND clear persisted merged state
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
+          sessionStorage.removeItem(STORAGE_KEY);
           runReverse();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
 
-      // keep distances correct when resized
       window.addEventListener("resize", () => {
-        if (document.body.classList.contains("plus-forward") || document.body.classList.contains("plus-reverse")) {
+        if (
+          document.body.classList.contains("plus-forward") ||
+          document.body.classList.contains("plus-reverse") ||
+          document.body.classList.contains("plus-static")
+        ) {
           setMergeVars();
         }
       }, { passive: true });
@@ -410,6 +431,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           document.body.classList.remove("is-intro");
         });
       });
+
+      // init
+      bootstrapMergedIfNeeded();
     })();
   </script>
 </body>
