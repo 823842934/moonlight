@@ -66,18 +66,14 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
-      /* ripple timing */
-      --cascade-ms: 300ms;
-      --cascade-stagger: 60ms;
+      /* ripple timing (quicker + smooth) */
+      --cascade-ms: 260ms;
+      --cascade-stagger: 42ms;
 
-      /* ripple “from” look */
+      /* ripple look */
       --cascade-from-opacity: 0.22;
-      --cascade-from-y: 12px;       /* distance AWAY from center item */
+      --cascade-from-y: 12px;
       --cascade-from-blur: 1px;
-
-      /* bolding */
-      --study-active-weight: 700;
-      --study-inactive-weight: 400;
     }
 
     html, body {
@@ -152,7 +148,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       animation: cornerSpin var(--spin-ms) ease-in-out;
     }
 
-    /* ✅ Ripple in: items move AWAY from the clicked one (up above it, down below it), then settle */
     @keyframes studyRippleIn {
       from {
         opacity: var(--cascade-from-opacity);
@@ -221,12 +216,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       };
 
       const parseStudyToken = (el) => {
-        // expects: study:[//000-00006]
         const raw = el.getAttribute("data-study") || "";
         let val = raw;
         try { val = decodeURIComponent(val); } catch {}
         const m = val.match(/\[\/\/([0-9]{3}-[0-9]{5})\]/i);
-        return m ? m[1] : null; // e.g. "000-00006"
+        return m ? m[1] : null;
       };
 
       const setLastStudyToken = (token) => {
@@ -246,58 +240,40 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
         const lastToken = getLastStudyToken();
         let activeIndex = -1;
-
-        if (lastToken) {
-          activeIndex = items.findIndex((el) => parseStudyToken(el) === lastToken);
-        }
-
-        // fallback: if we can't find it, just ripple from the top
+        if (lastToken) activeIndex = items.findIndex((el) => parseStudyToken(el) === lastToken);
         if (activeIndex < 0) activeIndex = 0;
 
-        const ms = cssNum("--cascade-ms", 420);
-        const stagger = cssNum("--cascade-stagger", 80);
+        const ms = cssNum("--cascade-ms", 260);
+        const stagger = cssNum("--cascade-stagger", 42);
         const fromOpacity = cssNum("--cascade-from-opacity", 0.22);
         const fromY = cssNum("--cascade-from-y", 12);
         const fromBlur = cssNum("--cascade-from-blur", 1);
 
-        const activeWeight = cssNum("--study-active-weight", 700);
-        const inactiveWeight = cssNum("--study-inactive-weight", 400);
+        const maxRing = Math.max(activeIndex, items.length - 1 - activeIndex);
 
         items.forEach((el, i) => {
           const dist = Math.abs(i - activeIndex);
-          const delay = dist * stagger;
+          const ring = dist;
+          const normalized = maxRing ? (ring / maxRing) : 0;
+          const delay = normalized * (maxRing * stagger);
 
-          const isActive = i === activeIndex;
-
-          // reset base visuals
-          el.style.animation = "none";
-          el.style.opacity = String(isActive ? 1 : fromOpacity);
-          el.style.filter = `blur(${isActive ? 0 : fromBlur}px)`;
-
-          // direction: above active goes UP (negative), below goes DOWN (positive)
           let dir = 0;
           if (i < activeIndex) dir = -1;
-          if (i > activeIndex) dir =  1;
+          if (i > activeIndex) dir = 1;
 
-          // each element gets its own custom start Y via CSS var
-          const rippleY = `${dir * fromY}px`;
-          el.style.setProperty("--ripple-y", rippleY);
+          el.style.animation = "none";
+          el.style.opacity = String(i === activeIndex ? 1 : fromOpacity);
+          el.style.filter = `blur(${i === activeIndex ? 0 : fromBlur}px)`;
 
-          // force reflow
+          el.style.setProperty("--ripple-y", `${dir * fromY}px`);
+
           void el.offsetWidth;
 
-          // active item can still animate subtly if you want; currently it snaps (clean)
-          if (!isActive) {
-            el.style.animation = `studyRippleIn ${ms}ms cubic-bezier(.25,.8,.25,1) ${delay}ms forwards`;
-            el.addEventListener("animationend", () => {
-              el.style.filter = "blur(0)";
-            }, { once: true });
-          } else {
-            // ensure active is crisp
-            el.style.opacity = "1";
-            el.style.transform = "translateY(0)";
+          el.style.animation = `studyRippleIn ${ms}ms cubic-bezier(.25,.8,.25,1) ${delay}ms forwards`;
+
+          el.addEventListener("animationend", () => {
             el.style.filter = "blur(0)";
-          }
+          }, { once: true });
         });
 
         return true;
