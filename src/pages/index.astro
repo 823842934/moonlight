@@ -1,3 +1,4 @@
+
 ---
 import FrameLayout from "../layouts/FrameLayout.astro";
 ---
@@ -268,20 +269,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
   const ms = 420; // must match CSS duration
   const total = ms + (lines.length - 1) * stagger + 60;
-
-/* Hide gallery tree during intro */
-body.is-intro #tree {
-  opacity: 0;
-  pointer-events: none;
-}
-
-/* When intro is done, tree can appear */
-body.intro-done #tree {
-  opacity: 1;
-  pointer-events: auto;
-  transition: opacity 180ms ease;
-}
-
 
   setTimeout(() => {
     document.body.classList.remove("gallery-intro-cascade");
