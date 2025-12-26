@@ -86,7 +86,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       overflow-x: clip;
     }
 
-    /* Intro */
     .page-intro-wrap {
       min-height: 100%;
       transition:
@@ -116,7 +115,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.is-intro .intro-wash { opacity: 1; }
 
-    /* Corner plus marks */
     .corner-plus {
       position: fixed;
       z-index: 9999;
@@ -142,12 +140,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     .corner-plus.spin {
       animation: cornerSpin var(--spin-ms) ease-in-out;
-    }
-
-    /* Cascade keyframes (we'll apply inline styles via JS) */
-    @keyframes studyCascadeIn {
-      from { opacity: 0; transform: translateY(-8px); }
-      to { opacity: 1; transform: translateY(0); }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -203,37 +195,38 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
         if (!items.length) return false;
 
+        const root = getComputedStyle(document.documentElement);
+        const ms = parseFloat(root.getPropertyValue("--cascade-ms")) || 420;
+        const stagger = parseFloat(root.getPropertyValue("--cascade-stagger")) || 65;
+
         items.forEach((el, i) => {
-          // reset
-          el.style.animation = "none";
-          el.style.opacity = "0";
-          el.style.transform = "translateY(-8px)";
-          // force reflow per element
-          void el.offsetWidth;
+          if (el.getAnimations) el.getAnimations().forEach((a) => a.cancel());
 
-          const delay = i * parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cascade-stagger")) || (i * 28);
-          const ms = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cascade-ms")) || 220;
-
-          el.style.animation = `studyCascadeIn ${ms}ms cubic-bezier(.2,.9,.2,1) ${delay}ms both`;
+          el.animate(
+            [
+              { opacity: 0, transform: "translateY(-8px)" },
+              { opacity: 1, transform: "translateY(0px)" },
+            ],
+            {
+              duration: ms,
+              delay: i * stagger,
+              easing: "cubic-bezier(.2,.9,.2,1)",
+              fill: "both",
+            }
+          );
         });
 
         return true;
       };
 
       const triggerCascadeAfterBack = () => {
-        // Try immediately (sometimes it’s already there)
         if (animateStudyListCascade()) return;
 
-        // Otherwise watch for DOM changes for a short window
         const obs = new MutationObserver(() => {
-          if (animateStudyListCascade()) {
-            obs.disconnect();
-          }
+          if (animateStudyListCascade()) obs.disconnect();
         });
 
         obs.observe(document.body, { childList: true, subtree: true });
-
-        // stop watching after 1.2s no matter what
         setTimeout(() => obs.disconnect(), 1200);
       };
 
@@ -261,7 +254,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         }
       }, true);
 
-      // Intro: remove class after first paint so transitions run
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
