@@ -33,8 +33,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <span class="arrow">←</span><span class="label"> back</span>
             </button>
 
-            <!-- THIS is what we animate -->
-            <div id="studyRoot" class="root">study</div>
+            <!-- We render a fixed-width glyph slot so it never shifts -->
+            <div id="studyRoot" class="root">
+              study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
+            </div>
 
             <div class="children children--indented">
               <div class="item cascade" data-cascade="1">├─ about</div>
@@ -188,6 +190,13 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .view--active .cascade[data-cascade="1"] { transition-delay: 80ms; }
     .view--active .cascade[data-cascade="2"] { transition-delay: 160ms; }
     .view--active .cascade[data-cascade="3"] { transition-delay: 240ms; }
+
+    /* ✅ Fixed glyph width so the header never shifts */
+    .glyph-slot {
+      display: inline-block;
+      width: 2ch;            /* always reserve 2 characters */
+      text-align: center;
+    }
   </style>
 
   <script>
@@ -197,11 +206,14 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     const viewport = document.getElementById("viewport");
     const galleryView = document.getElementById("galleryView");
     const studyView = document.getElementById("studyView");
+
     const studyRoot = document.getElementById("studyRoot");
+    const studyGlyph = document.getElementById("studyGlyph");
+    const studyId = document.getElementById("studyId");
+
     const backBtn = document.getElementById("backBtn");
     const studyButtons = document.querySelectorAll("[data-study]");
 
-    // Align tree left edge to the logo's left edge (in the same stack)
     function syncTreeToLogo() {
       const stackRect = stack.getBoundingClientRect();
       const logoRect = logo.getBoundingClientRect();
@@ -209,29 +221,21 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       stack.style.setProperty("--logo-left", `${left}px`);
     }
 
-    // ===== Glyph animation for studyRoot =====
+    // ===== Glyph animation (fixed width) =====
     const GLYPHS = ["//", "--", "\\\\", "| |"];
     const GLYPH_MS = 110;
 
     let glyphTimer = null;
     let glyphIndex = 0;
-    let lastStudyValue = null; // the raw "study:[//000-00001]" string
-
-    function setStudyRootGlyph(glyph) {
-      if (!lastStudyValue) return;
-      // Replace only the glyph right after "study:["
-      const next = lastStudyValue.replace(/(study:\[)(\/\/|--|\\\\|\|\s\|)/i, `$1${glyph}`);
-      studyRoot.textContent = next;
-    }
 
     function startGlyphLoop() {
       if (glyphTimer) return;
       glyphIndex = 0;
-      setStudyRootGlyph("//");
+      studyGlyph.textContent = "//";
 
       glyphTimer = setInterval(() => {
         glyphIndex = (glyphIndex + 1) % GLYPHS.length;
-        setStudyRootGlyph(GLYPHS[glyphIndex]);
+        studyGlyph.textContent = GLYPHS[glyphIndex];
       }, GLYPH_MS);
     }
 
@@ -241,23 +245,31 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         glyphTimer = null;
       }
       glyphIndex = 0;
+      studyGlyph.textContent = "//";
+    }
 
-      // restore normal //
-      if (lastStudyValue) {
-        studyRoot.textContent = lastStudyValue.replace(/(study:\[)(\/\/|--|\\\\|\|\s\|)/i, `$1//`);
-      }
+    function parseStudy(str) {
+      // "study:[//000-00001]" -> { glyph:"//", id:"000-00001" }
+      const m = String(str || "").match(/^study:\[(\/\/|--|\\\\|\|\s\|)([0-9]{3}-[0-9]{5})\]$/i);
+      if (!m) return null;
+      return { glyph: m[1], id: m[2] };
     }
 
     function showStudy(name) {
-      lastStudyValue = name;      // e.g. "study:[//000-00001]"
-      studyRoot.textContent = name;
+      const parsed = parseStudy(name);
+      if (parsed) {
+        studyGlyph.textContent = "//"; // always start as //
+        studyId.textContent = parsed.id;
+      } else {
+        // fallback: show raw text if it doesn't match expected format
+        studyRoot.textContent = name;
+      }
 
       galleryView.classList.remove("view--active");
       studyView.classList.add("view--active");
       viewport.classList.add("zoom-in");
       logo.classList.add("logo-blur");
 
-      // start glyph loop after view becomes active (avoids timing issues)
       requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
     }
 
