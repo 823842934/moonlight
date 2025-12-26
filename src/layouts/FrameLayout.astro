@@ -60,10 +60,14 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --corner-inset: 22px;
       --corner-size: 28px;
 
+      /* ✅ intro timing */
       --intro-ms: 3000ms;
       --intro-ease: cubic-bezier(.2,.9,.2,1);
       --intro-blur: 18px;
-      --intro-scale: 0.985;
+
+      /* ✅ landing intro (starts larger + slightly above, settles to normal) */
+      --intro-scale: 1.08;
+      --intro-from-y: -14px;
 
       /* normal top-to-bottom cascade */
       --cascade-ms: 420ms;
@@ -106,6 +110,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     /* Intro */
     .page-intro-wrap {
       min-height: 100%;
+      transform: translateY(0) scale(1);
       transition:
         filter var(--intro-ms) var(--intro-ease),
         transform var(--intro-ms) var(--intro-ease);
@@ -127,7 +132,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.is-intro .page-intro-wrap {
       filter: blur(var(--intro-blur));
-      transform: scale(var(--intro-scale));
+      transform: translateY(var(--intro-from-y)) scale(var(--intro-scale));
       transform-origin: center;
     }
 
