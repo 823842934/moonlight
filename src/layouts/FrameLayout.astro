@@ -1,30 +1,144 @@
-<script is:inline>
-  (() => {
-    const SPIN_CLASS = "spin";
+---
+const {
+  title = "brandyura",
+  description = "brandyura",
+  ogImage = "/og.png",
+} = Astro.props;
 
-    const getPluses = () => Array.from(document.querySelectorAll(".corner-plus"));
+const siteUrl = "https://brandyura.com";
+const canonical = new URL(Astro.url.pathname, siteUrl).toString();
+const ogImageAbs = new URL(ogImage, siteUrl).toString();
+---
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{title}</title>
 
-    const triggerSpin = () => {
-      const pluses = getPluses();
-      for (const el of pluses) {
-        el.classList.remove(SPIN_CLASS);
-        void el.offsetWidth; // force reflow so animation restarts
-        el.classList.add(SPIN_CLASS);
-      }
-    };
+  <link rel="canonical" href={canonical} />
+  <meta name="description" content={description} />
 
-    const isStudyTrigger = (el) => {
-      if (!el) return false;
-      const v = el.getAttribute("data-study") || "";
-      let val = v;
-      try { val = decodeURIComponent(val); } catch (_) {}
-      val = val.trim().toLowerCase();
-      return val.startsWith("study:") && val.includes("[//");
-    };
+  <meta property="og:site_name" content="brandyura" />
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:url" content={canonical} />
 
-    document.addEventListener(
-      "click",
-      (e) => {
+  <meta property="og:image" content={ogImageAbs} />
+  <meta property="og:image:width" content="960" />
+  <meta property="og:image:height" content="960" />
+  <meta property="og:image:type" content="image/png" />
+  <meta property="og:image:alt" content="brandyura preview" />
+
+  <meta name="twitter:card" content="summary" />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={ogImageAbs} />
+
+  <link rel="icon" href="/favicon.ico" />
+
+  <link rel="preload" href="/fonts/ABCDiatype-Regular.woff" as="font" type="font/woff" crossorigin />
+  <link rel="preload" href="/fonts/ABCDiatype-Bold.woff" as="font" type="font/woff" crossorigin />
+
+  <style>
+    @font-face {
+      font-family: "ABC Diatype";
+      src: url("/fonts/ABCDiatype-Regular.woff") format("woff");
+      font-weight: 400;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    @font-face {
+      font-family: "ABC Diatype";
+      src: url("/fonts/ABCDiatype-Bold.woff") format("woff");
+      font-weight: 700;
+      font-style: normal;
+      font-display: swap;
+    }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+    }
+
+    body {
+      font-family: "ABC Diatype", system-ui, sans-serif;
+      color: #000000;
+      overflow-x: hidden;
+    }
+
+    :root {
+      --corner-inset: 22px;
+      --corner-size: 28px;
+      --spin-ms: 520ms;
+    }
+
+    .corner-plus {
+      position: fixed;
+      z-index: 9999;
+      font-family: "ABC Diatype", system-ui, sans-serif;
+      font-weight: 700;
+      font-size: var(--corner-size);
+      line-height: 1;
+      color: #000;
+      user-select: none;
+      pointer-events: none;
+      will-change: transform;
+    }
+
+    .corner-plus.tl { top: var(--corner-inset); left: var(--corner-inset); }
+    .corner-plus.tr { top: var(--corner-inset); right: var(--corner-inset); }
+    .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
+    .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
+
+    @keyframes cornerSpin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .corner-plus.spin {
+      animation: cornerSpin var(--spin-ms) ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <div class="corner-plus tl">＋</div>
+  <div class="corner-plus tr">＋</div>
+  <div class="corner-plus bl">＋</div>
+  <div class="corner-plus br">＋</div>
+
+  <slot />
+
+  <script is:inline>
+    (() => {
+      const SPIN_CLASS = "spin";
+
+      const getPluses = () => Array.from(document.querySelectorAll(".corner-plus"));
+
+      const triggerSpin = () => {
+        const pluses = getPluses();
+        for (const el of pluses) {
+          el.classList.remove(SPIN_CLASS);
+          void el.offsetWidth;
+          el.classList.add(SPIN_CLASS);
+        }
+      };
+
+      const isStudyTrigger = (el) => {
+        if (!el) return false;
+        const v = el.getAttribute("data-study") || "";
+        let val = v;
+        try { val = decodeURIComponent(val); } catch {}
+        val = val.trim().toLowerCase();
+        return val.startsWith("study:") && val.includes("[//");
+      };
+
+      document.addEventListener("click", (e) => {
         const target = e.target;
         if (!target || !target.closest) return;
 
@@ -34,19 +148,15 @@
         if (isStudyTrigger(el)) {
           triggerSpin();
         }
-      },
-      { capture: true }
-    );
+      }, { capture: true });
 
-    document.addEventListener(
-      "animationend",
-      (e) => {
+      document.addEventListener("animationend", (e) => {
         const t = e.target;
         if (t && t.classList && t.classList.contains("corner-plus")) {
           t.classList.remove(SPIN_CLASS);
         }
-      },
-      true
-    );
-  })();
-</script>
+      }, true);
+    })();
+  </script>
+</body>
+</html>
