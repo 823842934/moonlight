@@ -65,20 +65,25 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
+      /* normal top-to-bottom cascade */
       --cascade-ms: 420ms;
       --cascade-stagger: 80ms;
       --cascade-from-opacity: 0.25;
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
 
+      /* plus transform (no movement) */
       --plus-ms: 520ms;
       --plus-ease: cubic-bezier(.22,.61,.36,1);
       --left-scale: 2.1;
       --right-scale: 0.45;
 
-      --connector-gap: 14px;
+      /* connector */
+      --connector-gap: 14px;     /* space from each + so ends don't touch */
       --connector-ms: 520ms;
       --connector-ease: cubic-bezier(.22,.61,.36,1);
+
+      /* JS sets this to match the plus "arm" thickness */
       --connector-width: 3px;
     }
 
@@ -98,10 +103,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       overflow-x: clip;
     }
 
+    /* Intro */
     .page-intro-wrap {
       min-height: 100%;
-      transition: filter var(--intro-ms) var(--intro-ease),
-                  transform var(--intro-ms) var(--intro-ease);
+      transition:
+        filter var(--intro-ms) var(--intro-ease),
+        transform var(--intro-ms) var(--intro-ease);
       will-change: filter, transform;
     }
 
@@ -126,28 +133,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.is-intro .intro-wash { opacity: 1; }
 
-    /* ✅ gallery tree zoom animation */
-    #tree {
-      transform: scale(1);
-      transform-origin: center left;
-      will-change: transform, opacity, filter;
-    }
-
-    body.is-intro #tree {
-      transform: scale(0.92);
-      opacity: 0;
-      filter: blur(2px);
-    }
-
-    body.gallery-tree-intro #tree {
-      animation: galleryTreeZoomIn 900ms cubic-bezier(.2,.9,.2,1) both;
-    }
-
-    @keyframes galleryTreeZoomIn {
-      from { transform: scale(0.92); opacity: 0; filter: blur(2px); }
-      to   { transform: scale(1); opacity: 1; filter: blur(0); }
-    }
-
+    /* Corner plus marks */
     .corner-plus {
       position: fixed;
       z-index: 9999;
@@ -158,12 +144,16 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       color: #000;
       user-select: none;
       pointer-events: none;
+
       transform-origin: center;
       will-change: transform, opacity;
+
       transform: rotate(0deg) scale(1);
       opacity: 1;
-      transition: transform var(--plus-ms) var(--plus-ease),
-                  opacity var(--plus-ms) var(--plus-ease);
+
+      transition:
+        transform var(--plus-ms) var(--plus-ease),
+        opacity var(--plus-ms) var(--plus-ease);
     }
 
     .corner-plus.tl { top: var(--corner-inset); left: var(--corner-inset); }
@@ -171,6 +161,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
 
+    /* merged state: left grows, right shrinks + fades */
     body.plus-merged .corner-plus.tl,
     body.plus-merged .corner-plus.bl {
       transform: rotate(360deg) scale(var(--left-scale));
@@ -183,17 +174,21 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       opacity: 0;
     }
 
+    /* Connector line between left pluses (sharp rectangle, no rounding) */
     .left-connector {
       position: fixed;
       z-index: 9998;
       width: var(--connector-width);
       background: #000;
-      border-radius: 0;
+      border-radius: 0; /* ✅ sharp corners */
+
       left: -9999px;
       top: -9999px;
       height: 0px;
+
       transform: translate(-50%, -50%);
       opacity: 0;
+
       transition: opacity var(--connector-ms) var(--connector-ease);
       will-change: opacity;
       pointer-events: none;
@@ -201,6 +196,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.plus-merged .left-connector { opacity: 1; }
 
+    /* ✅ Normal cascade (faded -> full) */
     @keyframes studyCascadeIn {
       from {
         opacity: var(--cascade-from-opacity);
@@ -213,6 +209,18 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         filter: blur(0);
       }
     }
+
+    @media (prefers-reduced-motion: reduce) {
+      :root {
+        --intro-ms: 0ms;
+        --cascade-ms: 0ms;
+        --cascade-stagger: 0ms;
+        --plus-ms: 0ms;
+        --connector-ms: 0ms;
+      }
+      .intro-wash { display: none; }
+      .corner-plus, .left-connector { transition: none !important; }
+    }
   </style>
 </head>
 
@@ -223,6 +231,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <div class="corner-plus br">＋</div>
 
   <div class="left-connector" aria-hidden="true"></div>
+
   <div class="intro-wash" aria-hidden="true"></div>
 
   <div class="page-intro-wrap">
@@ -231,14 +240,43 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
   <script is:inline>
     (() => {
+      const root = document.documentElement;
       const $ = (sel) => document.querySelector(sel);
 
+      const isStudyTrigger = (el) => {
+        const v = el.getAttribute("data-study") || "";
+        let val = v;
+        try { val = decodeURIComponent(val); } catch {}
+        val = val.trim().toLowerCase();
+        return val.startsWith("study:") && val.includes("[//");
+      };
+
+      const isBackTrigger = (el) => {
+        const txt = (el.textContent || "").trim().toLowerCase();
+        return txt === "<- back" || txt === "← back" || txt === "back";
+      };
+
+      const cssNum = (name, fallback) => {
+        const raw = getComputedStyle(root).getPropertyValue(name).trim();
+        const n = parseFloat(raw);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
+      const cssMs = (name, fallback) => {
+        const raw = getComputedStyle(root).getPropertyValue(name).trim();
+        const n = parseFloat(raw);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
+      // ✅ Estimate plus "arm" thickness from font-size (works well for most fonts)
       const updateConnectorWidth = () => {
         const tl = $(".corner-plus.tl");
         if (!tl) return;
         const fs = parseFloat(getComputedStyle(tl).fontSize) || 28;
+
+        // tweakable: ~10% of font size usually matches the stroke weight visually
         const w = Math.max(2, Math.round(fs * 0.10));
-        document.documentElement.style.setProperty("--connector-width", `${w}px`);
+        root.style.setProperty("--connector-width", `${w}px`);
       };
 
       const setConnectorMetrics = () => {
@@ -249,43 +287,425 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
         const rTL = tl.getBoundingClientRect();
         const rBL = bl.getBoundingClientRect();
+
         const cx = rTL.left + rTL.width / 2;
-        const gap = 14;
-        const topY = rTL.bottom + gap;
-        const bottomY = rBL.top - gap;
+
+        const gap = cssNum("--connector-gap", 14);
+        const topY = (rTL.bottom + gap);
+        const bottomY = (rBL.top - gap);
         const h = Math.max(0, bottomY - topY);
-        const cy = topY + h / 2;
+        const cy = topY + (h / 2);
 
         conn.style.left = `${cx}px`;
         conn.style.top = `${cy}px`;
         conn.style.height = `${h}px`;
       };
 
-      const kickGalleryTreeIntro = () => {
-        const tree = document.getElementById("tree");
-        if (!tree) return;
+      const merge = () => {
+        if (document.body.classList.contains("plus-merged")) return;
 
-        document.body.classList.remove("gallery-tree-intro");
-        void tree.offsetWidth;
-        document.body.classList.add("gallery-tree-intro");
+        updateConnectorWidth();
+        setConnectorMetrics();
 
-        setTimeout(() => document.body.classList.remove("gallery-tree-intro"), 1200);
+        document.body.classList.remove("plus-merged");
+        void document.body.offsetWidth;
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            document.body.classList.add("plus-merged");
+          });
+        });
       };
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
-          document.body.classList.remove("is-intro");
-          kickGalleryTreeIntro();
-          updateConnectorWidth();
-          setConnectorMetrics();
+      const unmerge = () => {
+        document.body.classList.remove("plus-merged");
+      };
+
+      const animateStudyListCascade = () => {
+        const items = Array.from(document.querySelectorAll("[data-study]"))
+          .filter((el) => el instanceof HTMLElement && isStudyTrigger(el));
+
+        if (!items.length) return false;
+
+        const stagger = cssNum("--cascade-stagger", 80);
+        const ms = cssNum("--cascade-ms", 420);
+
+        items.forEach((el, i) => {
+          el.style.animation = "none";
+          el.style.opacity = String(cssNum("--cascade-from-opacity", 0.25));
+          el.style.transform = `translateY(${cssNum("--cascade-from-y", -10)}px)`;
+          el.style.filter = `blur(${cssNum("--cascade-from-blur", 1)}px)`;
+
+          void el.offsetWidth;
+
+          const delay = i * stagger;
+          el.style.animation = `studyCascadeIn ${ms}ms cubic-bezier(.25,.8,.25,1) ${delay}ms forwards`;
+
+          el.addEventListener("animationend", () => {
+            el.style.filter = "blur(0)";
+          }, { once: true });
         });
-      });
+
+        return true;
+      };
+
+      const triggerCascadeAfterBack = () => {
+        if (animateStudyListCascade()) return;
+
+        const obs = new MutationObserver(() => {
+          if (animateStudyListCascade()) obs.disconnect();
+        });
+
+        obs.observe(document.body, { childList: true, subtree: true });
+        setTimeout(() => obs.disconnect(), 1200);
+      };
+
+      document.addEventListener("click", (e) => {
+        const target = e.target;
+        if (!target || !target.closest) return;
+
+        // STUDY CLICK (delay nav if it's a real link)
+        const studyEl = target.closest("[data-study]");
+        if (studyEl && isStudyTrigger(studyEl)) {
+          const link = studyEl.closest("a[href]");
+          if (link) {
+            e.preventDefault();
+            const href = link.getAttribute("href");
+
+            merge();
+
+            const ms = cssMs("--plus-ms", 520);
+            setTimeout(() => { window.location.href = href; }, Math.max(0, ms + 40));
+          } else {
+            merge();
+          }
+          return;
+        }
+
+        // BACK CLICK
+        const backEl = target.closest("button, a");
+        if (backEl && isBackTrigger(backEl)) {
+          unmerge();
+          triggerCascadeAfterBack();
+        }
+      }, { capture: true });
 
       window.addEventListener("resize", () => {
         updateConnectorWidth();
         setConnectorMetrics();
+      }, { passive: true });
+
+      // intro removal
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.body.classList.remove("is-intro");
+          updateConnectorWidth();
+          setConnectorMetrics();
+        });
       });
     })();
   </script>
 </body>
 </html>
+
+
+
+
+__________________________
+
+
+
+---
+import FrameLayout from "../layouts/FrameLayout.astro";
+---
+
+<FrameLayout title="brandyura">
+  <section class="hero">
+    <div class="stack" id="stack">
+      <h1 id="logo">brandyura</h1>
+
+      <div class="tree" id="tree" aria-label="gallery tree">
+        <div class="tree-viewport" id="viewport">
+          <!-- GALLERY VIEW -->
+          <div id="galleryView" class="view view--active">
+            <div class="root">gallery</div>
+
+            <div class="children">
+              <button class="item item-btn" type="button" data-study="study:[//000-00001]">├─ study:[//000-00001]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00002]">├─ study:[//000-00002]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00003]">├─ study:[//000-00003]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00004]">├─ study:[//000-00004]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00005]">├─ study:[//000-00005]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00006]">├─ study:[//000-00006]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00007]">├─ study:[//000-00007]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00008]">├─ study:[//000-00008]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00009]">├─ study:[//000-00009]</button>
+              <button class="item item-btn" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
+            </div>
+          </div>
+
+          <!-- STUDY VIEW -->
+          <div id="studyView" class="view zoomed">
+            <button id="backBtn" class="back" type="button">
+              <span class="arrow">←</span><span class="label"> back</span>
+            </button>
+
+            <!-- We render a fixed-width glyph slot so it never shifts -->
+            <div id="studyRoot" class="root">
+              study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
+            </div>
+
+            <div class="children children--indented">
+              <div class="item cascade" data-cascade="1">├─ about</div>
+              <div class="item cascade" data-cascade="2">├─ purpose</div>
+              <div class="item cascade" data-cascade="3">└─ date</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <style>
+    .hero {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 0 5vw;
+    }
+
+    .stack {
+      width: min(1100px, 100%);
+      box-sizing: border-box;
+    }
+
+    h1 {
+      font-family: "ABC Diatype", system-ui, sans-serif;
+      font-weight: 700;
+      font-size: clamp(56px, 16vw, 260px);
+      letter-spacing: -0.05em;
+      line-height: 1;
+      margin: 0;
+      width: 100%;
+      text-align: center;
+      transition: filter 0.35s ease;
+    }
+
+    .logo-blur {
+      filter: blur(6px);
+    }
+
+    .tree {
+      margin-top: 0.5rem;
+      font-family: "ABC Diatype", system-ui, sans-serif;
+      font-size: clamp(14px, 3.5vw, 18px);
+      letter-spacing: 0.02em;
+      width: 100%;
+      box-sizing: border-box;
+      padding-left: var(--logo-left, 0px);
+    }
+
+    .tree-viewport {
+      position: relative;
+      min-height: 12.5rem;
+      width: 100%;
+      overflow: visible;
+      transform-origin: center left;
+      transition: transform 500ms cubic-bezier(.4,0,.2,1);
+      will-change: transform;
+    }
+
+    .tree-viewport.zoom-in {
+      transform: scale(1.25) translateX(40px);
+    }
+
+    .root,
+    .item,
+    .item-btn,
+    .back {
+      white-space: nowrap;
+      overflow-wrap: normal;
+      word-break: normal;
+      hyphens: none;
+    }
+
+    .root { margin: 0; }
+
+    .children {
+      margin-top: 0.35rem;
+      display: grid;
+      gap: 0.18rem;
+      width: fit-content;
+    }
+
+    .children--indented {
+      padding-left: 2ch;
+    }
+
+    .item {
+      line-height: 1.25;
+      width: fit-content;
+    }
+
+    .item-btn {
+      background: none;
+      border: 0;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      text-align: left;
+      display: inline-block;
+      width: fit-content;
+    }
+
+    .back {
+      background: none;
+      border: 0;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.15em;
+      margin-bottom: 0.35rem;
+    }
+
+    .view {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      transition: opacity 260ms ease, transform 260ms ease;
+    }
+
+    .view:not(.view--active) {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    .view.view--active {
+      opacity: 1;
+    }
+
+    .zoomed {
+      transform: scale(1.15);
+      transform-origin: top left;
+    }
+
+    .cascade {
+      opacity: 0;
+      transform: translateX(16px);
+      transition: opacity 260ms ease, transform 260ms ease;
+    }
+
+    .view--active .cascade {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .view--active .cascade[data-cascade="1"] { transition-delay: 80ms; }
+    .view--active .cascade[data-cascade="2"] { transition-delay: 160ms; }
+    .view--active .cascade[data-cascade="3"] { transition-delay: 240ms; }
+
+    /* ✅ Fixed glyph width so the header never shifts */
+    .glyph-slot {
+      display: inline-block;
+      width: 2ch;            /* always reserve 2 characters */
+      text-align: center;
+    }
+  </style>
+
+  <script>
+    const stack = document.getElementById("stack");
+    const logo = document.getElementById("logo");
+
+    const viewport = document.getElementById("viewport");
+    const galleryView = document.getElementById("galleryView");
+    const studyView = document.getElementById("studyView");
+
+    const studyRoot = document.getElementById("studyRoot");
+    const studyGlyph = document.getElementById("studyGlyph");
+    const studyId = document.getElementById("studyId");
+
+    const backBtn = document.getElementById("backBtn");
+    const studyButtons = document.querySelectorAll("[data-study]");
+
+    function syncTreeToLogo() {
+      const stackRect = stack.getBoundingClientRect();
+      const logoRect = logo.getBoundingClientRect();
+      const left = Math.max(0, logoRect.left - stackRect.left);
+      stack.style.setProperty("--logo-left", `${left}px`);
+    }
+
+    // ===== Glyph animation (fixed width) =====
+    const GLYPHS = ["//", "--", "\\\\", "| |"];
+    const GLYPH_MS = 110;
+
+    let glyphTimer = null;
+    let glyphIndex = 0;
+
+    function startGlyphLoop() {
+      if (glyphTimer) return;
+      glyphIndex = 0;
+      studyGlyph.textContent = "//";
+
+      glyphTimer = setInterval(() => {
+        glyphIndex = (glyphIndex + 1) % GLYPHS.length;
+        studyGlyph.textContent = GLYPHS[glyphIndex];
+      }, GLYPH_MS);
+    }
+
+    function stopGlyphLoop() {
+      if (glyphTimer) {
+        clearInterval(glyphTimer);
+        glyphTimer = null;
+      }
+      glyphIndex = 0;
+      studyGlyph.textContent = "//";
+    }
+
+    function parseStudy(str) {
+      // "study:[//000-00001]" -> { glyph:"//", id:"000-00001" }
+      const m = String(str || "").match(/^study:\[(\/\/|--|\\\\|\|\s\|)([0-9]{3}-[0-9]{5})\]$/i);
+      if (!m) return null;
+      return { glyph: m[1], id: m[2] };
+    }
+
+    function showStudy(name) {
+      const parsed = parseStudy(name);
+      if (parsed) {
+        studyGlyph.textContent = "//"; // always start as //
+        studyId.textContent = parsed.id;
+      } else {
+        // fallback: show raw text if it doesn't match expected format
+        studyRoot.textContent = name;
+      }
+
+      galleryView.classList.remove("view--active");
+      studyView.classList.add("view--active");
+      viewport.classList.add("zoom-in");
+      logo.classList.add("logo-blur");
+
+      requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
+    }
+
+    function showGallery() {
+      stopGlyphLoop();
+
+      studyView.classList.remove("view--active");
+      galleryView.classList.add("view--active");
+      viewport.classList.remove("zoom-in");
+      logo.classList.remove("logo-blur");
+    }
+
+    syncTreeToLogo();
+    addEventListener("resize", syncTreeToLogo);
+
+    studyButtons.forEach((btn) => {
+      btn.addEventListener("click", () => showStudy(btn.dataset.study));
+    });
+
+    backBtn.addEventListener("click", showGallery);
+  </script>
+</FrameLayout>
