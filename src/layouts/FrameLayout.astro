@@ -66,8 +66,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
-      --cascade-ms: 220ms;     /* per-item animation */
-      --cascade-stagger: 28ms; /* delay between items */
+      --cascade-ms: 220ms;      /* per item */
+      --cascade-stagger: 28ms;  /* between items */
     }
 
     html, body {
@@ -148,13 +148,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       animation: cornerSpin var(--spin-ms) ease-in-out;
     }
 
-    /* Cascade-in for the study list */
+    /* Cascade animation for the study list */
     @keyframes cascadeIn {
       from { opacity: 0; transform: translateY(-8px); }
       to { opacity: 1; transform: translateY(0); }
     }
 
-    /* We target your exact study buttons: <button class="item item-btn" data-study="..."> */
+    /* Targets your exact study rows */
     button.item.item-btn[data-study].cascade-in {
       opacity: 0;
       transform: translateY(-8px);
@@ -211,25 +211,26 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       };
 
       const triggerCascade = () => {
-        // Wait a tick so the UI has time to render the list view after "back"
+        // after back, give the DOM a moment to render the study list again
         setTimeout(() => {
           const items = Array.from(document.querySelectorAll("button.item.item-btn[data-study]"));
+          if (!items.length) return;
 
-          for (let i = 0; i < items.length; i++) {
-            const el = items[i];
+          // clear any previous run
+          for (const el of items) {
             el.classList.remove("cascade-in");
             el.style.removeProperty("--i");
           }
 
-          // Force reflow to restart animations reliably
+          // force reflow to restart animations
           void document.body.offsetWidth;
 
-          for (let i = 0; i < items.length; i++) {
-            const el = items[i];
+          // assign indices + animate top->bottom
+          items.forEach((el, i) => {
             el.style.setProperty("--i", String(i));
             el.classList.add("cascade-in");
-          }
-        }, 30);
+          });
+        }, 40);
       };
 
       document.addEventListener("click", (e) => {
@@ -256,7 +257,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           t.classList.remove(SPIN_CLASS);
         }
 
-        // Clean up cascade class so it doesn't stay "stuck" on items
+        // cleanup per-item class after it finishes
         if (t && t.matches && t.matches("button.item.item-btn[data-study].cascade-in")) {
           t.classList.remove("cascade-in");
           t.style.removeProperty("--i");
