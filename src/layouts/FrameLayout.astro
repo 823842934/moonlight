@@ -73,6 +73,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --cascade-from-opacity: 0.25;
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
+
+      /* slash animation speed */
+      --slash-ms: 90ms;
     }
 
     html, body {
@@ -163,8 +166,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       }
     }
 
+    /* Optional: keeps the animated slashes visually stable */
+    .slash-anim {
+      display: inline-block;
+      width: 2ch; /* so it doesn’t jitter */
+      text-align: left;
+    }
+
     @media (prefers-reduced-motion: reduce) {
-      :root { --intro-ms: 0ms; --spin-ms: 0ms; --cascade-ms: 0ms; --cascade-stagger: 0ms; }
+      :root { --intro-ms: 0ms; --spin-ms: 0ms; --cascade-ms: 0ms; --cascade-stagger: 0ms; --slash-ms: 0ms; }
       .intro-wash { display: none; }
     }
   </style>
@@ -185,6 +195,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <script is:inline>
     (() => {
       const SPIN_CLASS = "spin";
+
+      // Slash loop frames: //, /\ , \/ , \\
+      const SLASH_FRAMES = ["//", "/\\", "\\/", "\\\\"];
+
+      let slashTimer = null;
+      let slashHostEl = null;
+      let slashOriginalText = null;
 
       const getPluses = () => Array.from(document.querySelectorAll(".corner-plus"));
 
@@ -214,6 +231,57 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const raw = getComputedStyle(document.documentElement).getPropertyValue(name);
         const n = parseFloat(raw);
         return Number.isFinite(n) ? n : fallback;
+      };
+
+      const stopSlashLoop = () => {
+        if (slashTimer) {
+          clearInterval(slashTimer);
+          slashTimer = null;
+        }
+        if (slashHostEl && typeof slashOriginalText === "string") {
+          slashHostEl.textContent = slashOriginalText; // restore plain //
+        }
+        slashHostEl = null;
+        slashOriginalText = null;
+      };
+
+      const startSlashLoopOn = (el) => {
+        stopSlashLoop();
+
+        if (!(el instanceof HTMLElement)) return;
+
+        const txt = el.textContent || "";
+        if (!txt.includes("[//")) return;
+
+        slashHostEl = el;
+        slashOriginalText = txt;
+
+        // Wrap ONLY the first occurrence of "[//" into a span for animation
+        // Example: "study:[//000-00006]" -> "study:[<span>//</span>000-00006]"
+        const html =
+          slashOriginalText.replace(
+            "[//",
+            `[<span class="slash-anim" data-slash-anim>//</span>`
+          );
+
+        el.innerHTML = html;
+
+        const span = el.querySelector("[data-slash-anim]");
+        if (!span) return;
+
+        let i = 0;
+        const ms = Math.max(0, cssNum("--slash-ms", 90));
+
+        // If reduced motion makes it 0, just show //
+        if (ms === 0) {
+          span.textContent = "//";
+          return;
+        }
+
+        slashTimer = setInterval(() => {
+          i = (i + 1) % SLASH_FRAMES.length;
+          span.textContent = SLASH_FRAMES[i];
+        }, ms);
       };
 
       const animateStudyListCascade = () => {
@@ -262,12 +330,16 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
           triggerSpin();
+          // ✅ start looping the slashes on the clicked study label
+          startSlashLoopOn(studyEl);
           return;
         }
 
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           triggerSpin();
+          // ✅ restore normal //
+          stopSlashLoop();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
