@@ -187,6 +187,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       const SPIN_CLASS = "spin";
 
       const getPluses = () => Array.from(document.querySelectorAll(".corner-plus"));
+
       const triggerSpin = () => {
         const pluses = getPluses();
         for (const el of pluses) {
@@ -215,9 +216,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return Number.isFinite(n) ? n : fallback;
       };
 
+      /* =========================
+         Normal cascade on back
+      ========================= */
       const animateStudyListCascade = () => {
         const items = Array.from(document.querySelectorAll("[data-study]"))
           .filter((el) => el instanceof HTMLElement && isStudyTrigger(el));
+
         if (!items.length) return false;
 
         const stagger = cssNum("--cascade-stagger", 80);
@@ -228,12 +233,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           el.style.opacity = String(cssNum("--cascade-from-opacity", 0.25));
           el.style.transform = `translateY(${cssNum("--cascade-from-y", -10)}px)`;
           el.style.filter = `blur(${cssNum("--cascade-from-blur", 1)}px)`;
+
           void el.offsetWidth;
 
           const delay = i * stagger;
           el.style.animation = `studyCascadeIn ${ms}ms cubic-bezier(.25,.8,.25,1) ${delay}ms forwards`;
 
-          el.addEventListener("animationend", () => { el.style.filter = "blur(0)"; }, { once: true });
+          el.addEventListener("animationend", () => {
+            el.style.filter = "blur(0)";
+          }, { once: true });
         });
 
         return true;
@@ -241,167 +249,110 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
       const triggerCascadeAfterBack = () => {
         if (animateStudyListCascade()) return;
+
         const obs = new MutationObserver(() => {
           if (animateStudyListCascade()) obs.disconnect();
         });
+
         obs.observe(document.body, { childList: true, subtree: true });
         setTimeout(() => obs.disconnect(), 1200);
       };
 
       /* =========================
-         Spinner that survives navigation
-         ========================= */
-      const ACTIVE_TOKEN_KEY = "brandyura:activeStudyToken";
-      const SLASH_FRAMES = ["//", "--", "\\\\", "| |"];
-      const SLASH_MS = 90;
+         Glyph loop on study detail
+         // -> -- -> \\ -> | | -> loop
+         Targets: button[data-study^="study:["]
+      ========================= */
+      const GLYPHS = ["//", "--", "\\\\", "| |"];
+      const GLYPH_MS = 110;
 
-      let spinnerInterval = null;
-      let currentSpinnerEl = null;
-      let originalSpinnerText = null;
-      let obsNav = null;
+      let glyphTimer = null;
+      let glyphIndex = 0;
+      let glyphTargetEl = null;
+      let glyphOriginal = null;
 
-      const parseTokenFromStudyAttr = (el) => {
-        const raw = el.getAttribute("data-study") || "";
-        let val = raw;
-        try { val = decodeURIComponent(val); } catch {}
-        const m = val.match(/\[\/\/([^\]]+)\]/i);   // <-- looser than digits-only
-        return m ? m[1] : null;                     // e.g. "000-00001"
+      const startGlyphLoop = () => {
+        if (glyphTimer) return false;
+
+        const el = document.querySelector('button[data-study^="study:["]');
+        if (!el) return false;
+
+        glyphTargetEl = el;
+        glyphOriginal = el.textContent || "";
+
+        // ensure the initial glyph is //
+        glyphTargetEl.textContent = glyphTargetEl.textContent.replace(
+          /(study:\[)(\/\/|--|\\\\|\|\s\|)/i,
+          `$1//`
+        );
+
+        glyphIndex = 0;
+
+        glyphTimer = setInterval(() => {
+          if (!glyphTargetEl) return;
+
+          glyphIndex = (glyphIndex + 1) % GLYPHS.length;
+          const glyph = GLYPHS[glyphIndex];
+
+          glyphTargetEl.textContent = glyphTargetEl.textContent.replace(
+            /(study:\[)(\/\/|--|\\\\|\|\s\|)/i,
+            `$1${glyph}`
+          );
+        }, GLYPH_MS);
+
+        return true;
       };
 
-      const setActiveToken = (token) => {
-        if (!token) return;
-        try { sessionStorage.setItem(ACTIVE_TOKEN_KEY, token); } catch {}
-      };
-
-      const getActiveToken = () => {
-        try { return sessionStorage.getItem(ACTIVE_TOKEN_KEY); } catch { return null; }
-      };
-
-      const clearActiveToken = () => {
-        try { sessionStorage.removeItem(ACTIVE_TOKEN_KEY); } catch {}
-      };
-
-      const replaceBracketPrefix = (txt, token) => {
-        // replace only the "[//" inside the bracket token, regardless of digits format
-        return txt.replace(/\[\s*\/\/(?=[^\]]+\])/g, `[${token}`);
-      };
-
-      const findElementWithActiveToken = (token) => {
-        if (!token) return null;
-
-        // 1) easiest: any element with data-study containing this token
-        const byAttr = document.querySelector(`[data-study*="[//${token}]"]`);
-        if (byAttr instanceof HTMLElement) return byAttr;
-
-        // 2) fallback: search for text that contains "[//<token>]"
-        const needle = `[//${token}]`;
-        const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_ELEMENT);
-        let n = walker.currentNode;
-        while (n) {
-          if (n instanceof HTMLElement) {
-            const t = n.textContent || "";
-            if (t.includes(needle)) return n;
-          }
-          n = walker.nextNode();
+      const stopGlyphLoop = () => {
+        if (glyphTimer) {
+          clearInterval(glyphTimer);
+          glyphTimer = null;
         }
-        return null;
-      };
 
-      const stopSpinner = () => {
-        if (spinnerInterval) {
-          clearInterval(spinnerInterval);
-          spinnerInterval = null;
+        if (glyphTargetEl && glyphOriginal != null) {
+          glyphTargetEl.textContent = glyphOriginal;
         }
-        if (currentSpinnerEl && originalSpinnerText != null) {
-          currentSpinnerEl.textContent = originalSpinnerText; // restore //
-        }
-        currentSpinnerEl = null;
-        originalSpinnerText = null;
+
+        glyphIndex = 0;
+        glyphTargetEl = null;
+        glyphOriginal = null;
       };
 
-      const startSpinnerOn = (el) => {
-        if (!(el instanceof HTMLElement)) return;
+      const triggerGlyphLoopAfterEnter = () => {
+        // try after a couple frames (page transition)
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            if (startGlyphLoop()) return;
 
-        stopSpinner();
+            // fallback: watch DOM briefly
+            const obs = new MutationObserver(() => {
+              if (startGlyphLoop()) obs.disconnect();
+            });
 
-        const base = el.textContent || "";
-        if (!/\[\s*\/\/(?=[^\]]+\])/.test(base)) return;
-
-        currentSpinnerEl = el;
-        originalSpinnerText = base;
-
-        let i = 0;
-        const tick = () => {
-          if (!currentSpinnerEl) return;
-          const frame = SLASH_FRAMES[i % SLASH_FRAMES.length];
-          currentSpinnerEl.textContent = replaceBracketPrefix(originalSpinnerText, frame);
-          i++;
-        };
-
-        tick();
-        spinnerInterval = setInterval(tick, SLASH_MS);
+            obs.observe(document.body, { childList: true, subtree: true });
+            setTimeout(() => obs.disconnect(), 1200);
+          });
+        });
       };
 
-      const ensureSpinner = () => {
-        const token = getActiveToken();
-        if (!token) return;
-
-        const el = findElementWithActiveToken(token);
-        if (!el) return;
-
-        // if we're already spinning the correct element, do nothing
-        if (el === currentSpinnerEl && spinnerInterval) return;
-
-        // (re)start on the new element (survives Astro navigation)
-        startSpinnerOn(el);
-      };
-
-      const beginWatchingForSpinner = () => {
-        if (obsNav) return;
-        obsNav = new MutationObserver(() => ensureSpinner());
-        obsNav.observe(document.body, { childList: true, subtree: true });
-      };
-
-      const endWatchingForSpinner = () => {
-        if (obsNav) obsNav.disconnect();
-        obsNav = null;
-      };
-
-      beginWatchingForSpinner();
-      ensureSpinner();
-
-      window.addEventListener("pagehide", () => { stopSpinner(); endWatchingForSpinner(); });
-      window.addEventListener("visibilitychange", () => {
-        if (document.visibilityState !== "visible") stopSpinner();
-        else ensureSpinner();
-      });
-
-      /* ========================= */
-
+      /* =========================
+         Click handling
+      ========================= */
       document.addEventListener("click", (e) => {
         const target = e.target;
         if (!target || !target.closest) return;
 
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
-          // store token so spinner can restart on the next page after navigation
-          const token = parseTokenFromStudyAttr(studyEl);
-          setActiveToken(token);
-
-          // try to spin immediately on the clicked label (if it stays for a moment)
-          startSpinnerOn(studyEl);
-
           triggerSpin();
+          triggerGlyphLoopAfterEnter();
           return;
         }
 
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
-          // going back: stop spinner and restore normal //
-          clearActiveToken();
-          stopSpinner();
-
           triggerSpin();
+          stopGlyphLoop();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
@@ -413,9 +364,23 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         }
       }, true);
 
+      // If user loads directly onto a study detail view, start loop on load
+      const bootGlyphLoop = () => {
+        if (startGlyphLoop()) return;
+
+        const obs = new MutationObserver(() => {
+          if (startGlyphLoop()) obs.disconnect();
+        });
+
+        obs.observe(document.body, { childList: true, subtree: true });
+        setTimeout(() => obs.disconnect(), 1200);
+      };
+
+      // Intro: remove class after first paint so transitions run
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
+          bootGlyphLoop();
         });
       });
     })();
