@@ -1,4 +1,3 @@
-
 ---
 import FrameLayout from "../layouts/FrameLayout.astro";
 ---
@@ -37,6 +36,19 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             <!-- We render a fixed-width glyph slot so it never shifts -->
             <div id="studyRoot" class="root">
               study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
+            </div>
+
+            <!-- ✅ image goes here -->
+            <div class="study-media" aria-hidden="false">
+              <img
+                id="studyImg"
+                class="study-img"
+                src=""
+                alt=""
+                hidden
+                decoding="async"
+                loading="eager"
+              />
             </div>
 
             <div class="children children--indented">
@@ -199,6 +211,18 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       text-align: center;
     }
 
+    /* ✅ Study image slot (between header and children) */
+    .study-media {
+      margin: 0.55rem 0 0.45rem 2ch; /* align with children indentation */
+      width: min(520px, 92vw);
+    }
+
+    .study-img {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
     /* ================================
        Intro-only GALLERY cascade
        ================================ */
@@ -246,6 +270,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     const studyGlyph = document.getElementById("studyGlyph");
     const studyId = document.getElementById("studyId");
 
+    const studyImg = document.getElementById("studyImg");
+
     const backBtn = document.getElementById("backBtn");
     const studyButtons = document.querySelectorAll("[data-study]");
 
@@ -257,31 +283,31 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     function runGalleryIntroCascadeOnce() {
-  const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
-  if (!lines.length) return;
+      const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
+      if (!lines.length) return;
 
-  document.body.classList.add("gallery-intro-cascade");
+      document.body.classList.add("gallery-intro-cascade");
 
-  const stagger = 80; // ms between each line
-  lines.forEach((el, i) => {
-    el.style.animationDelay = `${i * stagger}ms`;
-  });
+      const stagger = 80; // ms between each line
+      lines.forEach((el, i) => {
+        el.style.animationDelay = `${i * stagger}ms`;
+      });
 
-  const ms = 420; // must match CSS duration
-  const total = ms + (lines.length - 1) * stagger + 60;
+      const ms = 420; // must match CSS duration
+      const total = ms + (lines.length - 1) * stagger + 60;
 
-  setTimeout(() => {
-    document.body.classList.remove("gallery-intro-cascade");
-    lines.forEach((el) => {
-      el.style.animationDelay = "";
-      el.style.opacity = "";
-      el.style.transform = "";
-      el.style.filter = "";
-    });
-  }, total);
-}
+      setTimeout(() => {
+        document.body.classList.remove("gallery-intro-cascade");
+        lines.forEach((el) => {
+          el.style.animationDelay = "";
+          el.style.opacity = "";
+          el.style.transform = "";
+          el.style.filter = "";
+        });
+      }, total);
+    }
 
-window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
+    window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
 
     // ===== Glyph animation (fixed width) =====
     const GLYPHS = ["//", "--", "\\\\", "| |"];
@@ -319,12 +345,25 @@ window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
 
     function showStudy(name) {
       const parsed = parseStudy(name);
+
       if (parsed) {
         studyGlyph.textContent = "//"; // always start as //
         studyId.textContent = parsed.id;
+
+        // ✅ Show your image when clicking any study (currently using the single file you have)
+        if (studyImg) {
+          studyImg.src = "/study001.jpeg";
+          studyImg.alt = `study ${parsed.id}`;
+          studyImg.hidden = false;
+        }
       } else {
         // fallback: show raw text if it doesn't match expected format
         studyRoot.textContent = name;
+        if (studyImg) {
+          studyImg.hidden = true;
+          studyImg.src = "";
+          studyImg.alt = "";
+        }
       }
 
       galleryView.classList.remove("view--active");
@@ -337,6 +376,12 @@ window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
 
     function showGallery() {
       stopGlyphLoop();
+
+      if (studyImg) {
+        studyImg.hidden = true;
+        studyImg.src = "";
+        studyImg.alt = "";
+      }
 
       studyView.classList.remove("view--active");
       galleryView.classList.add("view--active");
