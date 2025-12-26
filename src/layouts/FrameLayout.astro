@@ -119,71 +119,43 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <slot />
 
   <script is:inline>
-    (() => {
-      const pluses = Array.from(document.querySelectorAll(".corner-plus"));
-      const SPIN_CLASS = "spin";
-
-      const triggerSpin = () => {
-        // restart animation reliably
-        for (const el of pluses) {
-          el.classList.remove(SPIN_CLASS);
-          // force reflow
-          void el.offsetWidth;
-          el.classList.add(SPIN_CLASS);
-        }
-      };
-
-      // event delegation: catch clicks anywhere
-      document.addEventListener("click", (e) => {
-        const a = e.target && e.target.closest ? e.target.closest("a") : null;
-        if (!a) return;
-
-        const href = a.getAttribute("href") || "";
-        // matches: study:[//000-00001] (and any similar)
-        if (href.startsWith("study:[//")) {
   (() => {
     const SPIN_CLASS = "spin";
 
-    const getPluses = () => Array.from(document.querySelectorAll(".corner-plus"));
-
     const triggerSpin = () => {
-      const pluses = getPluses();
-      for (const el of pluses) {
+      const pluses = document.querySelectorAll(".corner-plus");
+      pluses.forEach((el) => {
         el.classList.remove(SPIN_CLASS);
-        void el.offsetWidth; // force reflow to restart animation
+        void el.offsetWidth; // restart animation
         el.classList.add(SPIN_CLASS);
-      }
+      });
     };
 
-    const isStudyLink = (raw) => {
-      if (!raw) return false;
-      let href = raw;
-      try { href = decodeURIComponent(href); } catch (_) {}
-      href = href.trim().toLowerCase();
-      return href.startsWith("study:") && href.includes("[//");
+    const isStudyTrigger = (val) => {
+      if (!val) return false;
+      let s = val;
+      try { s = decodeURIComponent(s); } catch (_) {}
+      s = s.trim().toLowerCase();
+      return s.startsWith("study:[//");
     };
 
     document.addEventListener(
       "click",
       (e) => {
-        const target = e.target;
-        if (!target || !target.closest) return;
+        const t = e.target;
+        if (!t || !t.closest) return;
 
-        // Match <a href="..."> OR any element that has href (some libs do this)
-        const el = target.closest("a[href], [href]");
+        const el = t.closest("[data-study]");
         if (!el) return;
 
-        const href = el.getAttribute("href") || "";
-        if (isStudyLink(href)) {
+        const studyVal = el.getAttribute("data-study") || "";
+        if (isStudyTrigger(studyVal)) {
           triggerSpin();
         }
-      }, { capture: true });
       },
       { capture: true }
     );
 
-      // clean up after animation ends
-      document.addEventListener("animationend", (e) => {
     document.addEventListener(
       "animationend",
       (e) => {
@@ -191,9 +163,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         if (t && t.classList && t.classList.contains("corner-plus")) {
           t.classList.remove(SPIN_CLASS);
         }
-      }, true);
-    })();
-  </script>
       },
       true
     );
