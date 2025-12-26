@@ -10,7 +10,7 @@ const canonical = new URL(Astro.url.pathname, siteUrl).toString();
 const ogImageAbs = new URL(ogImage, siteUrl).toString();
 ---
 <!doctype html>
-<html lang="en" class="intro-prep">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -76,15 +76,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     /* Corner plus marks */
     :root {
-      --corner-inset: 22px;
-      --corner-size: 28px;
-      --spin-ms: 520ms;
-
-      /* Intro animation tuning */
-      --intro-duration: 1400ms;   /* zoom-in time */
-      --intro-delay: 1200ms;      /* how long it stays blurred/zoomed out */
-      --intro-blur: 16px;         /* starting blur amount */
-      --intro-scale: 0.72;        /* starting zoomed-out scale */
+      --corner-inset: 22px;   /* distance from each edge */
+      --corner-size: 28px;    /* visual size */
+      --spin-ms: 520ms;       /* spin duration */
     }
 
     .corner-plus {
@@ -114,47 +108,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     .corner-plus.spin {
       animation: cornerSpin var(--spin-ms) ease-in-out;
     }
-
-    /* Intro wrapper */
-    #app {
-      width: 100%;
-      min-height: 100%;
-      transform-origin: 50% 35%;
-      will-change: transform, filter, opacity;
-    }
-
-    /* Initial state (blurred + zoomed out) */
-    html.intro-prep #app {
-      filter: blur(var(--intro-blur));
-      transform: scale(var(--intro-scale));
-      opacity: 1;
-    }
-
-    /* Animate to normal */
-    html.intro-run #app {
-      animation: introIn var(--intro-duration) cubic-bezier(0.16, 1, 0.3, 1) var(--intro-delay) forwards;
-    }
-
-    @keyframes introIn {
-      from {
-        filter: blur(var(--intro-blur));
-        transform: scale(var(--intro-scale));
-      }
-      to {
-        filter: blur(0px);
-        transform: scale(1);
-      }
-    }
-
-    /* Respect reduced motion */
-    @media (prefers-reduced-motion: reduce) {
-      html.intro-prep #app,
-      html.intro-run #app {
-        animation: none !important;
-        filter: none !important;
-        transform: none !important;
-      }
-    }
   </style>
 </head>
 <body>
@@ -163,65 +116,88 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <div class="corner-plus bl" aria-hidden="true">＋</div>
   <div class="corner-plus br" aria-hidden="true">＋</div>
 
-  <div id="app">
-    <slot />
-  </div>
+  <slot />
 
   <script is:inline>
     (() => {
-      const html = document.documentElement;
-
-      // kick intro after first paint
-      requestAnimationFrame(() => {
-        html.classList.add("intro-run");
-        // remove prep class so it doesn't fight the animation
-        html.classList.remove("intro-prep");
-      });
-
-      // spin corners on study clicks
+      const pluses = Array.from(document.querySelectorAll(".corner-plus"));
       const SPIN_CLASS = "spin";
 
       const triggerSpin = () => {
-        const pluses = document.querySelectorAll(".corner-plus");
-        pluses.forEach((el) => {
+        // restart animation reliably
+        for (const el of pluses) {
           el.classList.remove(SPIN_CLASS);
+          // force reflow
           void el.offsetWidth;
           el.classList.add(SPIN_CLASS);
-        });
+        }
       };
 
-      const isStudyTrigger = (val) => {
-        if (!val) return false;
-        let s = val;
-        try { s = decodeURIComponent(s); } catch (_) {}
-        s = s.trim().toLowerCase();
-        return s.startsWith("study:[//");
-      };
+      // event delegation: catch clicks anywhere
+      document.addEventListener("click", (e) => {
+        const a = e.target && e.target.closest ? e.target.closest("a") : null;
+        if (!a) return;
 
-      document.addEventListener(
-        "click",
-        (e) => {
-          const t = e.target;
-          if (!t || !t.closest) return;
-          const el = t.closest("[data-study]");
-          if (!el) return;
-          const studyVal = el.getAttribute("data-study") || "";
-          if (isStudyTrigger(studyVal)) triggerSpin();
-        },
-        { capture: true }
-      );
+        const href = a.getAttribute("href") || "";
+        // matches: study:[//000-00001] (and any similar)
+        if (href.startsWith("study:[//")) {
+  (() => {
+    const SPIN_CLASS = "spin";
 
-      document.addEventListener(
-        "animationend",
-        (e) => {
-          const t = e.target;
-          if (t && t.classList && t.classList.contains("corner-plus")) {
-            t.classList.remove(SPIN_CLASS);
-          }
-        },
-        true
-      );
+    const getPluses = () => Array.from(document.querySelectorAll(".corner-plus"));
+
+    const triggerSpin = () => {
+      const pluses = getPluses();
+      for (const el of pluses) {
+        el.classList.remove(SPIN_CLASS);
+        void el.offsetWidth; // force reflow to restart animation
+        el.classList.add(SPIN_CLASS);
+      }
+    };
+
+    const isStudyLink = (raw) => {
+      if (!raw) return false;
+      let href = raw;
+      try { href = decodeURIComponent(href); } catch (_) {}
+      href = href.trim().toLowerCase();
+      return href.startsWith("study:") && href.includes("[//");
+    };
+
+    document.addEventListener(
+      "click",
+      (e) => {
+        const target = e.target;
+        if (!target || !target.closest) return;
+
+        // Match <a href="..."> OR any element that has href (some libs do this)
+        const el = target.closest("a[href], [href]");
+        if (!el) return;
+
+        const href = el.getAttribute("href") || "";
+        if (isStudyLink(href)) {
+          triggerSpin();
+        }
+      }, { capture: true });
+      },
+      { capture: true }
+    );
+
+      // clean up after animation ends
+      document.addEventListener("animationend", (e) => {
+    document.addEventListener(
+      "animationend",
+      (e) => {
+        const t = e.target;
+        if (t && t.classList && t.classList.contains("corner-plus")) {
+          t.classList.remove(SPIN_CLASS);
+        }
+      }, true);
     })();
   </script>
+      },
+      true
+    );
+  })();
+</script>
 </body>
 </html>
