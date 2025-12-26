@@ -456,8 +456,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
+          window.runGalleryIntroCascadeOnce?.();
           updateConnectorWidth();
           setConnectorMetrics();
+
 
           // ✅ wait for gallery DOM, then cascade
           requestAnimationFrame(() => {
