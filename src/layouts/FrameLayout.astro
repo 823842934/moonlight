@@ -68,15 +68,22 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       /* normal top-to-bottom cascade */
       --cascade-ms: 420ms;
       --cascade-stagger: 80ms;
+
       --cascade-from-opacity: 0.25;
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
 
-      /* plus transform */
+      /* plus transform (no movement) */
       --plus-ms: 520ms;
       --plus-ease: cubic-bezier(.22,.61,.36,1);
       --left-scale: 2.1;
       --right-scale: 0.45;
+
+      /* connector line */
+      --connector-width: 3px;   /* thickness */
+      --connector-gap: 14px;    /* space from each + so ends don't touch */
+      --connector-ms: 520ms;
+      --connector-ease: cubic-bezier(.22,.61,.36,1);
     }
 
     html, body {
@@ -166,6 +173,32 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       opacity: 0;
     }
 
+    /* Connector line between left pluses */
+    .left-connector {
+      position: fixed;
+      z-index: 9998; /* just under the pluses */
+      width: var(--connector-width);
+      background: #000;
+      border-radius: 999px;
+
+      /* JS sets: left, top, height */
+      left: -9999px;
+      top: -9999px;
+      height: 0px;
+
+      transform: translate(-50%, -50%);
+      opacity: 0;
+
+      transition:
+        opacity var(--connector-ms) var(--connector-ease);
+      will-change: opacity;
+      pointer-events: none;
+    }
+
+    body.plus-merged .left-connector {
+      opacity: 1;
+    }
+
     /* ✅ Normal cascade (faded -> full) */
     @keyframes studyCascadeIn {
       from {
@@ -186,9 +219,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         --cascade-ms: 0ms;
         --cascade-stagger: 0ms;
         --plus-ms: 0ms;
+        --connector-ms: 0ms;
       }
       .intro-wash { display: none; }
-      .corner-plus { transition: none !important; }
+      .corner-plus, .left-connector { transition: none !important; }
     }
   </style>
 </head>
@@ -199,6 +233,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <div class="corner-plus bl">＋</div>
   <div class="corner-plus br">＋</div>
 
+  <div class="left-connector" aria-hidden="true"></div>
+
   <div class="intro-wash" aria-hidden="true"></div>
 
   <div class="page-intro-wrap">
@@ -208,6 +244,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <script is:inline>
     (() => {
       const root = document.documentElement;
+      const $ = (sel) => document.querySelector(sel);
 
       const isStudyTrigger = (el) => {
         const v = el.getAttribute("data-study") || "";
@@ -222,16 +259,50 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return txt === "<- back" || txt === "← back" || txt === "back";
       };
 
+      const cssNum = (name, fallback) => {
+        const raw = getComputedStyle(root).getPropertyValue(name).trim();
+        const n = parseFloat(raw);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
       const cssMs = (name, fallback) => {
         const raw = getComputedStyle(root).getPropertyValue(name).trim();
         const n = parseFloat(raw);
         return Number.isFinite(n) ? n : fallback;
       };
 
+      const setConnectorMetrics = () => {
+        const tl = $(".corner-plus.tl");
+        const bl = $(".corner-plus.bl");
+        const conn = $(".left-connector");
+        if (!tl || !bl || !conn) return;
+
+        const rTL = tl.getBoundingClientRect();
+        const rBL = bl.getBoundingClientRect();
+
+        // center X aligned to the TL plus glyph
+        const cx = rTL.left + rTL.width / 2;
+
+        // connector spans between TL bottom and BL top, with extra gaps
+        const gap = cssNum("--connector-gap", 14);
+        const topY = (rTL.bottom + gap);
+        const bottomY = (rBL.top - gap);
+        const h = Math.max(0, bottomY - topY);
+
+        // center vertically in the span
+        const cy = topY + (h / 2);
+
+        conn.style.left = `${cx}px`;
+        conn.style.top = `${cy}px`;
+        conn.style.height = `${h}px`;
+      };
+
       const merge = () => {
         if (document.body.classList.contains("plus-merged")) return;
 
-        // ensure transitions always fire from the real base state
+        setConnectorMetrics();
+
+        // ensure transitions fire cleanly
         document.body.classList.remove("plus-merged");
         void document.body.offsetWidth;
 
@@ -244,13 +315,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
       const unmerge = () => {
         document.body.classList.remove("plus-merged");
-      };
-
-      // cascade helpers (unchanged)
-      const cssNum = (name, fallback) => {
-        const raw = getComputedStyle(root).getPropertyValue(name);
-        const n = parseFloat(raw);
-        return Number.isFinite(n) ? n : fallback;
       };
 
       const animateStudyListCascade = () => {
@@ -296,7 +360,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const target = e.target;
         if (!target || !target.closest) return;
 
-        // STUDY CLICK (delay navigation if it's a real link)
+        // STUDY CLICK (delay nav if it's a real link)
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
           const link = studyEl.closest("a[href]");
@@ -321,6 +385,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
+
+      window.addEventListener("resize", () => {
+        setConnectorMetrics();
+      }, { passive: true });
 
       // intro removal
       requestAnimationFrame(() => {
