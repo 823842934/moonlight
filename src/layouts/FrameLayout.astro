@@ -70,12 +70,56 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       overflow-x: hidden;
     }
 
+    /* Intro overlay (white -> transparent) */
     :root {
       --corner-inset: 22px;
       --corner-size: 28px;
       --spin-ms: 520ms;
+
+      --intro-ms: 520ms;         /* overall intro duration */
+      --intro-ease: cubic-bezier(.2,.9,.2,1);
+      --intro-blur: 18px;        /* start blur strength */
+      --intro-scale: 0.985;      /* subtle zoom-from-small */
     }
 
+    body.is-intro {
+      overflow: hidden; /* avoid scroll jump during intro */
+    }
+
+    /* Wrap all page content so we can scale + blur it */
+    .page-intro-wrap {
+      min-height: 100%;
+    }
+
+    body.is-intro .page-intro-wrap {
+      filter: blur(var(--intro-blur));
+      transform: scale(var(--intro-scale));
+      transform-origin: center;
+    }
+
+    body.is-intro .page-intro-wrap,
+    body.is-intro .corner-plus {
+      transition:
+        filter var(--intro-ms) var(--intro-ease),
+        transform var(--intro-ms) var(--intro-ease);
+    }
+
+    /* White wash that fades away */
+    .intro-wash {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      z-index: 9000; /* below corner-plus (9999), above content */
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity var(--intro-ms) var(--intro-ease);
+    }
+
+    body.is-intro .intro-wash {
+      opacity: 1;
+    }
+
+    /* Corner plus marks */
     .corner-plus {
       position: fixed;
       z-index: 9999;
@@ -102,15 +146,26 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     .corner-plus.spin {
       animation: cornerSpin var(--spin-ms) ease-in-out;
     }
+
+    /* Respect reduced motion */
+    @media (prefers-reduced-motion: reduce) {
+      :root { --intro-ms: 0ms; --spin-ms: 0ms; }
+      body.is-intro .page-intro-wrap { filter: none; transform: none; }
+      .intro-wash { display: none; }
+    }
   </style>
 </head>
-<body>
+<body class="is-intro">
   <div class="corner-plus tl">＋</div>
   <div class="corner-plus tr">＋</div>
   <div class="corner-plus bl">＋</div>
   <div class="corner-plus br">＋</div>
 
-  <slot />
+  <div class="intro-wash" aria-hidden="true"></div>
+
+  <div class="page-intro-wrap">
+    <slot />
+  </div>
 
   <script is:inline>
     (() => {
@@ -162,6 +217,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           t.classList.remove(SPIN_CLASS);
         }
       }, true);
+
+      // Intro: remove the class on next frame so transitions run
+      const endIntro = () => document.body.classList.remove("is-intro");
+      requestAnimationFrame(() => requestAnimationFrame(endIntro));
     })();
   </script>
 </body>
