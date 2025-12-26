@@ -214,7 +214,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           const delay = i * parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cascade-stagger")) || (i * 28);
           const ms = parseFloat(getComputedStyle(document.documentElement).getPropertyValue("--cascade-ms")) || 220;
 
-          el.style.animation = `studyCascadeIn ${ms}ms ease-out ${delay}ms forwards`;
+          el.style.animation = `studyCascadeIn ${ms}ms cubic-bezier(.2,.9,.2,1) ${delay}ms both`;
         });
 
         return true;
