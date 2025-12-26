@@ -56,6 +56,17 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       font-display: swap;
     }
 
+    :root {
+      --corner-inset: 22px;
+      --corner-size: 28px;
+      --spin-ms: 520ms;
+
+      --intro-ms: 520ms;
+      --intro-ease: cubic-bezier(.2,.9,.2,1);
+      --intro-blur: 18px;
+      --intro-scale: 0.985;
+    }
+
     html, body {
       margin: 0;
       padding: 0;
@@ -70,49 +81,36 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       overflow-x: hidden;
     }
 
-    /* Intro overlay (white -> transparent) */
-    :root {
-      --corner-inset: 22px;
-      --corner-size: 28px;
-      --spin-ms: 520ms;
-
-      --intro-ms: 520ms;         /* overall intro duration */
-      --intro-ease: cubic-bezier(.2,.9,.2,1);
-      --intro-blur: 18px;        /* start blur strength */
-      --intro-scale: 0.985;      /* subtle zoom-from-small */
-    }
-
-    body.is-intro {
-      overflow: hidden; /* avoid scroll jump during intro */
-    }
-
-    /* Wrap all page content so we can scale + blur it */
+    /* Wrap all page content so we can animate it */
     .page-intro-wrap {
       min-height: 100%;
+      transition:
+        filter var(--intro-ms) var(--intro-ease),
+        transform var(--intro-ms) var(--intro-ease);
+      will-change: filter, transform;
+    }
+
+    /* White wash overlay that fades away */
+    .intro-wash {
+      position: fixed;
+      inset: 0;
+      background: #ffffff;
+      z-index: 9000; /* below corner-plus */
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity var(--intro-ms) var(--intro-ease);
+      will-change: opacity;
+    }
+
+    /* Intro initial state */
+    body.is-intro {
+      overflow: hidden;
     }
 
     body.is-intro .page-intro-wrap {
       filter: blur(var(--intro-blur));
       transform: scale(var(--intro-scale));
       transform-origin: center;
-    }
-
-    body.is-intro .page-intro-wrap,
-    body.is-intro .corner-plus {
-      transition:
-        filter var(--intro-ms) var(--intro-ease),
-        transform var(--intro-ms) var(--intro-ease);
-    }
-
-    /* White wash that fades away */
-    .intro-wash {
-      position: fixed;
-      inset: 0;
-      background: #ffffff;
-      z-index: 9000; /* below corner-plus (9999), above content */
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity var(--intro-ms) var(--intro-ease);
     }
 
     body.is-intro .intro-wash {
@@ -147,14 +145,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       animation: cornerSpin var(--spin-ms) ease-in-out;
     }
 
-    /* Respect reduced motion */
     @media (prefers-reduced-motion: reduce) {
       :root { --intro-ms: 0ms; --spin-ms: 0ms; }
-      body.is-intro .page-intro-wrap { filter: none; transform: none; }
       .intro-wash { display: none; }
     }
   </style>
 </head>
+
 <body class="is-intro">
   <div class="corner-plus tl">＋</div>
   <div class="corner-plus tr">＋</div>
@@ -218,9 +215,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         }
       }, true);
 
-      // Intro: remove the class on next frame so transitions run
-      const endIntro = () => document.body.classList.remove("is-intro");
-      requestAnimationFrame(() => requestAnimationFrame(endIntro));
+      // Run intro once per load: remove class AFTER the browser paints the intro state
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          document.body.classList.remove("is-intro");
+        });
+      });
     })();
   </script>
 </body>
