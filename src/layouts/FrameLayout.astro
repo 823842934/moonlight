@@ -59,7 +59,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     :root {
       --corner-inset: 22px;
       --corner-size: 28px;
-      --spin-ms: 520ms;
 
       --intro-ms: 800ms;
       --intro-ease: cubic-bezier(.2,.9,.2,1);
@@ -73,6 +72,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --cascade-from-opacity: 0.25;
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
+
+      /* merge animation */
+      --merge-ms: 520ms;
+      --merge-ease: cubic-bezier(.2,.9,.2,1);
+      --merge-scale: 1.65;
     }
 
     html, body {
@@ -132,22 +136,14 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       color: #000;
       user-select: none;
       pointer-events: none;
-      will-change: transform;
+      transform-origin: center;
+      will-change: transform, opacity;
     }
 
     .corner-plus.tl { top: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.tr { top: var(--corner-inset); right: var(--corner-inset); }
     .corner-plus.bl { bottom: var(--corner-inset); left: var(--corner-inset); }
     .corner-plus.br { bottom: var(--corner-inset); right: var(--corner-inset); }
-
-    @keyframes cornerSpin {
-      from { transform: rotate(0deg); }
-      to { transform: rotate(360deg); }
-    }
-
-    .corner-plus.spin {
-      animation: cornerSpin var(--spin-ms) ease-in-out;
-    }
 
     /* ✅ Normal cascade (faded -> full) */
     @keyframes studyCascadeIn {
@@ -164,7 +160,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     }
 
     @media (prefers-reduced-motion: reduce) {
-      :root { --intro-ms: 0ms; --spin-ms: 0ms; --cascade-ms: 0ms; --cascade-stagger: 0ms; }
+      :root {
+        --intro-ms: 0ms;
+        --cascade-ms: 0ms;
+        --cascade-stagger: 0ms;
+        --merge-ms: 0ms;
+      }
       .intro-wash { display: none; }
     }
   </style>
@@ -184,18 +185,19 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
   <script is:inline>
     (() => {
-      const SPIN_CLASS = "spin";
+      const state = { mode: "rest", anims: [] };
 
-      const getPluses = () => Array.from(document.querySelectorAll(".corner-plus"));
+      const prefersReduced = () =>
+        window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-      const triggerSpin = () => {
-        const pluses = getPluses();
-        for (const el of pluses) {
-          el.classList.remove(SPIN_CLASS);
-          void el.offsetWidth;
-          el.classList.add(SPIN_CLASS);
-        }
-      };
+      const $ = (sel) => document.querySelector(sel);
+
+      const getPluses = () => ({
+        tl: $(".corner-plus.tl"),
+        tr: $(".corner-plus.tr"),
+        bl: $(".corner-plus.bl"),
+        br: $(".corner-plus.br"),
+      });
 
       const isStudyTrigger = (el) => {
         const v = el.getAttribute("data-study") || "";
@@ -210,10 +212,142 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return txt === "<- back" || txt === "← back" || txt === "back";
       };
 
-      const cssNum = (name, fallback) => {
-        const raw = getComputedStyle(document.documentElement).getPropertyValue(name);
+      const cssMs = (name, fallback) => {
+        const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        if (!raw) return fallback;
         const n = parseFloat(raw);
         return Number.isFinite(n) ? n : fallback;
+      };
+
+      const cssNum = (name, fallback) => {
+        const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        if (!raw) return fallback;
+        const n = parseFloat(raw);
+        return Number.isFinite(n) ? n : fallback;
+      };
+
+      const cssStr = (name, fallback) => {
+        const raw = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        return raw || fallback;
+      };
+
+      const cancelAll = () => {
+        for (const a of state.anims) {
+          try { a.cancel(); } catch {}
+        }
+        state.anims = [];
+      };
+
+      const clearInline = () => {
+        const { tl, tr, bl, br } = getPluses();
+        for (const el of [tl, tr, bl, br]) {
+          if (!el) continue;
+          el.style.transform = "";
+          el.style.opacity = "";
+        }
+      };
+
+      const setInstantMerged = () => {
+        const { tl, tr, bl, br } = getPluses();
+        if (!tl || !tr || !bl || !br) return;
+
+        const rTL = tl.getBoundingClientRect();
+        const rTR = tr.getBoundingClientRect();
+        const rBL = bl.getBoundingClientRect();
+        const rBR = br.getBoundingClientRect();
+
+        const dxTR = (rTL.left + rTL.width/2) - (rTR.left + rTR.width/2);
+        const dyTR = (rTL.top  + rTL.height/2) - (rTR.top  + rTR.height/2);
+        const dxBR = (rBL.left + rBL.width/2) - (rBR.left + rBR.width/2);
+        const dyBR = (rBL.top  + rBL.height/2) - (rBR.top  + rBR.height/2);
+
+        const s = cssNum("--merge-scale", 1.65);
+
+        tr.style.transform = `translate(${dxTR}px, ${dyTR}px) rotate(360deg) scale(${s})`;
+        tr.style.opacity = "0";
+
+        br.style.transform = `translate(${dxBR}px, ${dyBR}px) rotate(360deg) scale(${s})`;
+        br.style.opacity = "0";
+
+        tl.style.transform = `rotate(360deg) scale(${s})`;
+        bl.style.transform = `rotate(360deg) scale(${s})`;
+      };
+
+      const mergePluses = () => {
+        if (state.mode === "merged") return;
+        const { tl, tr, bl, br } = getPluses();
+        if (!tl || !tr || !bl || !br) return;
+
+        cancelAll();
+
+        if (prefersReduced()) {
+          setInstantMerged();
+          state.mode = "merged";
+          return;
+        }
+
+        const ms = cssMs("--merge-ms", 520);
+        const easing = cssStr("--merge-ease", "cubic-bezier(.2,.9,.2,1)");
+        const s = cssNum("--merge-scale", 1.65);
+
+        const rTL = tl.getBoundingClientRect();
+        const rTR = tr.getBoundingClientRect();
+        const rBL = bl.getBoundingClientRect();
+        const rBR = br.getBoundingClientRect();
+
+        const dxTR = (rTL.left + rTL.width/2) - (rTR.left + rTR.width/2);
+        const dyTR = (rTL.top  + rTL.height/2) - (rTR.top  + rTR.height/2);
+        const dxBR = (rBL.left + rBL.width/2) - (rBR.left + rBR.width/2);
+        const dyBR = (rBL.top  + rBL.height/2) - (rBR.top  + rBR.height/2);
+
+        const fly = (el, dx, dy) => el.animate(
+          [
+            { transform: "translate(0px, 0px) rotate(0deg) scale(1)", opacity: 1 },
+            { transform: `translate(${dx}px, ${dy}px) rotate(360deg) scale(${s})`, opacity: 0 }
+          ],
+          { duration: ms, easing, fill: "forwards" }
+        );
+
+        const pop = (el) => el.animate(
+          [
+            { transform: "rotate(0deg) scale(1)" },
+            { transform: `rotate(360deg) scale(${s})` }
+          ],
+          { duration: ms, easing, fill: "forwards" }
+        );
+
+        state.anims = [
+          fly(tr, dxTR, dyTR),
+          fly(br, dxBR, dyBR),
+          pop(tl),
+          pop(bl),
+        ];
+
+        state.mode = "merged";
+      };
+
+      const unmergePluses = () => {
+        if (state.mode === "rest") return;
+
+        if (prefersReduced()) {
+          clearInline();
+          state.mode = "rest";
+          return;
+        }
+
+        if (state.anims.length) {
+          for (const a of state.anims) {
+            try { a.reverse(); } catch {}
+          }
+          Promise.allSettled(state.anims.map(a => a.finished)).then(() => {
+            cancelAll();
+            clearInline();
+          });
+        } else {
+          clearInline();
+        }
+
+        state.mode = "rest";
       };
 
       const animateStudyListCascade = () => {
@@ -261,23 +395,16 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {
-          triggerSpin();
+          mergePluses();
           return;
         }
 
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
-          triggerSpin();
+          unmergePluses();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
-
-      document.addEventListener("animationend", (e) => {
-        const t = e.target;
-        if (t && t.classList && t.classList.contains("corner-plus")) {
-          t.classList.remove(SPIN_CLASS);
-        }
-      }, true);
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
