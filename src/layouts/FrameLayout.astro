@@ -107,17 +107,26 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     /* background video */
     .bg-video {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;          /* show full frame */
-      object-position: center bottom;
-      background: #ffffff;          /* letterbox stays white */
-      z-index: 0;                   /* <-- ensure it renders above body/html background */
-      pointer-events: none;
-      transform: translateZ(0);
-    }
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;            /* desktop: show whole frame */
+  object-position: center bottom; /* keep bottom aligned */
+  background: #ffffff;
+  z-index: 0;
+  pointer-events: none;
+  transform: translateZ(0);
+}
+
+/* mobile: fill screen (no white gap) */
+@media (max-width: 640px) {
+  .bg-video {
+    object-fit: cover;            /* mobile: fill screen, crop edges */
+    object-position: center bottom; /* keep bottom aligned */
+  }
+}
+
 
     .page-intro-wrap {
       position: relative;
