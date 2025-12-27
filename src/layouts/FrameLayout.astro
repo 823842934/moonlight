@@ -114,12 +114,14 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       object-fit: contain;          /* show full frame */
       object-position: center bottom;
       background: #ffffff;          /* letterbox stays white */
-      z-index: -3;
+      z-index: 0;                   /* <-- ensure it renders above body/html background */
       pointer-events: none;
       transform: translateZ(0);
     }
 
     .page-intro-wrap {
+      position: relative;
+      z-index: 1;                   /* <-- content above video */
       min-height: 100%;
       transition:
         filter var(--intro-ms) var(--intro-ease),
