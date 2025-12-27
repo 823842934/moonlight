@@ -65,27 +65,23 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-blur: 18px;
       --intro-scale: 0.985;
 
-      /* normal cascade */
       --cascade-ms: 420ms;
       --cascade-stagger: 80ms;
       --cascade-from-opacity: 0.25;
       --cascade-from-y: -10px;
       --cascade-from-blur: 1px;
 
-      /* intro-only cascade */
       --intro-cascade-ms: 520ms;
       --intro-cascade-stagger: 90ms;
       --intro-cascade-from-opacity: 0;
       --intro-cascade-from-y: -10px;
       --intro-cascade-from-blur: 2px;
 
-      /* plus transform */
       --plus-ms: 520ms;
       --plus-ease: cubic-bezier(.22,.61,.36,1);
       --left-scale: 2.1;
       --right-scale: 0.45;
 
-      /* connector */
       --connector-gap: 14px;
       --connector-ms: 520ms;
       --connector-ease: cubic-bezier(.22,.61,.36,1);
@@ -109,37 +105,18 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       overflow-x: clip;
     }
 
-    /* ================================
-       Background video (global)
-       ================================ */
+    /* background video */
     .bg-video {
       position: fixed;
       inset: 0;
       width: 100%;
       height: 100%;
-      object-fit: cover;         /* fills screen; crops edges (mobile-friendly) */
-      object-position: center;   /* desktop default */
+      object-fit: contain;          /* show full frame */
+      object-position: center bottom;
+      background: #ffffff;          /* letterbox stays white */
       z-index: -3;
       pointer-events: none;
       transform: translateZ(0);
-    }
-
-    .bg-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: -2;
-      pointer-events: none;
-      background: rgba(0, 0, 0, 0.25);
-    }
-
-    /* Optional mobile focus tweak */
-    @media (max-width: 640px) {
-      .bg-video {
-        object-position: center top; /* keeps top more visible on tall screens */
-      }
-      .bg-overlay {
-        background: rgba(0, 0, 0, 0.35);
-      }
     }
 
     .page-intro-wrap {
@@ -181,13 +158,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       color: #000;
       user-select: none;
       pointer-events: none;
-
       transform-origin: center;
       will-change: transform, opacity;
-
       transform: rotate(0deg) scale(1);
       opacity: 1;
-
       transition:
         transform var(--plus-ms) var(--plus-ease),
         opacity var(--plus-ms) var(--plus-ease);
@@ -215,15 +189,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       z-index: 9998;
       width: var(--connector-width);
       background: #000;
-      border-radius: 0;
-
       left: -9999px;
       top: -9999px;
       height: 0px;
-
       transform: translate(-50%, -50%);
       opacity: 0;
-
       transition: opacity var(--connector-ms) var(--connector-ease);
       will-change: opacity;
       pointer-events: none;
@@ -274,7 +244,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 </head>
 
 <body class="is-intro">
-  <!-- background video -->
   <video
     class="bg-video"
     autoplay
@@ -287,7 +256,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   >
     <source src="/brandyura.mp4" type="video/mp4" />
   </video>
-  <div class="bg-overlay" aria-hidden="true"></div>
 
   <div class="corner-plus tl">＋</div>
   <div class="corner-plus tr">＋</div>
@@ -409,7 +377,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return true;
       };
 
-      // ✅ Intro-only cascade that waits for DOM (Gallery + subsets)
       let didIntroCascade = false;
 
       const runIntroCascade = () => {
@@ -452,8 +419,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         });
 
         obs.observe(document.body, { childList: true, subtree: true });
-
-        // stop watching after a moment so it doesn't linger
         setTimeout(() => obs.disconnect(), 2000);
       };
 
@@ -508,7 +473,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           updateConnectorWidth();
           setConnectorMetrics();
 
-          // ✅ wait for gallery DOM, then cascade
           requestAnimationFrame(() => {
             runIntroCascadeWhenReady();
           });
