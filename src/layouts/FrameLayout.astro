@@ -89,9 +89,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
       --connector-width: 3px;
 
-      /* NEW: background fade-to-white timing */
-      --bg-fade-ms: 380ms;
-      --bg-fade-ease: cubic-bezier(.22,.61,.36,1);
+      /* NEW: click-to-blur background */
+      --bg-click-blur: 28px;           /* heavy blur amount */
+      --bg-click-dim: 0.92;            /* optional slight dim */
+      --bg-blur-ms: 520ms;             /* match plus animation */
+      --bg-blur-ease: cubic-bezier(.22,.61,.36,1);
     }
 
     html, body {
@@ -122,6 +124,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       transform: translateZ(0);
       object-fit: contain;             /* default */
       object-position: center bottom;
+
+      /* NEW: blur transition */
+      filter: blur(0);
+      transition:
+        filter var(--bg-blur-ms) var(--bg-blur-ease),
+        opacity var(--bg-blur-ms) var(--bg-blur-ease);
+      will-change: filter, opacity;
     }
 
     /* Animated WebP fallback (always works; used on iOS) */
@@ -134,8 +143,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       z-index: 0;
       pointer-events: none;
       opacity: 0;                      /* hidden by default */
-      transition: opacity 160ms linear;
-      will-change: opacity;
+      transition:
+        opacity 160ms linear,
+        filter var(--bg-blur-ms) var(--bg-blur-ease);
+      will-change: opacity, filter;
+
+      /* NEW: blur transition */
+      filter: blur(0);
     }
     .bg-fallback img {
       width: 100%;
@@ -144,6 +158,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       object-fit: contain;             /* default */
       object-position: center bottom;
       transform: translateZ(0);
+
+      /* NEW: blur transition */
+      filter: blur(0);
+      transition: filter var(--bg-blur-ms) var(--bg-blur-ease);
+      will-change: filter;
     }
 
     /* Tall screens (phones) */
@@ -177,22 +196,21 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     body.is-ios .bg-video { display: none !important; }
     body.is-ios .bg-fallback { opacity: 1; }
 
-    /* NEW: white fade layer ABOVE video/webp, BELOW content */
-    .bg-fade {
-      position: fixed;
-      inset: 0;
-      background: #ffffff;
-      z-index: 2; /* video/webp are 0, content will be bumped above this */
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity var(--bg-fade-ms) var(--bg-fade-ease);
-      will-change: opacity;
+    /* NEW: when clicking a study item, heavily blur the active background */
+    body.bg-blur .bg-video {
+      filter: blur(var(--bg-click-blur));
+      opacity: var(--bg-click-dim);
     }
-    body.is-bg-fading .bg-fade { opacity: 1; }
+    body.bg-blur .bg-fallback {
+      filter: blur(var(--bg-click-blur));
+    }
+    body.bg-blur .bg-fallback img {
+      filter: blur(var(--bg-click-blur));
+    }
 
     .page-intro-wrap {
       position: relative;
-      z-index: 3;                   /* UPDATED: keep content above fade */
+      z-index: 1;                   /* content above video */
       min-height: 100%;
       transition:
         filter var(--intro-ms) var(--intro-ease),
@@ -309,12 +327,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         --intro-cascade-stagger: 0ms;
         --plus-ms: 0ms;
         --connector-ms: 0ms;
-        --bg-fade-ms: 0ms;
+
+        /* NEW */
+        --bg-blur-ms: 0ms;
       }
       .intro-wash { display: none; }
       .corner-plus, .left-connector { transition: none !important; }
       .bg-fallback { transition: none !important; }
-      .bg-fade { transition: none !important; }
+      .bg-video { transition: none !important; }
+      .bg-fallback img { transition: none !important; }
     }
   </style>
 </head>
@@ -338,9 +359,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <div class="bg-fallback" aria-hidden="true">
     <img src="/brandyura.webp" alt="" />
   </div>
-
-  <!-- NEW: fade layer -->
-  <div class="bg-fade" aria-hidden="true"></div>
 
   <div class="corner-plus tl">＋</div>
   <div class="corner-plus tr">＋</div>
@@ -419,6 +437,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         conn.style.height = `${h}px`;
       };
 
+      // NEW: background blur toggles
+      const blurBG = () => document.body.classList.add("bg-blur");
+      const unblurBG = () => document.body.classList.remove("bg-blur");
+
       const merge = () => {
         if (document.body.classList.contains("plus-merged")) return;
 
@@ -437,7 +459,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
       const unmerge = () => {
         document.body.classList.remove("plus-merged");
-        document.body.classList.remove("is-bg-fading");
       };
 
       const animateStudyListCascade = () => {
@@ -524,12 +545,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         setTimeout(() => obs.disconnect(), 1200);
       };
 
-      // NEW: fade background (video/webp) to white
-      const fadeBgToWhite = () => {
-        if (document.body.classList.contains("is-bg-fading")) return;
-        document.body.classList.add("is-bg-fading");
-      };
-
       document.addEventListener("click", (e) => {
         const target = e.target;
         if (!target || !target.closest) return;
@@ -541,17 +556,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
             e.preventDefault();
             const href = link.getAttribute("href");
 
-            // start both animations immediately
-            fadeBgToWhite();
+            // NEW: blur background immediately on click
+            blurBG();
+
             merge();
 
-            const plusMs = cssMs("--plus-ms", 520);
-            const bgFadeMs = cssMs("--bg-fade-ms", 380);
-            const wait = Math.max(plusMs, bgFadeMs) + 40;
-
-            setTimeout(() => { window.location.href = href; }, wait);
+            const ms = cssMs("--plus-ms", 520);
+            setTimeout(() => { window.location.href = href; }, Math.max(0, ms + 40));
           } else {
-            fadeBgToWhite();
+            blurBG();
             merge();
           }
           return;
@@ -560,9 +573,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           unmerge();
+          unblurBG();              // NEW: remove blur when going back
           triggerCascadeAfterBack();
         }
       }, { capture: true });
+
+      // NEW: ensure blur doesn't persist on bfcache restore / page show
+      window.addEventListener("pageshow", () => {
+        unblurBG();
+      }, { passive: true });
 
       window.addEventListener("resize", () => {
         updateConnectorWidth();
