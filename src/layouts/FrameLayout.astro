@@ -95,10 +95,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --bg-blur-ms: 520ms;
       --bg-blur-ease: cubic-bezier(.22,.61,.36,1);
 
-      /* NEW: logo fade */
-      --logo-fade-ms: 420ms;
-      --logo-fade-ease: cubic-bezier(.22,.61,.36,1);
-      --logo-fade-y: -10px;
+      /* NEW: fade brand text on study click */
+      --brand-fade-ms: 520ms;
+      --brand-fade-ease: cubic-bezier(.22,.61,.36,1);
+      --brand-fade-y: -6px;
     }
 
     html, body {
@@ -151,6 +151,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         opacity 160ms linear,
         filter var(--bg-blur-ms) var(--bg-blur-ease);
       will-change: opacity, filter;
+
       filter: blur(0);
     }
     .bg-fallback img {
@@ -166,35 +167,19 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       will-change: filter;
     }
 
-    /* Tall screens (phones) */
     @media (max-width: 640px) {
-      .bg-video {
-        object-fit: cover;
-        object-position: center bottom;
-      }
-      .bg-fallback img {
-        object-fit: cover;
-        object-position: center bottom;
-      }
+      .bg-video { object-fit: cover; object-position: center bottom; }
+      .bg-fallback img { object-fit: cover; object-position: center bottom; }
     }
 
-    /* Ultra-wide or landscape tablets/desktops */
     @media (min-aspect-ratio: 19/10) {
-      .bg-video {
-        object-fit: cover;
-        object-position: center bottom;
-      }
-      .bg-fallback img {
-        object-fit: cover;
-        object-position: center bottom;
-      }
+      .bg-video { object-fit: cover; object-position: center bottom; }
+      .bg-fallback img { object-fit: cover; object-position: center bottom; }
     }
 
-    /* iOS uses WebP */
     body.is-ios .bg-video { display: none !important; }
     body.is-ios .bg-fallback { opacity: 1; }
 
-    /* blur background on study click */
     body.bg-blur .bg-video {
       filter: blur(var(--bg-click-blur));
       opacity: var(--bg-click-dim);
@@ -232,22 +217,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     }
 
     body.is-intro .intro-wash { opacity: 1; }
-
-    /* NEW: fade out logo (#logo) when study is clicked */
-    /* Your #logo lives in the slotted content, so target via body class */
-    #logo {
-      transition:
-        opacity var(--logo-fade-ms) var(--logo-fade-ease),
-        transform var(--logo-fade-ms) var(--logo-fade-ease),
-        filter var(--logo-fade-ms) var(--logo-fade-ease);
-      will-change: opacity, transform, filter;
-    }
-    body.study-clicked #logo {
-      opacity: 0;
-      transform: translateY(var(--logo-fade-y));
-      filter: blur(2px);
-      pointer-events: none;
-    }
 
     .corner-plus {
       position: fixed;
@@ -302,6 +271,22 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.plus-merged .left-connector { opacity: 1; }
 
+    /* NEW: brand fade on study click.
+       Works if your brand text element has id="logo" (like your index does). */
+    #logo {
+      transition:
+        opacity var(--brand-fade-ms) var(--brand-fade-ease),
+        transform var(--brand-fade-ms) var(--brand-fade-ease),
+        filter var(--brand-fade-ms) var(--brand-fade-ease);
+      will-change: opacity, transform, filter;
+    }
+    body.study-clicked #logo {
+      opacity: 0;
+      transform: translateY(var(--brand-fade-y));
+      filter: blur(2px);
+      pointer-events: none;
+    }
+
     @keyframes studyCascadeIn {
       from {
         opacity: var(--cascade-from-opacity);
@@ -338,13 +323,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         --plus-ms: 0ms;
         --connector-ms: 0ms;
         --bg-blur-ms: 0ms;
-        --logo-fade-ms: 0ms;
+        --brand-fade-ms: 0ms;
       }
       .intro-wash { display: none; }
-      .corner-plus, .left-connector { transition: none !important; }
-      .bg-fallback { transition: none !important; }
-      .bg-video { transition: none !important; }
-      .bg-fallback img { transition: none !important; }
+      .corner-plus, .left-connector,
+      .bg-fallback, .bg-video,
+      .bg-fallback img,
       #logo { transition: none !important; }
     }
   </style>
@@ -365,7 +349,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     <source src="/brandyura.mp4" type="video/mp4" />
   </video>
 
-  <!-- iOS background: public/brandyura.webp -->
   <div class="bg-fallback" aria-hidden="true">
     <img src="/brandyura.webp" alt="" />
   </div>
@@ -387,7 +370,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       const root = document.documentElement;
       const $ = (sel) => document.querySelector(sel);
 
-      // iOS: always use WebP background (no freeze, no taps, no switching logic)
+      // iOS: always use WebP background (no freeze)
       const ua = navigator.userAgent || "";
       const isIOS = /iPhone|iPad|iPod/i.test(ua);
       if (isIOS) document.body.classList.add("is-ios");
@@ -447,13 +430,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         conn.style.height = `${h}px`;
       };
 
-      // background blur toggles
       const blurBG = () => document.body.classList.add("bg-blur");
       const unblurBG = () => document.body.classList.remove("bg-blur");
 
-      // NEW: logo fade toggles (targets #logo via body class)
-      const fadeLogo = () => document.body.classList.add("study-clicked");
-      const unfadeLogo = () => document.body.classList.remove("study-clicked");
+      // NEW: brand fade toggles
+      const fadeBrand = () => document.body.classList.add("study-clicked");
+      const unfadeBrand = () => document.body.classList.remove("study-clicked");
 
       const merge = () => {
         if (document.body.classList.contains("plus-merged")) return;
@@ -570,16 +552,17 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
             e.preventDefault();
             const href = link.getAttribute("href");
 
-            // blur bg + fade logo + merge plus
+            // blur bg + fade brand immediately
             blurBG();
-            fadeLogo();
+            fadeBrand();
+
             merge();
 
             const ms = cssMs("--plus-ms", 520);
             setTimeout(() => { window.location.href = href; }, Math.max(0, ms + 40));
           } else {
             blurBG();
-            fadeLogo();
+            fadeBrand();
             merge();
           }
           return;
@@ -589,15 +572,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         if (backEl && isBackTrigger(backEl)) {
           unmerge();
           unblurBG();
-          unfadeLogo();
+          unfadeBrand();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
 
-      // ensure blur/logo state doesn't persist on bfcache restore / page show
+      // ensure blur/fade doesn't persist on bfcache restore
       window.addEventListener("pageshow", () => {
         unblurBG();
-        unfadeLogo();
+        unfadeBrand();
       }, { passive: true });
 
       window.addEventListener("resize", () => {
