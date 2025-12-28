@@ -10,9 +10,6 @@ const canonical = new URL(Astro.url.pathname, siteUrl).toString();
 const ogImageAbs = new URL(ogImage, siteUrl).toString();
 ---
 
-
-
-
 <!doctype html>
 <html lang="en">
 <head>
@@ -110,40 +107,38 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     }
 
     /* background video */
- .bg-video {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  background: #ffffff;
-  z-index: 0;
-  pointer-events: none;
-  transform: translateZ(0);
-  object-fit: contain;             /* default */
-  object-position: center bottom;
-}
+    .bg-video {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      z-index: 0;
+      pointer-events: none;
+      transform: translateZ(0);
+      object-fit: contain;             /* default */
+      object-position: center bottom;
+    }
 
-/* Tall screens (phones) */
-@media (max-width: 640px) {
-  .bg-video {
-    object-fit: cover;
-    object-position: center bottom;
-  }
-}
+    /* Tall screens (phones) */
+    @media (max-width: 640px) {
+      .bg-video {
+        object-fit: cover;
+        object-position: center bottom;
+      }
+    }
 
-/* Ultra-wide or landscape tablets/desktops */
-@media (min-aspect-ratio: 19/10) {
-  .bg-video {
-    object-fit: cover;             /* fill instead of showing edges */
-    object-position: center bottom;
-  }
-}
-
-
+    /* Ultra-wide or landscape tablets/desktops */
+    @media (min-aspect-ratio: 19/10) {
+      .bg-video {
+        object-fit: cover;             /* fill instead of showing edges */
+        object-position: center bottom;
+      }
+    }
 
     .page-intro-wrap {
       position: relative;
-      z-index: 1;                   /* <-- content above video */
+      z-index: 1;                   /* content above video */
       min-height: 100%;
       transition:
         filter var(--intro-ms) var(--intro-ease),
@@ -267,8 +262,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   </style>
 </head>
 
-
-
 <body class="is-intro">
   <video
     class="bg-video"
@@ -295,11 +288,72 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     <slot />
   </div>
 
-
   <script is:inline>
     (() => {
       const root = document.documentElement;
       const $ = (sel) => document.querySelector(sel);
+
+      // iOS Safari fix: if video "dies" after backgrounding, rebuild it seamlessly (no flash)
+      const smoothRebuildAndPlayBgVideo = () => {
+        const oldV = document.querySelector(".bg-video");
+        if (!oldV) return;
+
+        // if it's actually playing, do nothing
+        if (!oldV.paused && !oldV.ended && oldV.readyState >= 2) return;
+
+        if (oldV.dataset.rebuilding === "1") return;
+        oldV.dataset.rebuilding = "1";
+
+        const parent = oldV.parentNode;
+
+        const newV = oldV.cloneNode(true);
+        const srcEl = newV.querySelector("source");
+
+        if (srcEl) {
+          const base = srcEl.getAttribute("src")?.split("?")[0] || "/brandyura.mp4";
+          srcEl.setAttribute("src", `${base}?v=${Date.now()}`);
+        }
+
+        newV.muted = true;
+        newV.setAttribute("muted", "");
+        newV.setAttribute("playsinline", "");
+        newV.playsInline = true;
+        newV.autoplay = true;
+        newV.loop = true;
+
+        // prevent visual flash
+        newV.style.opacity = "0";
+        newV.style.transition = "opacity 80ms linear";
+
+        parent.appendChild(newV);
+
+        try { newV.load(); } catch {}
+        newV.play?.().catch?.(() => {});
+
+        requestAnimationFrame(() => {
+          newV.style.opacity = "1";
+          oldV.style.opacity = "0";
+        });
+
+        setTimeout(() => {
+          try { parent.removeChild(oldV); } catch {}
+        }, 90);
+      };
+
+      const resumeBgVideoIOS = () => {
+        if (document.visibilityState !== "visible") return;
+        smoothRebuildAndPlayBgVideo();
+      };
+
+      document.addEventListener("visibilitychange", resumeBgVideoIOS);
+      window.addEventListener("pageshow", resumeBgVideoIOS);
+      window.addEventListener("focus", resumeBgVideoIOS);
+
+      // initial safety kick
+      setTimeout(() => {
+        const v = document.querySelector(".bg-video");
+        if (v?.paused) smoothRebuildAndPlayBgVideo();
+      }, 300);
 
       const isStudyTrigger = (el) => {
         const v = el.getAttribute("data-study") || "";
@@ -509,5 +563,3 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   </script>
 </body>
 </html>
-
-
