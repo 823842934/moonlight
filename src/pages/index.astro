@@ -78,6 +78,21 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       filter: blur(6px);
     }
 
+    /* ✅ NEW: fade OUT logo on study */
+    #logo {
+      transition:
+        opacity 380ms cubic-bezier(.22,.61,.36,1),
+        filter 380ms cubic-bezier(.22,.61,.36,1),
+        transform 380ms cubic-bezier(.22,.61,.36,1);
+      will-change: opacity, filter, transform;
+    }
+    body.study-triggered #logo {
+      opacity: 0;
+      filter: blur(10px);
+      transform: scale(0.985);
+      pointer-events: none;
+    }
+
     .tree {
       margin-top: 0.5rem;
       font-family: "ABC Diatype", system-ui, sans-serif;
@@ -191,16 +206,12 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .view--active .cascade[data-cascade="2"] { transition-delay: 160ms; }
     .view--active .cascade[data-cascade="3"] { transition-delay: 240ms; }
 
-    /* ✅ Fixed glyph width so the header never shifts */
     .glyph-slot {
       display: inline-block;
       width: 2ch;
       text-align: center;
     }
 
-    /* ================================
-       Intro-only GALLERY cascade
-       ================================ */
     @keyframes galleryIntroCascade {
       from {
         opacity: 0;
@@ -214,10 +225,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       }
     }
 
-    /* default normal state */
     .gallery-line { opacity: 1; }
 
-    /* while intro cascade is active */
     body.gallery-intro-cascade .gallery-line {
       opacity: 0;
       animation: galleryIntroCascade 420ms cubic-bezier(.25,.8,.25,1) forwards;
@@ -230,6 +239,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         transform: none !important;
         filter: none !important;
       }
+      #logo { transition: none !important; }
     }
   </style>
 
@@ -261,12 +271,12 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       document.body.classList.add("gallery-intro-cascade");
 
-      const stagger = 80; // ms between each line
+      const stagger = 80;
       lines.forEach((el, i) => {
         el.style.animationDelay = `${i * stagger}ms`;
       });
 
-      const ms = 420; // must match CSS duration
+      const ms = 420;
       const total = ms + (lines.length - 1) * stagger + 60;
 
       setTimeout(() => {
@@ -282,7 +292,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
 
-    // ===== Glyph animation (fixed width) =====
     const GLYPHS = ["//", "--", "\\\\", "| |"];
     const GLYPH_MS = 110;
 
@@ -310,7 +319,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     function parseStudy(str) {
-      // "study:[//000-00001]" -> { glyph:"//", id:"000-00001" }
       const m = String(str || "").match(/^study:\[(\/\/|--|\\\\|\|\s\|)([0-9]{3}-[0-9]{5})\]$/i);
       if (!m) return null;
       return { glyph: m[1], id: m[2] };
@@ -319,12 +327,14 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     function showStudy(name) {
       const parsed = parseStudy(name);
       if (parsed) {
-        studyGlyph.textContent = "//"; // always start as //
+        studyGlyph.textContent = "//";
         studyId.textContent = parsed.id;
       } else {
-        // fallback: show raw text if it doesn't match expected format
         studyRoot.textContent = name;
       }
+
+      // ✅ NEW: trigger logo fade-out
+      document.body.classList.add("study-triggered");
 
       galleryView.classList.remove("view--active");
       studyView.classList.add("view--active");
@@ -336,6 +346,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     function showGallery() {
       stopGlyphLoop();
+
+      // ✅ NEW: bring logo back
+      document.body.classList.remove("study-triggered");
 
       studyView.classList.remove("view--active");
       galleryView.classList.add("view--active");
