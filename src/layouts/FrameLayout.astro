@@ -89,17 +89,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
       --connector-width: 3px;
 
-      /* click-to-blur background */
-      --bg-click-blur: 28px;
-      --bg-click-dim: 0.92;
-      --bg-blur-ms: 520ms;
+      /* NEW: click-to-blur background */
+      --bg-click-blur: 28px;           /* heavy blur amount */
+      --bg-click-dim: 0.92;            /* optional slight dim */
+      --bg-blur-ms: 520ms;             /* match plus animation */
       --bg-blur-ease: cubic-bezier(.22,.61,.36,1);
-
-      /* NEW: logo fade out on study click */
-      --logo-fade-ms: 380ms;
-      --logo-fade-ease: cubic-bezier(.22,.61,.36,1);
-      --logo-fade-blur: 8px;
-      --logo-fade-scale: 0.985;
     }
 
     html, body {
@@ -128,9 +122,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       z-index: 0;
       pointer-events: none;
       transform: translateZ(0);
-      object-fit: contain;
+      object-fit: contain;             /* default */
       object-position: center bottom;
 
+      /* NEW: blur transition */
       filter: blur(0);
       transition:
         filter var(--bg-blur-ms) var(--bg-blur-ease),
@@ -147,51 +142,75 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       background: #ffffff;
       z-index: 0;
       pointer-events: none;
-      opacity: 0;
+      opacity: 0;                      /* hidden by default */
       transition:
         opacity 160ms linear,
         filter var(--bg-blur-ms) var(--bg-blur-ease);
       will-change: opacity, filter;
 
+      /* NEW: blur transition */
       filter: blur(0);
     }
     .bg-fallback img {
       width: 100%;
       height: 100%;
       display: block;
-      object-fit: contain;
+      object-fit: contain;             /* default */
       object-position: center bottom;
       transform: translateZ(0);
 
+      /* NEW: blur transition */
       filter: blur(0);
       transition: filter var(--bg-blur-ms) var(--bg-blur-ease);
       will-change: filter;
     }
 
+    /* Tall screens (phones) */
     @media (max-width: 640px) {
-      .bg-video { object-fit: cover; object-position: center bottom; }
-      .bg-fallback img { object-fit: cover; object-position: center bottom; }
+      .bg-video {
+        object-fit: cover;
+        object-position: center bottom;
+      }
+      .bg-fallback img {
+        object-fit: cover;
+        object-position: center bottom;
+      }
     }
 
+    /* Ultra-wide or landscape tablets/desktops */
     @media (min-aspect-ratio: 19/10) {
-      .bg-video { object-fit: cover; object-position: center bottom; }
-      .bg-fallback img { object-fit: cover; object-position: center bottom; }
+      .bg-video {
+        object-fit: cover;
+        object-position: center bottom;
+      }
+      .bg-fallback img {
+        object-fit: cover;
+        object-position: center bottom;
+      }
     }
 
+    /*
+      iOS Safari can freeze background video after app switching.
+      The only zero-UI, always-moving solution is: use WebP on iOS.
+    */
     body.is-ios .bg-video { display: none !important; }
     body.is-ios .bg-fallback { opacity: 1; }
 
-    /* blur the active background */
+    /* NEW: when clicking a study item, heavily blur the active background */
     body.bg-blur .bg-video {
       filter: blur(var(--bg-click-blur));
       opacity: var(--bg-click-dim);
     }
-    body.bg-blur .bg-fallback { filter: blur(var(--bg-click-blur)); }
-    body.bg-blur .bg-fallback img { filter: blur(var(--bg-click-blur)); }
+    body.bg-blur .bg-fallback {
+      filter: blur(var(--bg-click-blur));
+    }
+    body.bg-blur .bg-fallback img {
+      filter: blur(var(--bg-click-blur));
+    }
 
     .page-intro-wrap {
       position: relative;
-      z-index: 1;
+      z-index: 1;                   /* content above video */
       min-height: 100%;
       transition:
         filter var(--intro-ms) var(--intro-ease),
@@ -219,21 +238,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     }
 
     body.is-intro .intro-wash { opacity: 1; }
-
-    /* NEW: fade out the logo when study is triggered */
-    #logo {
-      transition:
-        opacity var(--logo-fade-ms) var(--logo-fade-ease),
-        filter var(--logo-fade-ms) var(--logo-fade-ease),
-        transform var(--logo-fade-ms) var(--logo-fade-ease);
-      will-change: opacity, filter, transform;
-    }
-    body.study-triggered #logo {
-      opacity: 0;
-      filter: blur(var(--logo-fade-blur));
-      transform: scale(var(--logo-fade-scale));
-      pointer-events: none;
-    }
 
     .corner-plus {
       position: fixed;
@@ -323,13 +327,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         --intro-cascade-stagger: 0ms;
         --plus-ms: 0ms;
         --connector-ms: 0ms;
+
+        /* NEW */
         --bg-blur-ms: 0ms;
-        --logo-fade-ms: 0ms;
       }
       .intro-wash { display: none; }
       .corner-plus, .left-connector { transition: none !important; }
-      .bg-fallback, .bg-video, .bg-fallback img { transition: none !important; }
-      #logo { transition: none !important; }
+      .bg-fallback { transition: none !important; }
+      .bg-video { transition: none !important; }
+      .bg-fallback img { transition: none !important; }
     }
   </style>
 </head>
@@ -349,6 +355,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     <source src="/brandyura.mp4" type="video/mp4" />
   </video>
 
+  <!-- iOS background: public/brandyura.webp -->
   <div class="bg-fallback" aria-hidden="true">
     <img src="/brandyura.webp" alt="" />
   </div>
@@ -370,7 +377,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       const root = document.documentElement;
       const $ = (sel) => document.querySelector(sel);
 
-      // iOS: always use WebP background (no freeze)
+      // iOS: always use WebP background (no freeze, no taps, no switching logic)
       const ua = navigator.userAgent || "";
       const isIOS = /iPhone|iPad|iPod/i.test(ua);
       if (isIOS) document.body.classList.add("is-ios");
@@ -430,13 +437,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         conn.style.height = `${h}px`;
       };
 
-      // background blur toggles
+      // NEW: background blur toggles
       const blurBG = () => document.body.classList.add("bg-blur");
       const unblurBG = () => document.body.classList.remove("bg-blur");
-
-      // NEW: logo fade toggles
-      const fadeLogoOut = () => document.body.classList.add("study-triggered");
-      const fadeLogoIn = () => document.body.classList.remove("study-triggered");
 
       const merge = () => {
         if (document.body.classList.contains("plus-merged")) return;
@@ -553,9 +556,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
             e.preventDefault();
             const href = link.getAttribute("href");
 
-            // blur bg + fade logo immediately
+            // NEW: blur background immediately on click
             blurBG();
-            fadeLogoOut();
 
             merge();
 
@@ -563,7 +565,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
             setTimeout(() => { window.location.href = href; }, Math.max(0, ms + 40));
           } else {
             blurBG();
-            fadeLogoOut();
             merge();
           }
           return;
@@ -572,16 +573,14 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           unmerge();
-          unblurBG();
-          fadeLogoIn();
+          unblurBG();              // NEW: remove blur when going back
           triggerCascadeAfterBack();
         }
       }, { capture: true });
 
-      // ensure blur/logo state doesn't persist on bfcache restore
+      // NEW: ensure blur doesn't persist on bfcache restore / page show
       window.addEventListener("pageshow", () => {
         unblurBG();
-        fadeLogoIn();
       }, { passive: true });
 
       window.addEventListener("resize", () => {
