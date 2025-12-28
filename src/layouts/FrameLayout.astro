@@ -295,11 +295,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     <slot />
   </div>
 
-<video id="bgVideo" class="bg-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true" tabindex="-1">
-  <source src="/brandyura.mp4" type="video/mp4" />
-</video>
-
-
 
   <script is:inline>
     (() => {
@@ -513,53 +508,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     })();
   </script>
 </body>
-
-<script is:inline>
-  const v = () => document.getElementById("bgVideo");
-
-  async function resumeBgVideo() {
-    const vid = v();
-    if (!vid) return;
-
-    // Ensure autoplay eligibility
-    vid.muted = true;
-    vid.playsInline = true;
-
-    // Try normal resume
-    try { await vid.play(); return; } catch {}
-
-    // iOS Safari fallback: reload pipeline then play
-    try {
-      const t = vid.currentTime || 0;
-      vid.load();               // re-initialize decoder after background
-      vid.currentTime = t;      // keep roughly in sync
-      await vid.play();
-      return;
-    } catch {}
-
-    // Last resort: reset src (forces a full restart)
-    try {
-      const src = vid.currentSrc || vid.querySelector("source")?.src;
-      if (!src) return;
-      vid.src = src;
-      vid.load();
-      await vid.play();
-    } catch {}
-  }
-
-  // Fires when returning to Safari/app
-  document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible") resumeBgVideo();
-  });
-
-  // Covers Safari back-forward cache + app-switch restores
-  window.addEventListener("pageshow", () => resumeBgVideo());
-
-  // Extra nudge (helps on iOS sometimes)
-  window.addEventListener("focus", () => resumeBgVideo());
-</script>
-
-
 </html>
 
 
