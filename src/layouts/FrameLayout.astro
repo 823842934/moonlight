@@ -9,6 +9,7 @@ const siteUrl = "https://brandyura.com";
 const canonical = new URL(Astro.url.pathname, siteUrl).toString();
 const ogImageAbs = new URL(ogImage, siteUrl).toString();
 ---
+
 <!doctype html>
 <html lang="en">
 <head>
@@ -106,36 +107,71 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     }
 
     /* background video */
- .bg-video {
-  position: fixed;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  background: #ffffff;
-  z-index: 0;
-  pointer-events: none;
-  transform: translateZ(0);
-  object-fit: contain;             /* default */
-  object-position: center bottom;
-}
+    .bg-video {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      z-index: 0;
+      pointer-events: none;
+      transform: translateZ(0);
+      object-fit: contain;             /* default */
+      object-position: center bottom;
+    }
 
-/* Tall screens (phones) */
-@media (max-width: 640px) {
-  .bg-video {
-    object-fit: cover;
-    object-position: center bottom;
-  }
-}
+    /* Animated WebP fallback (always works; used on iOS) */
+    .bg-fallback {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      background: #ffffff;
+      z-index: 0;
+      pointer-events: none;
+      opacity: 0;                      /* hidden by default */
+      transition: opacity 160ms linear;
+      will-change: opacity;
+    }
+    .bg-fallback img {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;             /* default */
+      object-position: center bottom;
+      transform: translateZ(0);
+    }
 
-/* Ultra-wide or landscape tablets/desktops */
-@media (min-aspect-ratio: 19/10) {
-  .bg-video {
-    object-fit: cover;             /* fill instead of showing edges */
-    object-position: center bottom;
-  }
-}
+    /* Tall screens (phones) */
+    @media (max-width: 640px) {
+      .bg-video {
+        object-fit: cover;
+        object-position: center bottom;
+      }
+      .bg-fallback img {
+        object-fit: cover;
+        object-position: center bottom;
+      }
+    }
 
+    /* Ultra-wide or landscape tablets/desktops */
+    @media (min-aspect-ratio: 19/10) {
+      .bg-video {
+        object-fit: cover;
+        object-position: center bottom;
+      }
+      .bg-fallback img {
+        object-fit: cover;
+        object-position: center bottom;
+      }
+    }
 
+    /*
+      iOS Safari can freeze background video after app switching.
+      The only zero-UI, always-moving solution is: use WebP on iOS.
+    */
+    body.is-ios .bg-video { display: none !important; }
+    body.is-ios .bg-fallback { opacity: 1; }
 
     .page-intro-wrap {
       position: relative;
@@ -259,6 +295,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       }
       .intro-wash { display: none; }
       .corner-plus, .left-connector { transition: none !important; }
+      .bg-fallback { transition: none !important; }
     }
   </style>
 </head>
@@ -270,12 +307,18 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     muted
     loop
     playsinline
-    preload="metadata"
+    webkit-playsinline
+    preload="auto"
     aria-hidden="true"
     tabindex="-1"
   >
     <source src="/brandyura.mp4" type="video/mp4" />
   </video>
+
+  <!-- iOS background: public/brandyura.webp -->
+  <div class="bg-fallback" aria-hidden="true">
+    <img src="/brandyura.webp" alt="" />
+  </div>
 
   <div class="corner-plus tl">＋</div>
   <div class="corner-plus tr">＋</div>
@@ -293,6 +336,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     (() => {
       const root = document.documentElement;
       const $ = (sel) => document.querySelector(sel);
+
+      // iOS: always use WebP background (no freeze, no taps, no switching logic)
+      const ua = navigator.userAgent || "";
+      const isIOS = /iPhone|iPad|iPod/i.test(ua);
+      if (isIOS) document.body.classList.add("is-ios");
 
       const isStudyTrigger = (el) => {
         const v = el.getAttribute("data-study") || "";
