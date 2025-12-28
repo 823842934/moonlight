@@ -95,10 +95,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --bg-blur-ms: 520ms;
       --bg-blur-ease: cubic-bezier(.22,.61,.36,1);
 
-      /* NEW: fade brand text on study click */
-      --brand-fade-ms: 520ms;
-      --brand-fade-ease: cubic-bezier(.22,.61,.36,1);
-      --brand-fade-y: -6px;
+      /* NEW: logo fade out on study click */
+      --logo-fade-ms: 380ms;
+      --logo-fade-ease: cubic-bezier(.22,.61,.36,1);
+      --logo-fade-blur: 8px;
+      --logo-fade-scale: 0.985;
     }
 
     html, body {
@@ -180,6 +181,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     body.is-ios .bg-video { display: none !important; }
     body.is-ios .bg-fallback { opacity: 1; }
 
+    /* blur the active background */
     body.bg-blur .bg-video {
       filter: blur(var(--bg-click-blur));
       opacity: var(--bg-click-dim);
@@ -217,6 +219,21 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     }
 
     body.is-intro .intro-wash { opacity: 1; }
+
+    /* NEW: fade out the logo when study is triggered */
+    #logo {
+      transition:
+        opacity var(--logo-fade-ms) var(--logo-fade-ease),
+        filter var(--logo-fade-ms) var(--logo-fade-ease),
+        transform var(--logo-fade-ms) var(--logo-fade-ease);
+      will-change: opacity, filter, transform;
+    }
+    body.study-triggered #logo {
+      opacity: 0;
+      filter: blur(var(--logo-fade-blur));
+      transform: scale(var(--logo-fade-scale));
+      pointer-events: none;
+    }
 
     .corner-plus {
       position: fixed;
@@ -271,22 +288,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.plus-merged .left-connector { opacity: 1; }
 
-    /* NEW: brand fade on study click.
-       Works if your brand text element has id="logo" (like your index does). */
-    #logo {
-      transition:
-        opacity var(--brand-fade-ms) var(--brand-fade-ease),
-        transform var(--brand-fade-ms) var(--brand-fade-ease),
-        filter var(--brand-fade-ms) var(--brand-fade-ease);
-      will-change: opacity, transform, filter;
-    }
-    body.study-clicked #logo {
-      opacity: 0;
-      transform: translateY(var(--brand-fade-y));
-      filter: blur(2px);
-      pointer-events: none;
-    }
-
     @keyframes studyCascadeIn {
       from {
         opacity: var(--cascade-from-opacity);
@@ -323,12 +324,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         --plus-ms: 0ms;
         --connector-ms: 0ms;
         --bg-blur-ms: 0ms;
-        --brand-fade-ms: 0ms;
+        --logo-fade-ms: 0ms;
       }
       .intro-wash { display: none; }
-      .corner-plus, .left-connector,
-      .bg-fallback, .bg-video,
-      .bg-fallback img,
+      .corner-plus, .left-connector { transition: none !important; }
+      .bg-fallback, .bg-video, .bg-fallback img { transition: none !important; }
       #logo { transition: none !important; }
     }
   </style>
@@ -430,12 +430,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         conn.style.height = `${h}px`;
       };
 
+      // background blur toggles
       const blurBG = () => document.body.classList.add("bg-blur");
       const unblurBG = () => document.body.classList.remove("bg-blur");
 
-      // NEW: brand fade toggles
-      const fadeBrand = () => document.body.classList.add("study-clicked");
-      const unfadeBrand = () => document.body.classList.remove("study-clicked");
+      // NEW: logo fade toggles
+      const fadeLogoOut = () => document.body.classList.add("study-triggered");
+      const fadeLogoIn = () => document.body.classList.remove("study-triggered");
 
       const merge = () => {
         if (document.body.classList.contains("plus-merged")) return;
@@ -552,9 +553,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
             e.preventDefault();
             const href = link.getAttribute("href");
 
-            // blur bg + fade brand immediately
+            // blur bg + fade logo immediately
             blurBG();
-            fadeBrand();
+            fadeLogoOut();
 
             merge();
 
@@ -562,7 +563,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
             setTimeout(() => { window.location.href = href; }, Math.max(0, ms + 40));
           } else {
             blurBG();
-            fadeBrand();
+            fadeLogoOut();
             merge();
           }
           return;
@@ -572,15 +573,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         if (backEl && isBackTrigger(backEl)) {
           unmerge();
           unblurBG();
-          unfadeBrand();
+          fadeLogoIn();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
 
-      // ensure blur/fade doesn't persist on bfcache restore
+      // ensure blur/logo state doesn't persist on bfcache restore
       window.addEventListener("pageshow", () => {
         unblurBG();
-        unfadeBrand();
+        fadeLogoIn();
       }, { passive: true });
 
       window.addEventListener("resize", () => {
