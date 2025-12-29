@@ -11,38 +11,38 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         <div class="tree-viewport" id="viewport">
           <!-- GALLERY VIEW -->
           <div id="galleryView" class="view view--active">
-            <div class="root gallery-line">gallery</div>
+            <div class="root gallery-line ink-line">gallery</div>
 
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00001]">├─ study:[//000-00001]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00002]">├─ study:[//000-00002]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00003]">├─ study:[//000-00003]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00004]">├─ study:[//000-00004]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00005]">├─ study:[//000-00005]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00006]">├─ study:[//000-00006]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00007]">├─ study:[//000-00007]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00008]">├─ study:[//000-00008]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00009]">├─ study:[//000-00009]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-study="study:[//000-00001]">├─ study:[//000-00001]</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-study="study:[//000-00002]">├─ study:[//000-00002]</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-study="study:[//000-00003]">├─ study:[//000-00003]</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-study="study:[//000-00004]">├─ study:[//000-00004]</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-study="study:[//000-00005]">├─ study:[//000-00005]</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-study="study:[//000-00006]">├─ study:[//000-00006]</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-study="study:[//000-00007]">├─ study:[//000-00007]</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-study="study:[//000-00008]">├─ study:[//000-00008]</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-study="study:[//000-00009]">├─ study:[//000-00009]</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
             </div>
 
             <!-- ✅ CLICKABLE PARENTS -->
-            <button class="root item-btn gallery-line" type="button" data-folder="about">about</button>
+            <button class="root item-btn gallery-line ink-line" type="button" data-folder="about">about</button>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="biography">├─ biography</button>
-              <button class="item item-btn gallery-line" type="button" data-node="statement">├─ statement</button>
-              <button class="item item-btn gallery-line" type="button" data-node="process">└─ process</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-node="biography">├─ biography</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-node="statement">├─ statement</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-node="process">└─ process</button>
             </div>
 
-            <button class="root item-btn gallery-line" type="button" data-folder="contact">contact</button>
+            <button class="root item-btn gallery-line ink-line" type="button" data-folder="contact">contact</button>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="hello">├─ hello</button>
-              <button class="item item-btn gallery-line" type="button" data-node="social">└─ social</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-node="hello">├─ hello</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-node="social">└─ social</button>
             </div>
 
-            <button class="root item-btn gallery-line" type="button" data-folder="fine-print">fine-print</button>
+            <button class="root item-btn gallery-line ink-line" type="button" data-folder="fine-print">fine-print</button>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="placeholder">└─ placeholder</button>
+              <button class="item item-btn gallery-line ink-line" type="button" data-node="placeholder">└─ placeholder</button>
             </div>
           </div>
 
@@ -69,7 +69,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <span class="arrow">←</span><span class="label"> back</span>
             </button>
 
-            <div id="nodeRoot" class="root" data-cascade="0"></div>
+            <div id="nodeRoot" class="root ink-line" data-cascade="0"></div>
 
             <div class="children children--indented" id="nodeChildren"></div>
           </div>
@@ -242,26 +242,23 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       text-align: center;
     }
 
-    @keyframes galleryIntroCascade {
+    /* ✅ ink/opacity ramp (light grey -> black feel) */
+    @keyframes inkCascade {
       from { opacity: 0; transform: translateY(-10px); filter: blur(1px); }
       to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
     }
 
-    .gallery-line { opacity: 1; }
-
-    body.gallery-intro-cascade .gallery-line {
-      opacity: 0;
-      animation: galleryIntroCascade 420ms cubic-bezier(.25,.8,.25,1) forwards;
-    }
+    /* default state (normal, no animation) */
+    .ink-line { opacity: 1; }
 
     @media (prefers-reduced-motion: reduce) {
-      body.gallery-intro-cascade .gallery-line {
-        opacity: 1;
+      #logo { transition: none !important; }
+      .ink-line {
+        opacity: 1 !important;
         animation: none !important;
         transform: none !important;
         filter: none !important;
       }
-      #logo { transition: none !important; }
     }
   </style>
 
@@ -295,30 +292,38 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       stack.style.setProperty("--logo-left", `${left}px`);
     }
 
-    function runGalleryIntroCascadeOnce() {
-      const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
+    // ✅ generic "ink" cascade runner (same vibe as your home fade)
+    function runInkCascade(containerEl) {
+      if (!containerEl) return;
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const lines = Array.from(containerEl.querySelectorAll(".ink-line"));
       if (!lines.length) return;
 
-      document.body.classList.add("gallery-intro-cascade");
-
-      const stagger = 80;
-      lines.forEach((el, i) => { el.style.animationDelay = `${i * stagger}ms`; });
-
       const ms = 420;
-      const total = ms + (lines.length - 1) * stagger + 60;
+      const stagger = 80;
 
+      // reset + apply animation with stagger
+      lines.forEach((el, i) => {
+        el.style.opacity = "0";
+        el.style.animation = `inkCascade ${ms}ms cubic-bezier(.25,.8,.25,1) forwards`;
+        el.style.animationDelay = `${i * stagger}ms`;
+        el.style.willChange = "opacity, transform, filter";
+      });
+
+      // cleanup after done (so it can be re-run cleanly)
+      const total = ms + (lines.length - 1) * stagger + 80;
       setTimeout(() => {
-        document.body.classList.remove("gallery-intro-cascade");
         lines.forEach((el) => {
-          el.style.animationDelay = "";
           el.style.opacity = "";
+          el.style.animation = "";
+          el.style.animationDelay = "";
+          el.style.willChange = "";
           el.style.transform = "";
           el.style.filter = "";
         });
       }, total);
     }
-
-    window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
 
     const GLYPHS = ["//", "--", "\\\\", "| |"];
     const GLYPH_MS = 110;
@@ -424,7 +429,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       nodeChildren.innerHTML = items
         .map((it, i) => {
           const n = i + 1;
-          return `<button class="item item-btn" type="button" data-leaf="${it.node}" data-cascade="${n}">${it.label}</button>`;
+          // ✅ ink-line so it does the light-grey -> black ramp
+          return `<button class="item item-btn ink-line" type="button" data-leaf="${it.node}" data-cascade="${n}">${it.label}</button>`;
         })
         .join("");
     }
@@ -446,16 +452,17 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       viewport.classList.add("zoom-in");
       logo.classList.add("logo-blur");
 
-      // ✅ cascades in: title first, then children
+      // slide cascade (kept)
       playCascade(nodeView);
 
-      // ✅ attach clicks for the rendered children (leaf nodes)
+      // ✅ ink/opacity ramp for folder title + children
+      requestAnimationFrame(() => runInkCascade(nodeView));
+
       nodeChildren.querySelectorAll("[data-leaf]").forEach((btn) => {
         btn.addEventListener("click", () => showLeaf(btn.dataset.leaf));
       });
     }
 
-    // leaf nodes (you can expand later; keeping placeholder)
     function showLeaf(key) {
       stopGlyphLoop();
 
@@ -464,7 +471,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       nodeRoot.textContent = key;
       nodeRoot.setAttribute("data-cascade", "0");
 
-      nodeChildren.innerHTML = `<div class="item" data-cascade="1">└─ placeholder</div>`;
+      nodeChildren.innerHTML = `<div class="item ink-line" data-cascade="1">└─ placeholder</div>`;
 
       studyView.classList.remove("view--active");
       galleryView.classList.remove("view--active");
@@ -474,6 +481,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       logo.classList.add("logo-blur");
 
       playCascade(nodeView);
+
+      // ✅ ink/opacity ramp for leaf title + placeholder line
+      requestAnimationFrame(() => runInkCascade(nodeView));
     }
 
     function showGallery() {
@@ -487,25 +497,28 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       viewport.classList.remove("zoom-in");
       logo.classList.remove("logo-blur");
+
+      // ✅ run the ink cascade across ALL home lists (study + about + contact + fine-print)
+      requestAnimationFrame(() => runInkCascade(galleryView));
     }
 
     syncTreeToLogo();
     addEventListener("resize", syncTreeToLogo);
 
+    // ✅ initial load also gets the ink ramp
+    requestAnimationFrame(() => runInkCascade(galleryView));
+
     studyButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
-        // ignore if it's a folder or leaf node; those are handled elsewhere
         if (btn.dataset.folder || btn.dataset.node) return;
         showStudy(btn.dataset.study);
       });
     });
 
-    // existing leaf clicks from gallery still go to leaf placeholder view
     nodeButtons.forEach((btn) => {
       btn.addEventListener("click", () => showLeaf(btn.dataset.node));
     });
 
-    // ✅ THIS is “parent clicked” behavior
     folderButtons.forEach((btn) => {
       btn.addEventListener("click", () => showFolder(btn.dataset.folder));
     });
