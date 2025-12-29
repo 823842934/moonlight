@@ -29,9 +29,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             <!-- NON-CLICKABLE PARENTS -->
             <div class="root gallery-line">About</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="Biography">├─ biography</button>
-              <button class="item item-btn gallery-line" type="button" data-node="Statement">├─ statement</button>
-              <button class="item item-btn gallery-line" type="button" data-node="Process">└─ process</button>
+              <button class="item item-btn gallery-line" type="button" data-node="Biography">├─ Biography</button>
+              <button class="item item-btn gallery-line" type="button" data-node="Statement">├─ Statement</button>
+              <button class="item item-btn gallery-line" type="button" data-node="Process">└─ Process</button>
             </div>
 
             <div class="root gallery-line">Contact</div>
@@ -42,7 +42,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
             <div class="root gallery-line">Legal</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="placeholder">└─ placeholder</button>
+              <button class="item item-btn gallery-line" type="button" data-node="Placeholder">└─ Placeholder</button>
             </div>
           </div>
 
@@ -447,7 +447,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       nodeRoot.textContent = key;
       nodeRoot.setAttribute("data-cascade", "0");
 
-      nodeChildren.innerHTML = `<div class="item" data-cascade="1">└─ placeholder</div>`;
+      nodeChildren.innerHTML = `<div class="item" data-cascade="1">└─ Placeholder</div>`;
 
       studyView.classList.remove("view--active");
       galleryView.classList.remove("view--active");
