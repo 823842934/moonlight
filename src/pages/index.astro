@@ -26,24 +26,22 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
             </div>
 
-            <div class="root gallery-line">about/</div>
+            <div class="root gallery-line">about</div>
             <div class="children">
-              <!-- NOTE: data-study is ONLY to trigger FrameLayout animations (blur/plus merge).
-                   data-node is what we actually route to in this page script. -->
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-biography]" data-node="biography" data-section="about">├─ biography/</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-statement]" data-node="statement" data-section="about">├─ statement/</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-process]" data-node="process" data-section="about">└─ process/</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-biography]" data-node="biography">├─ biography</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-statement]" data-node="statement">├─ statement</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-process]" data-node="process">└─ process</button>
             </div>
 
-            <div class="root gallery-line">contact/</div>
+            <div class="root gallery-line">contact</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-hello]" data-node="hello" data-section="contact">├─ hello/</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-social]" data-node="social" data-section="contact">└─ social/</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-hello]" data-node="hello">├─ hello</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-social]" data-node="social">└─ social</button>
             </div>
 
-            <div class="root gallery-line">fine-print/</div>
+            <div class="root gallery-line">fine-print</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//fine-print-placeholder]" data-node="placeholder" data-section="fine-print">└─ placeholder/</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//fine-print-placeholder]" data-node="placeholder">└─ placeholder</button>
             </div>
           </div>
 
@@ -53,7 +51,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <span class="arrow">←</span><span class="label"> back</span>
             </button>
 
-            <!-- fixed-width glyph slot so it never shifts -->
+            <!-- We render a fixed-width glyph slot so it never shifts -->
             <div id="studyRoot" class="root">
               study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
             </div>
@@ -112,7 +110,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       filter: blur(6px);
     }
 
-    /* fade OUT logo on any "node" transition */
+    /* fade OUT logo on transitions */
     #logo {
       transition:
         opacity 1200ms cubic-bezier(.22,.61,.36,1),
@@ -168,7 +166,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       display: grid;
       gap: 0.18rem;
       width: fit-content;
-      margin-bottom: 0.55rem; /* gives breathing room between sections */
+      margin-bottom: 0.55rem;
     }
 
     .children--indented {
@@ -372,7 +370,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         studyGlyph.textContent = "//";
         studyId.textContent = parsed.id;
       } else {
-        // fallback, but your study buttons already match the regex
         studyRoot.textContent = name;
       }
 
@@ -388,18 +385,15 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
     }
 
-    function showNode(section, node) {
+    function showNode(node) {
       stopGlyphLoop();
 
       document.body.classList.add("study-triggered");
 
-      // header like: about/biography/  (or fine-print/placeholder/)
-      const s = String(section || "").trim();
-      const n = String(node || "").trim();
-      const header = s ? `${s}/${n}/` : `${n}/`;
-      nodeRoot.textContent = header;
+      // ✅ header: ONLY the subfolder name (no parent section, no trailing "/")
+      nodeRoot.textContent = String(node || "").trim();
 
-      // keep placeholder child for now (as requested)
+      // keep placeholder child for now
       nodeChildren.innerHTML = `<div class="item cascade" data-cascade="1">└─ placeholder</div>`;
 
       studyView.classList.remove("view--active");
@@ -430,7 +424,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       btn.addEventListener("click", () => {
         const isNode = !!btn.dataset.node;
         if (isNode) {
-          showNode(btn.dataset.section, btn.dataset.node);
+          showNode(btn.dataset.node);
           return;
         }
         showStudy(btn.dataset.study);
