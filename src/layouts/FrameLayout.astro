@@ -67,10 +67,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --intro-scale: 0.985;
 
       --cascade-ms: 420ms;
-      --cascade-stagger: 80ms;
-      --cascade-from-opacity: 0.25;
-      --cascade-from-y: -10px;
-      --cascade-from-blur: 1px;
+      --cascade-stagger: 80ms; /* kept (no longer used for back cascade) */
+      --cascade-from-opacity: 0.25; /* kept (no longer used for back cascade) */
+      --cascade-from-y: -10px; /* kept */
+      --cascade-from-blur: 1px; /* kept */
+
+      /* NEW: back-cascade grouping */
+      --cascade-group-gap: 220ms; /* pause between folder blocks */
 
       --intro-cascade-ms: 520ms;
       --intro-cascade-stagger: 90ms;
@@ -89,10 +92,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
       --connector-width: 3px;
 
-      /* NEW: click-to-blur background */
-      --bg-click-blur: 28px;           /* heavy blur amount */
-      --bg-click-dim: 0.92;            /* optional slight dim */
-      --bg-blur-ms: 520ms;             /* match plus animation */
+      --bg-click-blur: 28px;
+      --bg-click-dim: 0.92;
+      --bg-blur-ms: 520ms;
       --bg-blur-ease: cubic-bezier(.22,.61,.36,1);
     }
 
@@ -122,10 +124,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       z-index: 0;
       pointer-events: none;
       transform: translateZ(0);
-      object-fit: contain;             /* default */
+      object-fit: contain;
       object-position: center bottom;
 
-      /* NEW: blur transition */
       filter: blur(0);
       transition:
         filter var(--bg-blur-ms) var(--bg-blur-ease),
@@ -142,30 +143,27 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       background: #ffffff;
       z-index: 0;
       pointer-events: none;
-      opacity: 0;                      /* hidden by default */
+      opacity: 0;
       transition:
         opacity 160ms linear,
         filter var(--bg-blur-ms) var(--bg-blur-ease);
       will-change: opacity, filter;
 
-      /* NEW: blur transition */
       filter: blur(0);
     }
     .bg-fallback img {
       width: 100%;
       height: 100%;
       display: block;
-      object-fit: contain;             /* default */
+      object-fit: contain;
       object-position: center bottom;
       transform: translateZ(0);
 
-      /* NEW: blur transition */
       filter: blur(0);
       transition: filter var(--bg-blur-ms) var(--bg-blur-ease);
       will-change: filter;
     }
 
-    /* Tall screens (phones) */
     @media (max-width: 640px) {
       .bg-video {
         object-fit: cover;
@@ -177,7 +175,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       }
     }
 
-    /* Ultra-wide or landscape tablets/desktops */
     @media (min-aspect-ratio: 19/10) {
       .bg-video {
         object-fit: cover;
@@ -189,14 +186,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       }
     }
 
-    /*
-      iOS Safari can freeze background video after app switching.
-      The only zero-UI, always-moving solution is: use WebP on iOS.
-    */
     body.is-ios .bg-video { display: none !important; }
     body.is-ios .bg-fallback { opacity: 1; }
 
-    /* NEW: when clicking a study item, heavily blur the active background */
     body.bg-blur .bg-video {
       filter: blur(var(--bg-click-blur));
       opacity: var(--bg-click-dim);
@@ -210,7 +202,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     .page-intro-wrap {
       position: relative;
-      z-index: 1;                   /* content above video */
+      z-index: 1;
       min-height: 100%;
       transition:
         filter var(--intro-ms) var(--intro-ease),
@@ -292,6 +284,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.plus-merged .left-connector { opacity: 1; }
 
+    /* kept (used elsewhere previously) */
     @keyframes studyCascadeIn {
       from {
         opacity: var(--cascade-from-opacity);
@@ -303,6 +296,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         transform: translateY(0);
         filter: blur(0);
       }
+    }
+
+    /* NEW: back-cascade style (fade in only, no slide/blur) */
+    @keyframes folderFadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
     }
 
     @keyframes introCascadeIn {
@@ -327,9 +326,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         --intro-cascade-stagger: 0ms;
         --plus-ms: 0ms;
         --connector-ms: 0ms;
-
-        /* NEW */
         --bg-blur-ms: 0ms;
+        --cascade-group-gap: 0ms;
       }
       .intro-wash { display: none; }
       .corner-plus, .left-connector { transition: none !important; }
@@ -355,7 +353,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     <source src="/brandyura.mp4" type="video/mp4" />
   </video>
 
-  <!-- iOS background: public/brandyura.webp -->
   <div class="bg-fallback" aria-hidden="true">
     <img src="/brandyura.webp" alt="" />
   </div>
@@ -377,7 +374,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       const root = document.documentElement;
       const $ = (sel) => document.querySelector(sel);
 
-      // iOS: always use WebP background (no freeze, no taps, no switching logic)
       const ua = navigator.userAgent || "";
       const isIOS = /iPhone|iPad|iPod/i.test(ua);
       if (isIOS) document.body.classList.add("is-ios");
@@ -437,7 +433,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         conn.style.height = `${h}px`;
       };
 
-      // NEW: background blur toggles
       const blurBG = () => document.body.classList.add("bg-blur");
       const unblurBG = () => document.body.classList.remove("bg-blur");
 
@@ -461,28 +456,66 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         document.body.classList.remove("plus-merged");
       };
 
+      /*
+        NEW BACK CASCADE STYLE:
+        - group by folder (by each ".children" container)
+        - fade in ALL items in that folder at the same time
+        - then next folder, etc.
+      */
       const animateStudyListCascade = () => {
-        const items = Array.from(document.querySelectorAll("[data-study]"))
+        const all = Array.from(document.querySelectorAll("[data-study]"))
           .filter((el) => el instanceof HTMLElement && isStudyTrigger(el));
 
-        if (!items.length) return false;
+        if (!all.length) return false;
 
-        const stagger = cssNum("--cascade-stagger", 80);
+        // group by nearest ".children" container so each folder's items animate together
+        const groups = [];
+        const seen = new Set();
+
+        all.forEach((el) => {
+          const g = el.closest(".children");
+          if (!g) return;
+          if (seen.has(g)) return;
+          seen.add(g);
+
+          const items = Array.from(g.querySelectorAll("[data-study]"))
+            .filter((x) => x instanceof HTMLElement && isStudyTrigger(x));
+
+          if (items.length) groups.push(items);
+        });
+
+        if (!groups.length) return false;
+
         const ms = cssNum("--cascade-ms", 420);
+        const gap = cssNum("--cascade-group-gap", 220);
 
-        items.forEach((el, i) => {
+        // reset all first (avoid partial states)
+        groups.flat().forEach((el) => {
           el.style.animation = "none";
-          el.style.opacity = String(cssNum("--cascade-from-opacity", 0.25));
-          el.style.transform = `translateY(${cssNum("--cascade-from-y", -10)}px)`;
-          el.style.filter = `blur(${cssNum("--cascade-from-blur", 1)}px)`;
+          el.style.opacity = "0";
+          el.style.transform = "none";
+          el.style.filter = "none";
+        });
 
-          void el.offsetWidth;
+        // force reflow once
+        void document.body.offsetWidth;
 
-          const delay = i * stagger;
-          el.style.animation = `studyCascadeIn ${ms}ms cubic-bezier(.25,.8,.25,1) ${delay}ms forwards`;
+        groups.forEach((items, groupIndex) => {
+          const delay = groupIndex * gap;
 
-          el.addEventListener("animationend", () => {
-            el.style.filter = "blur(0)";
+          items.forEach((el) => {
+            el.style.animation = `folderFadeIn ${ms}ms cubic-bezier(.25,.8,.25,1) ${delay}ms forwards`;
+          });
+
+          // cleanup after the last item completes (use one representative)
+          const last = items[items.length - 1];
+          last.addEventListener("animationend", () => {
+            items.forEach((el) => {
+              el.style.animation = "";
+              el.style.opacity = "";
+              el.style.transform = "";
+              el.style.filter = "";
+            });
           }, { once: true });
         });
 
@@ -556,9 +589,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
             e.preventDefault();
             const href = link.getAttribute("href");
 
-            // NEW: blur background immediately on click
             blurBG();
-
             merge();
 
             const ms = cssMs("--plus-ms", 520);
@@ -573,12 +604,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           unmerge();
-          unblurBG();              // NEW: remove blur when going back
+          unblurBG();
           triggerCascadeAfterBack();
         }
       }, { capture: true });
 
-      // NEW: ensure blur doesn't persist on bfcache restore / page show
       window.addEventListener("pageshow", () => {
         unblurBG();
       }, { passive: true });
