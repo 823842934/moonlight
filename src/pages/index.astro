@@ -312,53 +312,58 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     // UPDATED: on back, animate roots immediately, but each folder's children start together
-    function runGalleryIntroCascadeOnce() {
-      const roots = Array.from(document.querySelectorAll("#galleryView .root.gallery-line"));
-      if (!roots.length) return;
+   function runGalleryIntroCascadeOnce() {
+  const roots = Array.from(document.querySelectorAll("#galleryView .root.gallery-line"));
+  if (!roots.length) return;
 
-      // group children by "the .children div immediately after each root"
-      const groups = roots.map((root) => {
-        const next = root.nextElementSibling;
-        const childrenWrap = next && next.classList && next.classList.contains("children") ? next : null;
-        const childrenLines = childrenWrap
-          ? Array.from(childrenWrap.querySelectorAll(".gallery-line"))
-          : [];
-        return { root, childrenLines };
-      });
+  const groups = roots.map((root) => {
+    const next = root.nextElementSibling;
+    const childrenWrap =
+      next && next.classList && next.classList.contains("children") ? next : null;
 
-      const allLines = [
-        ...groups.map((g) => g.root),
-        ...groups.flatMap((g) => g.childrenLines),
-      ];
+    const childrenLines = childrenWrap
+      ? Array.from(childrenWrap.querySelectorAll(".gallery-line"))
+      : [];
 
-      document.body.classList.add("gallery-intro-cascade");
+    return { root, childrenLines };
+  });
 
-      // roots: no delay
-      groups.forEach(({ root }) => {
-        root.style.animationDelay = `0ms`;
-      });
+  const ms = 420;
+  const ease = "cubic-bezier(.25,.8,.25,1)";
+  const childDelay = 120; // tweak if you want (0 = same exact time as root)
 
-      // children: same delay within each folder (no global top-to-bottom)
-      const CHILD_DELAY = 120;
-      groups.forEach(({ childrenLines }) => {
-        childrenLines.forEach((el) => {
-          el.style.animationDelay = `${CHILD_DELAY}ms`;
-        });
-      });
+  // Restart animation cleanly for every involved line
+  const allLines = [
+    ...groups.map((g) => g.root),
+    ...groups.flatMap((g) => g.childrenLines),
+  ];
 
-      const ms = 420;
-      const total = ms + CHILD_DELAY + 80;
+  allLines.forEach((el) => {
+    el.style.animation = "none";
+    el.style.opacity = "0";
+  });
 
-      setTimeout(() => {
-        document.body.classList.remove("gallery-intro-cascade");
-        allLines.forEach((el) => {
-          el.style.animationDelay = "";
-          el.style.opacity = "";
-          el.style.transform = "";
-          el.style.filter = "";
-        });
-      }, total);
-    }
+  // force reflow so the browser treats it as a fresh animation
+  void document.body.offsetWidth;
+
+  groups.forEach(({ root, childrenLines }) => {
+    // root starts immediately
+    root.style.animation = `galleryIntroCascade ${ms}ms ${ease} 0ms forwards`;
+
+    // each folder's children start together (no top-to-bottom waterfall)
+    childrenLines.forEach((el) => {
+      el.style.animation = `galleryIntroCascade ${ms}ms ${ease} ${childDelay}ms forwards`;
+    });
+  });
+
+  // cleanup
+  setTimeout(() => {
+    allLines.forEach((el) => {
+      el.style.animation = "";
+      el.style.opacity = "";
+    });
+  }, ms + childDelay + 80);
+}
 
     window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
 
