@@ -141,13 +141,15 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       transform: translateX(var(--logo-shift, 0px));
       transition:
         opacity 400ms cubic-bezier(.22,.61,.36,1),
-        filter 400ms cubic-bezier(.22,.61,.36,1);
-      will-change: opacity, filter;
+        filter 400ms cubic-bezier(.22,.61,.36,1),
+        transform 400ms cubic-bezier(.22,.61,.36,1);
+      will-change: opacity, filter, transform;
     }
     body.study-triggered #logo {
       opacity: 0;
       filter: blur(10px);
       pointer-events: none;
+      transform: translateX(var(--logo-shift, 0px)) !important;
     }
 
     .tree {
