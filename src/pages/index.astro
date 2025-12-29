@@ -103,9 +103,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       transition: filter 0.35s ease;
     }
 
-    .logo-blur {
-      filter: blur(6px);
-    }
+    .logo-blur { filter: blur(6px); }
 
     #logo {
       transition:
@@ -136,7 +134,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       min-height: 12.5rem;
       width: 100%;
       overflow: visible;
+
+      /* ✅ will be set dynamically to the clicked line */
       transform-origin: center left;
+
       transition: transform 500ms cubic-bezier(.4,0,.2,1);
       will-change: transform;
     }
@@ -212,9 +213,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       pointer-events: none;
     }
 
-    .view.view--active {
-      opacity: 1;
-    }
+    .view.view--active { opacity: 1; }
 
     .zoomed {
       transform: scale(1.15);
@@ -261,6 +260,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         filter: none !important;
       }
       #logo { transition: none !important; }
+      .tree-viewport { transition: none !important; }
     }
   </style>
 
@@ -293,7 +293,32 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       stack.style.setProperty("--logo-left", `${left}px`);
     }
 
-    // ✅ HARD one-time gate (prevents "back" from reapplying opacity/animation to studies)
+    // ✅ sets zoom origin to the clicked line (so zoom-out returns from same spot)
+    let lastZoomOrigin = null; // { x, y } in px within viewport box
+
+    function setZoomOriginFromEl(el) {
+      if (!el) return;
+
+      const vpRect = viewport.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
+
+      // anchor near the left edge of the clicked line + vertical center of the line
+      const x = Math.max(0, elRect.left - vpRect.left + 4);
+      const y = Math.max(0, (elRect.top - vpRect.top) + (elRect.height * 0.5));
+
+      lastZoomOrigin = { x, y };
+      viewport.style.transformOrigin = `${x}px ${y}px`;
+    }
+
+    function resetZoomOriginAfterZoomOut() {
+      // let the zoom-out animation finish first (matches CSS 500ms)
+      window.setTimeout(() => {
+        viewport.style.transformOrigin = "";
+        lastZoomOrigin = null;
+      }, 520);
+    }
+
+    // ✅ HARD one-time gate for the intro cascade (no re-opacity on back)
     let galleryCascadeHasRun = false;
 
     function runGalleryIntroCascadeOnce() {
@@ -427,7 +452,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       playCascade(nodeView);
     }
 
-    // ✅ remove any leftover inline animation/opacity on studies (prevents the "light grey -> black" on back)
+    // ✅ ensure no leftover inline opacity/animation on studies when returning
     function clearStudyInlineAnim() {
       const studyLines = Array.from(document.querySelectorAll('#galleryView [data-study].gallery-line'));
       studyLines.forEach((el) => {
@@ -451,26 +476,32 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       viewport.classList.remove("zoom-in");
       logo.classList.remove("logo-blur");
 
-      // ✅ ensure studies never get re-styled/animated when returning
       document.body.classList.remove("gallery-intro-cascade");
       clearStudyInlineAnim();
+
+      // ✅ zoom-out should originate from the last clicked line, then reset origin
+      if (lastZoomOrigin) resetZoomOriginAfterZoomOut();
     }
 
     syncTreeToLogo();
     addEventListener("resize", syncTreeToLogo);
 
-    // keep the initial load effect (only once)
     requestAnimationFrame(runGalleryIntroCascadeOnce);
 
+    // ✅ set zoom-origin BEFORE zooming in, using the clicked element
     studyButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         if (btn.dataset.folder || btn.dataset.node) return;
+        setZoomOriginFromEl(btn);
         showStudy(btn.dataset.study);
       });
     });
 
     nodeButtons.forEach((btn) => {
-      btn.addEventListener("click", () => showLeaf(btn.dataset.node));
+      btn.addEventListener("click", () => {
+        setZoomOriginFromEl(btn);
+        showLeaf(btn.dataset.node);
+      });
     });
 
     backBtn.addEventListener("click", showGallery);
