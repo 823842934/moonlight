@@ -246,19 +246,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       text-align: center;
     }
 
-    @keyframes galleryIntroCascade {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-        filter: blur(1px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-        filter: blur(0);
-      }
-    }
-
+   
     .gallery-line { opacity: 1; }
 
     body.gallery-intro-cascade .gallery-line {
@@ -305,30 +293,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       stack.style.setProperty("--logo-left", `${left}px`);
     }
 
-    function runGalleryIntroCascadeOnce() {
-      const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
-      if (!lines.length) return;
-
-      document.body.classList.add("gallery-intro-cascade");
-
-      const stagger = 80;
-      lines.forEach((el, i) => {
-        el.style.animationDelay = `${i * stagger}ms`;
-      });
-
-      const ms = 420;
-      const total = ms + (lines.length - 1) * stagger + 60;
-
-      setTimeout(() => {
-        document.body.classList.remove("gallery-intro-cascade");
-        lines.forEach((el) => {
-          el.style.animationDelay = "";
-          el.style.opacity = "";
-          el.style.transform = "";
-          el.style.filter = "";
-        });
-      }, total);
-    }
+   
 
     window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
 
