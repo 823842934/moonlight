@@ -41,6 +41,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
             <div class="root gallery-line">fine-print</div>
             <div class="children">
+              <!-- ✅ FIXED: data-node must match "fine-print" so it routes into that folder -->
               <button class="item item-btn gallery-line" type="button" data-study="study:[//fine-print-placeholder]" data-node="fine-print">└─ placeholder</button>
             </div>
           </div>
@@ -68,7 +69,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <span class="arrow">←</span><span class="label"> back</span>
             </button>
 
-            <div id="nodeRoot" class="root cascade" data-cascade="0"></div>
+            <!-- title participates as cascade 0 -->
+            <div id="nodeRoot" class="root" data-cascade="0"></div>
 
             <div class="children children--indented" id="nodeChildren"></div>
           </div>
@@ -220,28 +222,20 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       transform-origin: top left;
     }
 
-    /* cascade base */
+    /* keep your existing cascade CSS (used by study view) */
     .cascade {
       opacity: 0;
       transform: translateX(16px);
       transition: opacity 260ms ease, transform 260ms ease;
     }
-
     .view--active .cascade {
       opacity: 1;
       transform: translateX(0);
     }
-
-    /* cascade delays (same logic as study) */
     .view--active .cascade[data-cascade="0"] { transition-delay: 0ms; }
     .view--active .cascade[data-cascade="1"] { transition-delay: 80ms; }
     .view--active .cascade[data-cascade="2"] { transition-delay: 160ms; }
     .view--active .cascade[data-cascade="3"] { transition-delay: 240ms; }
-    .view--active .cascade[data-cascade="4"] { transition-delay: 320ms; }
-    .view--active .cascade[data-cascade="5"] { transition-delay: 400ms; }
-    .view--active .cascade[data-cascade="6"] { transition-delay: 480ms; }
-    .view--active .cascade[data-cascade="7"] { transition-delay: 560ms; }
-    .view--active .cascade[data-cascade="8"] { transition-delay: 640ms; }
 
     .glyph-slot {
       display: inline-block;
@@ -368,24 +362,36 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       return { glyph: m[1], id: m[2] };
     }
 
-    function retriggerCascade(containerEl) {
+    // ✅ explicit cascade player (works reliably for dynamically injected node content)
+    function playCascade(containerEl) {
       if (!containerEl) return;
-      const els = Array.from(containerEl.querySelectorAll(".cascade")).filter((el) => el instanceof HTMLElement);
+
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+      const els = Array.from(containerEl.querySelectorAll("[data-cascade]"))
+        .filter((el) => el instanceof HTMLElement)
+        .sort((a, b) => (Number(a.dataset.cascade) || 0) - (Number(b.dataset.cascade) || 0));
+
       if (!els.length) return;
 
+      // set hidden state + exact timing
       els.forEach((el) => {
-        el.style.transition = "none";
+        const n = Number(el.dataset.cascade) || 0;
+        el.style.transitionProperty = "opacity, transform";
+        el.style.transitionDuration = "260ms";
+        el.style.transitionTimingFunction = "ease";
+        el.style.transitionDelay = `${n * 80}ms`;
         el.style.opacity = "0";
         el.style.transform = "translateX(16px)";
       });
 
+      // force reflow
       void containerEl.offsetWidth;
 
       requestAnimationFrame(() => {
         els.forEach((el) => {
-          el.style.transition = "";
-          el.style.opacity = "";
-          el.style.transform = "";
+          el.style.opacity = "1";
+          el.style.transform = "translateX(0)";
         });
       });
     }
@@ -411,7 +417,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
     }
 
-    // folder -> its subcontents (rendered with the exact same cascade timing scheme)
+    // ✅ folder -> its subcontents (you can replace placeholder lines anytime)
     const NODE_CHILDREN = {
       biography: ["└─ placeholder"],
       statement: ["└─ placeholder"],
@@ -421,10 +427,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       "fine-print": ["└─ placeholder"],
     };
 
-    function renderCascadingChildren(lines) {
+    function renderNodeChildren(lines) {
       const items = Array.isArray(lines) ? lines : ["└─ placeholder"];
       nodeChildren.innerHTML = items
-        .map((text, i) => `<div class="item cascade" data-cascade="${i + 1}">${text}</div>`)
+        .map((text, i) => `<div class="item" data-cascade="${i + 1}">${text}</div>`)
         .join("");
     }
 
@@ -434,9 +440,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       document.body.classList.add("study-triggered");
 
       const key = String(node || "").trim();
-      nodeRoot.textContent = key;
 
-      renderCascadingChildren(NODE_CHILDREN[key]);
+      nodeRoot.textContent = key;
+      nodeRoot.setAttribute("data-cascade", "0");
+
+      renderNodeChildren(NODE_CHILDREN[key]);
 
       studyView.classList.remove("view--active");
       galleryView.classList.remove("view--active");
@@ -445,9 +453,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       viewport.classList.add("zoom-in");
       logo.classList.add("logo-blur");
 
-      requestAnimationFrame(() => {
-        retriggerCascade(nodeView);
-      });
+      // ✅ run cascade for title + children reliably on every click
+      playCascade(nodeView);
     }
 
     function showGallery() {
