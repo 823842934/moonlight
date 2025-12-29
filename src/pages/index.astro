@@ -84,23 +84,23 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       padding-left: 5vw;
       padding-right: 5vw;
 
-      /* FIX: on small screens this was too aggressive and can push content upward */
-      padding-top: clamp(18px, 6vh, calc(var(--corner-inset, 22px) + var(--corner-size, 28px)));
-      padding-bottom: clamp(18px, 5vh, calc(var(--corner-inset, 22px) + var(--corner-size, 28px)));
+      /* START HIGHER: less top padding, still respects corner vars */
+      padding-top: clamp(10px, 2.2vh, calc(var(--corner-inset, 22px) * 0.6 + var(--corner-size, 28px) * 0.6));
+      padding-bottom: clamp(16px, 4vh, calc(var(--corner-inset, 22px) + var(--corner-size, 28px)));
 
       display: flex;
       justify-content: center;
 
-      /* FIX: keep content comfortably inside the viewport on mobile */
-      align-items: center;
+      /* START HIGHER: align towards top, not centered */
+      align-items: flex-start;
     }
 
     .stack {
       width: min(1100px, 100%);
       box-sizing: border-box;
 
-      /* FIX: removes the extra upward nudge that can clip on mobile */
-      padding-top: 0;
+      /* START HIGHER: add only a tiny nudge instead of the old 6px */
+      padding-top: 2px;
     }
 
     h1 {
@@ -271,11 +271,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       .view { transition: none !important; }
     }
 
-    /* EXTRA MOBILE SAFETY: if the dynamic viewport gets weird, force sane spacing */
+    /* MOBILE: start higher + avoid clipping under browser bars */
     @media (max-width: 520px) {
       .hero {
-        padding-top: 18px;
-        padding-bottom: 18px;
+        padding-top: 10px;
+        padding-bottom: 16px;
       }
       .tree-viewport.zoom-in {
         transform: scale(1.2) translateX(28px);
@@ -469,7 +469,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       document.body.classList.add("study-triggered");
 
-      // Title Case for node root display
       nodeRoot.textContent = String(key || "").replace(/(^|\s|-|_)\S/g, (m) => m.toUpperCase());
       nodeRoot.setAttribute("data-cascade", "0");
 
@@ -514,7 +513,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       if (lastOrigin) clearZoomOriginAfterOut();
     }
 
-    // Initial sync + re-sync after fonts load (prevents mobile mis-measure)
     syncTreeToLogo();
     addEventListener("resize", syncTreeToLogo);
 
