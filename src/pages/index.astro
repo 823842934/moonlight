@@ -26,27 +26,27 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
             </div>
 
-            <div class="root gallery-line">about</div>
+            <!-- ✅ CLICKABLE PARENTS -->
+            <button class="root item-btn gallery-line" type="button" data-folder="about">about</button>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-biography]" data-node="biography">├─ biography</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-statement]" data-node="statement">├─ statement</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-process]" data-node="process">└─ process</button>
+              <button class="item item-btn gallery-line" type="button" data-node="biography">├─ biography</button>
+              <button class="item item-btn gallery-line" type="button" data-node="statement">├─ statement</button>
+              <button class="item item-btn gallery-line" type="button" data-node="process">└─ process</button>
             </div>
 
-            <div class="root gallery-line">contact</div>
+            <button class="root item-btn gallery-line" type="button" data-folder="contact">contact</button>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-hello]" data-node="hello">├─ hello</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-social]" data-node="social">└─ social</button>
+              <button class="item item-btn gallery-line" type="button" data-node="hello">├─ hello</button>
+              <button class="item item-btn gallery-line" type="button" data-node="social">└─ social</button>
             </div>
 
-            <div class="root gallery-line">fine-print</div>
+            <button class="root item-btn gallery-line" type="button" data-folder="fine-print">fine-print</button>
             <div class="children">
-              <!-- ✅ FIXED: data-node must match "fine-print" so it routes into that folder -->
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//fine-print-placeholder]" data-node="fine-print">└─ placeholder</button>
+              <button class="item item-btn gallery-line" type="button" data-node="placeholder">└─ placeholder</button>
             </div>
           </div>
 
-          <!-- STUDY VIEW (unique: shows about/purpose/date) -->
+          <!-- STUDY VIEW -->
           <div id="studyView" class="view zoomed">
             <button id="backBtn" class="back" type="button">
               <span class="arrow">←</span><span class="label"> back</span>
@@ -63,13 +63,12 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             </div>
           </div>
 
-          <!-- NODE VIEW (folders: cascade their subcontents exactly the same way) -->
+          <!-- NODE VIEW (used for folders AND leaf nodes) -->
           <div id="nodeView" class="view zoomed">
             <button id="nodeBackBtn" class="back" type="button">
               <span class="arrow">←</span><span class="label"> back</span>
             </button>
 
-            <!-- title participates as cascade 0 -->
             <div id="nodeRoot" class="root" data-cascade="0"></div>
 
             <div class="children children--indented" id="nodeChildren"></div>
@@ -222,7 +221,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       transform-origin: top left;
     }
 
-    /* keep your existing cascade CSS (used by study view) */
+    /* (kept) cascade class used by studyView */
     .cascade {
       opacity: 0;
       transform: translateX(16px);
@@ -244,16 +243,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     @keyframes galleryIntroCascade {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-        filter: blur(1px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-        filter: blur(0);
-      }
+      from { opacity: 0; transform: translateY(-10px); filter: blur(1px); }
+      to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
     }
 
     .gallery-line { opacity: 1; }
@@ -271,7 +262,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         filter: none !important;
       }
       #logo { transition: none !important; }
-      .cascade { transition: none !important; transform: none !important; opacity: 1 !important; }
     }
   </style>
 
@@ -294,7 +284,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     const backBtn = document.getElementById("backBtn");
     const nodeBackBtn = document.getElementById("nodeBackBtn");
 
-    const allButtons = document.querySelectorAll("[data-study]");
+    const studyButtons = document.querySelectorAll("[data-study]");
+    const nodeButtons = document.querySelectorAll("[data-node]");
+    const folderButtons = document.querySelectorAll("[data-folder]");
 
     function syncTreeToLogo() {
       const stackRect = stack.getBoundingClientRect();
@@ -310,9 +302,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       document.body.classList.add("gallery-intro-cascade");
 
       const stagger = 80;
-      lines.forEach((el, i) => {
-        el.style.animationDelay = `${i * stagger}ms`;
-      });
+      lines.forEach((el, i) => { el.style.animationDelay = `${i * stagger}ms`; });
 
       const ms = 420;
       const total = ms + (lines.length - 1) * stagger + 60;
@@ -332,7 +322,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     const GLYPHS = ["//", "--", "\\\\", "| |"];
     const GLYPH_MS = 110;
-
     let glyphTimer = null;
     let glyphIndex = 0;
 
@@ -362,10 +351,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       return { glyph: m[1], id: m[2] };
     }
 
-    // ✅ explicit cascade player (works reliably for dynamically injected node content)
+    // ✅ RELIABLE cascade player (exact same 260ms + 80ms stagger)
     function playCascade(containerEl) {
       if (!containerEl) return;
-
       if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
 
       const els = Array.from(containerEl.querySelectorAll("[data-cascade]"))
@@ -374,7 +362,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       if (!els.length) return;
 
-      // set hidden state + exact timing
       els.forEach((el) => {
         const n = Number(el.dataset.cascade) || 0;
         el.style.transitionProperty = "opacity, transform";
@@ -385,7 +372,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         el.style.transform = "translateX(16px)";
       });
 
-      // force reflow
       void containerEl.offsetWidth;
 
       requestAnimationFrame(() => {
@@ -417,34 +403,41 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
     }
 
-    // ✅ folder -> its subcontents (you can replace placeholder lines anytime)
-    const NODE_CHILDREN = {
-      biography: ["└─ placeholder"],
-      statement: ["└─ placeholder"],
-      process: ["└─ placeholder"],
-      hello: ["└─ placeholder"],
-      social: ["└─ placeholder"],
-      "fine-print": ["└─ placeholder"],
+    // ✅ Parent folders -> their subcontents
+    const FOLDERS = {
+      about: [
+        { label: "├─ biography", node: "biography" },
+        { label: "├─ statement", node: "statement" },
+        { label: "└─ process", node: "process" },
+      ],
+      contact: [
+        { label: "├─ hello", node: "hello" },
+        { label: "└─ social", node: "social" },
+      ],
+      "fine-print": [
+        { label: "└─ placeholder", node: "placeholder" },
+      ],
     };
 
-    function renderNodeChildren(lines) {
-      const items = Array.isArray(lines) ? lines : ["└─ placeholder"];
+    function renderFolderChildren(folderKey) {
+      const items = FOLDERS[folderKey] || [];
       nodeChildren.innerHTML = items
-        .map((text, i) => `<div class="item" data-cascade="${i + 1}">${text}</div>`)
+        .map((it, i) => {
+          const n = i + 1;
+          return `<button class="item item-btn" type="button" data-leaf="${it.node}" data-cascade="${n}">${it.label}</button>`;
+        })
         .join("");
     }
 
-    function showNode(node) {
+    function showFolder(folderKey) {
       stopGlyphLoop();
 
       document.body.classList.add("study-triggered");
 
-      const key = String(node || "").trim();
-
-      nodeRoot.textContent = key;
+      nodeRoot.textContent = folderKey;
       nodeRoot.setAttribute("data-cascade", "0");
 
-      renderNodeChildren(NODE_CHILDREN[key]);
+      renderFolderChildren(folderKey);
 
       studyView.classList.remove("view--active");
       galleryView.classList.remove("view--active");
@@ -453,7 +446,33 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       viewport.classList.add("zoom-in");
       logo.classList.add("logo-blur");
 
-      // ✅ run cascade for title + children reliably on every click
+      // ✅ cascades in: title first, then children
+      playCascade(nodeView);
+
+      // ✅ attach clicks for the rendered children (leaf nodes)
+      nodeChildren.querySelectorAll("[data-leaf]").forEach((btn) => {
+        btn.addEventListener("click", () => showLeaf(btn.dataset.leaf));
+      });
+    }
+
+    // leaf nodes (you can expand later; keeping placeholder)
+    function showLeaf(key) {
+      stopGlyphLoop();
+
+      document.body.classList.add("study-triggered");
+
+      nodeRoot.textContent = key;
+      nodeRoot.setAttribute("data-cascade", "0");
+
+      nodeChildren.innerHTML = `<div class="item" data-cascade="1">└─ placeholder</div>`;
+
+      studyView.classList.remove("view--active");
+      galleryView.classList.remove("view--active");
+      nodeView.classList.add("view--active");
+
+      viewport.classList.add("zoom-in");
+      logo.classList.add("logo-blur");
+
       playCascade(nodeView);
     }
 
@@ -473,15 +492,22 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     syncTreeToLogo();
     addEventListener("resize", syncTreeToLogo);
 
-    allButtons.forEach((btn) => {
+    studyButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
-        const isNode = !!btn.dataset.node;
-        if (isNode) {
-          showNode(btn.dataset.node);
-          return;
-        }
+        // ignore if it's a folder or leaf node; those are handled elsewhere
+        if (btn.dataset.folder || btn.dataset.node) return;
         showStudy(btn.dataset.study);
       });
+    });
+
+    // existing leaf clicks from gallery still go to leaf placeholder view
+    nodeButtons.forEach((btn) => {
+      btn.addEventListener("click", () => showLeaf(btn.dataset.node));
+    });
+
+    // ✅ THIS is “parent clicked” behavior
+    folderButtons.forEach((btn) => {
+      btn.addEventListener("click", () => showFolder(btn.dataset.folder));
     });
 
     backBtn.addEventListener("click", showGallery);
