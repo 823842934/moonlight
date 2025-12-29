@@ -271,16 +271,21 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       .view { transition: none !important; }
     }
 
-    /* MOBILE: start higher + avoid clipping under browser bars */
     @media (max-width: 520px) {
-      .hero {
-        padding-top: 10px;
-        padding-bottom: 16px;
-      }
-      .tree-viewport.zoom-in {
-        transform: scale(1.2) translateX(28px);
-      }
-    }
+  .hero {
+    /* move everything DOWN a bit on mobile */
+    padding-top: 22px; /* was 10px */
+    padding-bottom: 16px;
+
+    /* optional iOS notch/status-bar safety */
+    padding-top: calc(22px + env(safe-area-inset-top, 0px));
+  }
+
+  .tree-viewport.zoom-in {
+    transform: scale(1.2) translateX(28px);
+  }
+}
+
   </style>
 
   <script>
