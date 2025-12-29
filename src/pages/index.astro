@@ -5,7 +5,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 <FrameLayout title="brandyura">
   <section class="hero">
     <div class="stack" id="stack">
-      <h1 id="logo">BRANDYURA</h1>
+      <h1 id="logo">Brandyura</h1>
 
       <div class="tree" id="tree" aria-label="gallery tree">
         <div class="tree-viewport" id="viewport">
@@ -107,14 +107,15 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 100%;
       text-align: center;
 
-      /* NEW: forces visual centering for all-caps + negative tracking */
-      display: inline-block;
+      /* keeps consistent rendering */
       text-rendering: geometricPrecision;
     }
 
     .logo-blur { filter: blur(6px); }
 
     #logo {
+      /* NEW: JS sets --logo-shift to ensure perfect centering across devices */
+      transform: translateX(var(--logo-shift, 0px));
       transition:
         opacity 1200ms cubic-bezier(.22,.61,.36,1),
         filter 1200ms cubic-bezier(.22,.61,.36,1),
@@ -124,7 +125,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     body.study-triggered #logo {
       opacity: 0;
       filter: blur(10px);
-      transform: scale(0.985);
+      transform: translateX(var(--logo-shift, 0px)) scale(0.985);
       pointer-events: none;
     }
 
@@ -290,7 +291,22 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     const studyButtons = document.querySelectorAll("[data-study]");
     const nodeButtons = document.querySelectorAll("[data-node]");
 
+    function centerLogoAcrossDevices() {
+      const stackRect = stack.getBoundingClientRect();
+      const logoRect = logo.getBoundingClientRect();
+
+      // Shift so the logo's visual box is perfectly centered in the stack.
+      const desiredLeft = (stackRect.width - logoRect.width) / 2;
+      const currentLeft = logoRect.left - stackRect.left;
+      const delta = desiredLeft - currentLeft;
+
+      stack.style.setProperty("--logo-shift", `${delta}px`);
+    }
+
     function syncTreeToLogo() {
+      // Ensure logo is centered first, then align the tree under its left edge.
+      centerLogoAcrossDevices();
+
       const stackRect = stack.getBoundingClientRect();
       const logoRect = logo.getBoundingClientRect();
       const left = Math.max(0, logoRect.left - stackRect.left);
@@ -485,8 +501,13 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       if (lastOrigin) clearZoomOriginAfterOut();
     }
 
+    // Initial sync + re-sync after fonts load (prevents "off center" across devices)
     syncTreeToLogo();
     addEventListener("resize", syncTreeToLogo);
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => syncTreeToLogo());
+    }
+    addEventListener("load", () => syncTreeToLogo());
 
     requestAnimationFrame(runGalleryIntroCascadeOnce);
 
