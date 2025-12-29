@@ -11,37 +11,37 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         <div class="tree-viewport" id="viewport">
           <!-- GALLERY VIEW -->
           <div id="galleryView" class="view view--active">
-            <div class="root gallery-line" data-cascade-group="gallery">gallery</div>
+            <div class="root gallery-line">gallery</div>
 
             <div class="children">
-              <button class="item item-btn gallery-line" data-cascade-group="gallery" type="button" data-study="study:[//000-00001]">├─ study:[//000-00001]</button>
-              <button class="item item-btn gallery-line" data-cascade-group="gallery" type="button" data-study="study:[//000-00002]">├─ study:[//000-00002]</button>
-              <button class="item item-btn gallery-line" data-cascade-group="gallery" type="button" data-study="study:[//000-00003]">├─ study:[//000-00003]</button>
-              <button class="item item-btn gallery-line" data-cascade-group="gallery" type="button" data-study="study:[//000-00004]">├─ study:[//000-00004]</button>
-              <button class="item item-btn gallery-line" data-cascade-group="gallery" type="button" data-study="study:[//000-00005]">├─ study:[//000-00005]</button>
-              <button class="item item-btn gallery-line" data-cascade-group="gallery" type="button" data-study="study:[//000-00006]">├─ study:[//000-00006]</button>
-              <button class="item item-btn gallery-line" data-cascade-group="gallery" type="button" data-study="study:[//000-00007]">├─ study:[//000-00007]</button>
-              <button class="item item-btn gallery-line" data-cascade-group="gallery" type="button" data-study="study:[//000-00008]">├─ study:[//000-00008]</button>
-              <button class="item item-btn gallery-line" data-cascade-group="gallery" type="button" data-study="study:[//000-00009]">├─ study:[//000-00009]</button>
-              <button class="item item-btn gallery-line" data-cascade-group="gallery" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00001]">├─ study:[//000-00001]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00002]">├─ study:[//000-00002]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00003]">├─ study:[//000-00003]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00004]">├─ study:[//000-00004]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00005]">├─ study:[//000-00005]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00006]">├─ study:[//000-00006]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00007]">├─ study:[//000-00007]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00008]">├─ study:[//000-00008]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00009]">├─ study:[//000-00009]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
             </div>
 
-            <div class="root gallery-line" data-cascade-group="about">about</div>
+            <div class="root gallery-line">about</div>
             <div class="children">
-              <button class="item item-btn gallery-line" data-cascade-group="about" type="button" data-study="study:[//about-biography]" data-node="biography">├─ biography</button>
-              <button class="item item-btn gallery-line" data-cascade-group="about" type="button" data-study="study:[//about-statement]" data-node="statement">├─ statement</button>
-              <button class="item item-btn gallery-line" data-cascade-group="about" type="button" data-study="study:[//about-process]" data-node="process">└─ process</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-biography]" data-node="biography">├─ biography</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-statement]" data-node="statement">├─ statement</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-process]" data-node="process">└─ process</button>
             </div>
 
-            <div class="root gallery-line" data-cascade-group="contact">contact</div>
+            <div class="root gallery-line">contact</div>
             <div class="children">
-              <button class="item item-btn gallery-line" data-cascade-group="contact" type="button" data-study="study:[//contact-hello]" data-node="hello">├─ hello</button>
-              <button class="item item-btn gallery-line" data-cascade-group="contact" type="button" data-study="study:[//contact-social]" data-node="social">└─ social</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-hello]" data-node="hello">├─ hello</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-social]" data-node="social">└─ social</button>
             </div>
 
-            <div class="root gallery-line" data-cascade-group="fine-print">fine-print</div>
+            <div class="root gallery-line">fine-print</div>
             <div class="children">
-              <button class="item item-btn gallery-line" data-cascade-group="fine-print" type="button" data-study="study:[//fine-print-placeholder]" data-node="placeholder">└─ placeholder</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//fine-print-placeholder]" data-node="placeholder">└─ placeholder</button>
             </div>
           </div>
 
@@ -51,6 +51,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <span class="arrow">←</span><span class="label"> back</span>
             </button>
 
+            <!-- We render a fixed-width glyph slot so it never shifts -->
             <div id="studyRoot" class="root">
               study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
             </div>
@@ -70,6 +71,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
             <div id="nodeRoot" class="root"></div>
 
+            <!-- placeholder content for now -->
             <div class="children children--indented" id="nodeChildren">
               <div class="item cascade" data-cascade="1">└─ placeholder</div>
             </div>
@@ -108,6 +110,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       filter: blur(6px);
     }
 
+    /* fade OUT logo on transitions */
     #logo {
       transition:
         opacity 1200ms cubic-bezier(.22,.61,.36,1),
@@ -302,38 +305,23 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       stack.style.setProperty("--logo-left", `${left}px`);
     }
 
-    // ✅ NEW: grouped cascade (gallery block, then about, then contact, then fine-print)
     function runGalleryIntroCascadeOnce() {
-      const order = ["gallery", "about", "contact", "fine-print"];
-      const ms = 420;
-      const withinStagger = 70;  // stagger inside a group
-      const groupGap = 220;      // pause between groups
-
-      const groups = order
-        .map((g) => ({
-          name: g,
-          els: Array.from(document.querySelectorAll(`#galleryView .gallery-line[data-cascade-group="${g}"]`)),
-        }))
-        .filter((x) => x.els.length);
-
-      const all = groups.flatMap((g) => g.els);
-      if (!all.length) return;
+      const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
+      if (!lines.length) return;
 
       document.body.classList.add("gallery-intro-cascade");
 
-      let t = 0;
-      groups.forEach((g) => {
-        g.els.forEach((el, i) => {
-          el.style.animationDelay = `${t + i * withinStagger}ms`;
-        });
-        t += (g.els.length * withinStagger) + groupGap;
+      const stagger = 80;
+      lines.forEach((el, i) => {
+        el.style.animationDelay = `${i * stagger}ms`;
       });
 
-      const total = ms + t + 60;
+      const ms = 420;
+      const total = ms + (lines.length - 1) * stagger + 60;
 
       setTimeout(() => {
         document.body.classList.remove("gallery-intro-cascade");
-        all.forEach((el) => {
+        lines.forEach((el) => {
           el.style.animationDelay = "";
           el.style.opacity = "";
           el.style.transform = "";
@@ -402,9 +390,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       document.body.classList.add("study-triggered");
 
-      // header: ONLY the subfolder name
+      // ✅ header: ONLY the subfolder name (no parent section, no trailing "/")
       nodeRoot.textContent = String(node || "").trim();
 
+      // keep placeholder child for now
       nodeChildren.innerHTML = `<div class="item cascade" data-cascade="1">└─ placeholder</div>`;
 
       studyView.classList.remove("view--active");
