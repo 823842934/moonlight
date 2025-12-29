@@ -159,9 +159,12 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       letter-spacing: 0.02em;
       width: 100%;
       box-sizing: border-box;
-      padding-left: var(--logo-left, 0px);
       
-      /* FIXED: Isolate tree from logo */
+      /* FIXED: Static centering, no dynamic calculations */
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      
       position: relative;
       z-index: 5;
     }
@@ -169,7 +172,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .tree-viewport {
       position: relative;
       min-height: 12.5rem;
-      width: 100%;
+      width: fit-content;
       max-width: 100%;
       overflow-x: hidden;
       overflow: visible;
@@ -243,7 +246,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 100%;
       max-width: 100%;
       transition: opacity 260ms ease, transform 260ms ease;
-      opacity: 1;
     }
 
     .view:not(.view--active) {
@@ -251,9 +253,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       pointer-events: none;
     }
 
-    .view.view--active.fade-in-delayed {
-      opacity: 0;
-    }
+    .view.view--active { opacity: 1; }
 
     .zoomed { transform: scale(1.15); }
 
@@ -349,27 +349,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     let isTransitioning = false;
 
     function centerLogoAcrossDevices() {
-      if (isTransitioning) return;
-      
-      const stackRect = stack.getBoundingClientRect();
-      const logoRect = logo.getBoundingClientRect();
-
-      const desiredLeft = (stackRect.width - logoRect.width) / 2;
-      const currentLeft = logoRect.left - stackRect.left;
-      const delta = desiredLeft - currentLeft;
-
-      stack.style.setProperty("--logo-shift", `${delta}px`);
+      // Logo is now fixed position, no need for this
     }
 
     function syncTreeToLogo() {
-      if (isTransitioning) return;
-      
-      centerLogoAcrossDevices();
-
-      const stackRect = stack.getBoundingClientRect();
-      const logoRect = logo.getBoundingClientRect();
-      const left = Math.max(0, logoRect.left - stackRect.left);
-      stack.style.setProperty("--logo-left", `${left}px`);
+      // No longer needed - tree uses static centering
     }
 
     let lastOrigin = null;
@@ -565,9 +549,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       studyView.classList.remove("view--active");
       nodeView.classList.remove("view--active");
-      
-      // Add delayed fade class, then make active
-      galleryView.classList.add("fade-in-delayed");
       galleryView.classList.add("view--active");
 
       viewport.classList.remove("zoom-in");
@@ -578,11 +559,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       if (lastOrigin) clearZoomOriginAfterOut();
       
-      // Wait for viewport un-zoom to complete, then fade in gallery
       setTimeout(() => {
-        galleryView.classList.remove("fade-in-delayed");
         isTransitioning = false;
-      }, 520);
+      }, 600);
     }
 
     syncTreeToLogo();
