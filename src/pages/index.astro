@@ -160,11 +160,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 100%;
       box-sizing: border-box;
       
-      /* FIXED: Static centering, no dynamic calculations */
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      
+      /* FIXED: Keep left-aligned, no dynamic padding */
       position: relative;
       z-index: 5;
     }
@@ -172,17 +168,16 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .tree-viewport {
       position: relative;
       min-height: 12.5rem;
-      width: fit-content;
+      width: 100%;
       max-width: 100%;
-      overflow-x: hidden;
       overflow: visible;
-      transform-origin: center left;
+      transform-origin: top left;
       transition: transform 500ms cubic-bezier(.4,0,.2,1);
       will-change: transform;
     }
 
     .tree-viewport.zoom-in {
-      transform: scale(1.25) translateX(40px);
+      transform: scale(1.25);
     }
 
     .root,
