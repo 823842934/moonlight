@@ -26,34 +26,41 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
             </div>
 
-            <div class="root gallery-line">about/</div>
+            <!-- NEW: about -->
+            <div class="root gallery-line">about</div>
             <div class="children">
-              <!-- NOTE: data-study is ONLY to trigger FrameLayout animations (blur/plus merge).
-                   data-node is what we actually route to in this page script. -->
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-biography]" data-node="biography" data-section="about">├─ biography/</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-statement]" data-node="statement" data-section="about">├─ statement/</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-process]" data-node="process" data-section="about">└─ process/</button>
+              <button class="item item-btn gallery-line" type="button"
+                data-study="study:[//about-biography]" data-section="about" data-node="biography">├─ biography</button>
+              <button class="item item-btn gallery-line" type="button"
+                data-study="study:[//about-statement]" data-section="about" data-node="statement">├─ statement</button>
+              <button class="item item-btn gallery-line" type="button"
+                data-study="study:[//about-process]" data-section="about" data-node="process">└─ process</button>
             </div>
 
-            <div class="root gallery-line">contact/</div>
+            <!-- NEW: contact -->
+            <div class="root gallery-line">contact</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-hello]" data-node="hello" data-section="contact">├─ hello/</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-social]" data-node="social" data-section="contact">└─ social/</button>
+              <button class="item item-btn gallery-line" type="button"
+                data-study="study:[//contact-hello]" data-section="contact" data-node="hello">├─ hello</button>
+              <button class="item item-btn gallery-line" type="button"
+                data-study="study:[//contact-social]" data-section="contact" data-node="social">└─ social</button>
             </div>
 
-            <div class="root gallery-line">fine-print/</div>
+            <!-- NEW: fine-print -->
+            <div class="root gallery-line">fine-print</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//fine-print-placeholder]" data-node="placeholder" data-section="fine-print">└─ placeholder/</button>
+              <button class="item item-btn gallery-line" type="button"
+                data-study="study:[//fine-print-placeholder]" data-section="fine-print" data-node="placeholder">└─ placeholder</button>
             </div>
           </div>
 
-          <!-- STUDY VIEW (unique: shows about/purpose/date) -->
+          <!-- STUDY VIEW (unchanged: unique children about/purpose/date) -->
           <div id="studyView" class="view zoomed">
             <button id="backBtn" class="back" type="button">
               <span class="arrow">←</span><span class="label"> back</span>
             </button>
 
-            <!-- fixed-width glyph slot so it never shifts -->
+            <!-- We render a fixed-width glyph slot so it never shifts -->
             <div id="studyRoot" class="root">
               study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
             </div>
@@ -65,7 +72,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             </div>
           </div>
 
-          <!-- NODE VIEW (new sections: NO about/purpose/date) -->
+          <!-- NEW: NODE VIEW (for biography/statement/process/hello/social/placeholder) -->
           <div id="nodeView" class="view zoomed">
             <button id="nodeBackBtn" class="back" type="button">
               <span class="arrow">←</span><span class="label"> back</span>
@@ -73,7 +80,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
             <div id="nodeRoot" class="root"></div>
 
-            <!-- placeholder content for now -->
             <div class="children children--indented" id="nodeChildren">
               <div class="item cascade" data-cascade="1">└─ placeholder</div>
             </div>
@@ -112,7 +118,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       filter: blur(6px);
     }
 
-    /* fade OUT logo on any "node" transition */
+    /* fade OUT logo on open */
     #logo {
       transition:
         opacity 1200ms cubic-bezier(.22,.61,.36,1),
@@ -168,12 +174,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       display: grid;
       gap: 0.18rem;
       width: fit-content;
-      margin-bottom: 0.55rem; /* gives breathing room between sections */
     }
 
     .children--indented {
       padding-left: 2ch;
-      margin-bottom: 0;
     }
 
     .item {
@@ -307,23 +311,47 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       stack.style.setProperty("--logo-left", `${left}px`);
     }
 
+    // UPDATED: on back, animate roots immediately, but each folder's children start together
     function runGalleryIntroCascadeOnce() {
-      const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
-      if (!lines.length) return;
+      const roots = Array.from(document.querySelectorAll("#galleryView .root.gallery-line"));
+      if (!roots.length) return;
+
+      // group children by "the .children div immediately after each root"
+      const groups = roots.map((root) => {
+        const next = root.nextElementSibling;
+        const childrenWrap = next && next.classList && next.classList.contains("children") ? next : null;
+        const childrenLines = childrenWrap
+          ? Array.from(childrenWrap.querySelectorAll(".gallery-line"))
+          : [];
+        return { root, childrenLines };
+      });
+
+      const allLines = [
+        ...groups.map((g) => g.root),
+        ...groups.flatMap((g) => g.childrenLines),
+      ];
 
       document.body.classList.add("gallery-intro-cascade");
 
-      const stagger = 80;
-      lines.forEach((el, i) => {
-        el.style.animationDelay = `${i * stagger}ms`;
+      // roots: no delay
+      groups.forEach(({ root }) => {
+        root.style.animationDelay = `0ms`;
+      });
+
+      // children: same delay within each folder (no global top-to-bottom)
+      const CHILD_DELAY = 120;
+      groups.forEach(({ childrenLines }) => {
+        childrenLines.forEach((el) => {
+          el.style.animationDelay = `${CHILD_DELAY}ms`;
+        });
       });
 
       const ms = 420;
-      const total = ms + (lines.length - 1) * stagger + 60;
+      const total = ms + CHILD_DELAY + 80;
 
       setTimeout(() => {
         document.body.classList.remove("gallery-intro-cascade");
-        lines.forEach((el) => {
+        allLines.forEach((el) => {
           el.style.animationDelay = "";
           el.style.opacity = "";
           el.style.transform = "";
@@ -372,7 +400,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         studyGlyph.textContent = "//";
         studyId.textContent = parsed.id;
       } else {
-        // fallback, but your study buttons already match the regex
         studyRoot.textContent = name;
       }
 
@@ -393,13 +420,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       document.body.classList.add("study-triggered");
 
-      // header like: about/biography/  (or fine-print/placeholder/)
       const s = String(section || "").trim();
       const n = String(node || "").trim();
-      const header = s ? `${s}/${n}/` : `${n}/`;
-      nodeRoot.textContent = header;
+      nodeRoot.textContent = s ? `${s}/${n}` : n;
 
-      // keep placeholder child for now (as requested)
+      // placeholder content for now
       nodeChildren.innerHTML = `<div class="item cascade" data-cascade="1">└─ placeholder</div>`;
 
       studyView.classList.remove("view--active");
@@ -421,6 +446,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       viewport.classList.remove("zoom-in");
       logo.classList.remove("logo-blur");
+
+      runGalleryIntroCascadeOnce();
     }
 
     syncTreeToLogo();
@@ -428,8 +455,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     allButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
-        const isNode = !!btn.dataset.node;
-        if (isNode) {
+        if (btn.dataset.node) {
           showNode(btn.dataset.section, btn.dataset.node);
           return;
         }
