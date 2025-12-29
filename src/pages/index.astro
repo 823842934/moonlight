@@ -80,14 +80,26 @@ import FrameLayout from "../layouts/FrameLayout.astro";
   <style>
     .hero {
       min-height: 100dvh;
-      display: grid;
-      place-items: center;
-      padding: 0 5vw;
+
+      /* NEW: keep the whole block aligned between the corner pluses */
+      padding-left: 5vw;
+      padding-right: 5vw;
+      padding-top: calc(var(--corner-inset, 22px) + var(--corner-size, 28px));
+      padding-bottom: calc(var(--corner-inset, 22px) + var(--corner-size, 28px));
+
+      display: flex;
+      justify-content: center;
     }
 
     .stack {
       width: min(1100px, 100%);
       box-sizing: border-box;
+
+      /* NEW: make the block fill the safe vertical space */
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
     }
 
     h1 {
