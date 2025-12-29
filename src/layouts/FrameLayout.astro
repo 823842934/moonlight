@@ -82,18 +82,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --plus-ease: cubic-bezier(.22,.61,.36,1);
       --left-scale: 2.1;
       --right-scale: 0.45;
-
-      --connector-gap: 14px;
-      --connector-ms: 520ms;
-      --connector-ease: cubic-bezier(.22,.61,.36,1);
-
-      --connector-width: 3px;
-
-      /* NEW: click-to-blur background */
-      --bg-click-blur: 28px;           /* heavy blur amount */
-      --bg-click-dim: 0.92;            /* optional slight dim */
-      --bg-blur-ms: 520ms;             /* match plus animation */
-      --bg-blur-ease: cubic-bezier(.22,.61,.36,1);
     }
 
     html, body {
@@ -122,15 +110,8 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       z-index: 0;
       pointer-events: none;
       transform: translateZ(0);
-      object-fit: contain;             /* default */
+      object-fit: contain;
       object-position: center bottom;
-
-      /* NEW: blur transition */
-      filter: blur(0);
-      transition:
-        filter var(--bg-blur-ms) var(--bg-blur-ease),
-        opacity var(--bg-blur-ms) var(--bg-blur-ease);
-      will-change: filter, opacity;
     }
 
     /* Animated WebP fallback (always works; used on iOS) */
@@ -142,27 +123,17 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       background: #ffffff;
       z-index: 0;
       pointer-events: none;
-      opacity: 0;                      /* hidden by default */
-      transition:
-        opacity 160ms linear,
-        filter var(--bg-blur-ms) var(--bg-blur-ease);
-      will-change: opacity, filter;
-
-      /* NEW: blur transition */
-      filter: blur(0);
+      opacity: 0;
+      transition: opacity 160ms linear;
+      will-change: opacity;
     }
     .bg-fallback img {
       width: 100%;
       height: 100%;
       display: block;
-      object-fit: contain;             /* default */
+      object-fit: contain;
       object-position: center bottom;
       transform: translateZ(0);
-
-      /* NEW: blur transition */
-      filter: blur(0);
-      transition: filter var(--bg-blur-ms) var(--bg-blur-ease);
-      will-change: filter;
     }
 
     /* Tall screens (phones) */
@@ -196,21 +167,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     body.is-ios .bg-video { display: none !important; }
     body.is-ios .bg-fallback { opacity: 1; }
 
-    /* NEW: when clicking a study item, heavily blur the active background */
-    body.bg-blur .bg-video {
-      filter: blur(var(--bg-click-blur));
-      opacity: var(--bg-click-dim);
-    }
-    body.bg-blur .bg-fallback {
-      filter: blur(var(--bg-click-blur));
-    }
-    body.bg-blur .bg-fallback img {
-      filter: blur(var(--bg-click-blur));
-    }
-
     .page-intro-wrap {
       position: relative;
-      z-index: 1;                   /* content above video */
+      z-index: 1;
       min-height: 100%;
       transition:
         filter var(--intro-ms) var(--intro-ease),
@@ -275,23 +234,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       opacity: 0;
     }
 
-    .left-connector {
-      position: fixed;
-      z-index: 9998;
-      width: var(--connector-width);
-      background: #000;
-      left: -9999px;
-      top: -9999px;
-      height: 0px;
-      transform: translate(-50%, -50%);
-      opacity: 0;
-      transition: opacity var(--connector-ms) var(--connector-ease);
-      will-change: opacity;
-      pointer-events: none;
-    }
-
-    body.plus-merged .left-connector { opacity: 1; }
-
     @keyframes studyCascadeIn {
       from {
         opacity: var(--cascade-from-opacity);
@@ -326,16 +268,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         --intro-cascade-ms: 0ms;
         --intro-cascade-stagger: 0ms;
         --plus-ms: 0ms;
-        --connector-ms: 0ms;
-
-        /* NEW */
-        --bg-blur-ms: 0ms;
       }
       .intro-wash { display: none; }
-      .corner-plus, .left-connector { transition: none !important; }
+      .corner-plus { transition: none !important; }
       .bg-fallback { transition: none !important; }
-      .bg-video { transition: none !important; }
-      .bg-fallback img { transition: none !important; }
     }
   </style>
 </head>
@@ -365,7 +301,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <div class="corner-plus bl">＋</div>
   <div class="corner-plus br">＋</div>
 
-  <div class="left-connector" aria-hidden="true"></div>
   <div class="intro-wash" aria-hidden="true"></div>
 
   <div class="page-intro-wrap">
@@ -411,42 +346,14 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const tl = $(".corner-plus.tl");
         if (!tl) return;
         const fs = parseFloat(getComputedStyle(tl).fontSize) || 28;
-        const w = Math.max(2, Math.round(fs * 0.10));
-        root.style.setProperty("--connector-width", `${w}px`);
+        // kept for consistency with your existing scaling look
+        // (no connector is used anymore)
+        void fs;
       };
 
-      const setConnectorMetrics = () => {
-        const tl = $(".corner-plus.tl");
-        const bl = $(".corner-plus.bl");
-        const conn = $(".left-connector");
-        if (!tl || !bl || !conn) return;
-
-        const rTL = tl.getBoundingClientRect();
-        const rBL = bl.getBoundingClientRect();
-
-        const cx = rTL.left + rTL.width / 2;
-
-        const gap = cssNum("--connector-gap", 14);
-        const topY = (rTL.bottom + gap);
-        const bottomY = (rBL.top - gap);
-        const h = Math.max(0, bottomY - topY);
-        const cy = topY + (h / 2);
-
-        conn.style.left = `${cx}px`;
-        conn.style.top = `${cy}px`;
-        conn.style.height = `${h}px`;
-      };
-
-      // NEW: background blur toggles
-      const blurBG = () => document.body.classList.add("bg-blur");
-      const unblurBG = () => document.body.classList.remove("bg-blur");
-
+      // keep plus merge animation (but no vertical bar / no bg blur)
       const merge = () => {
         if (document.body.classList.contains("plus-merged")) return;
-
-        updateConnectorWidth();
-        setConnectorMetrics();
-
         document.body.classList.remove("plus-merged");
         void document.body.offsetWidth;
 
@@ -556,15 +463,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
             e.preventDefault();
             const href = link.getAttribute("href");
 
-            // NEW: blur background immediately on click
-            blurBG();
-
             merge();
 
             const ms = cssMs("--plus-ms", 520);
             setTimeout(() => { window.location.href = href; }, Math.max(0, ms + 40));
           } else {
-            blurBG();
             merge();
           }
           return;
@@ -573,19 +476,12 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           unmerge();
-          unblurBG();              // NEW: remove blur when going back
           triggerCascadeAfterBack();
         }
       }, { capture: true });
 
-      // NEW: ensure blur doesn't persist on bfcache restore / page show
-      window.addEventListener("pageshow", () => {
-        unblurBG();
-      }, { passive: true });
-
       window.addEventListener("resize", () => {
         updateConnectorWidth();
-        setConnectorMetrics();
       }, { passive: true });
 
       requestAnimationFrame(() => {
@@ -593,7 +489,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           document.body.classList.remove("is-intro");
           window.runGalleryIntroCascadeOnce?.();
           updateConnectorWidth();
-          setConnectorMetrics();
 
           requestAnimationFrame(() => {
             runIntroCascadeWhenReady();
@@ -604,4 +499,3 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   </script>
 </body>
 </html>
-
