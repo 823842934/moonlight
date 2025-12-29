@@ -310,13 +310,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
   <script is:inline>
     (() => {
       const root = document.documentElement;
-      const $ = (sel) => document.querySelector(sel);
 
       // iOS: always use WebP background (no freeze, no taps, no switching logic)
       const ua = navigator.userAgent || "";
       const isIOS = /iPhone|iPad|iPod/i.test(ua);
       if (isIOS) document.body.classList.add("is-ios");
 
+      // study triggers (existing)
       const isStudyTrigger = (el) => {
         const v = el.getAttribute("data-study") || "";
         let val = v;
@@ -324,6 +324,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         val = val.trim().toLowerCase();
         return val.startsWith("study:") && val.includes("[//");
       };
+
+      // NEW: node triggers (biography/statement/process/hello/social/placeholder)
+      const isNodeTrigger = (el) => el && el.hasAttribute && el.hasAttribute("data-node");
 
       const isBackTrigger = (el) => {
         const txt = (el.textContent || "").trim().toLowerCase();
@@ -342,18 +345,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return Number.isFinite(n) ? n : fallback;
       };
 
-      const updateConnectorWidth = () => {
-        const tl = $(".corner-plus.tl");
-        if (!tl) return;
-        const fs = parseFloat(getComputedStyle(tl).fontSize) || 28;
-        // kept for consistency with your existing scaling look
-        // (no connector is used anymore)
-        void fs;
-      };
-
-      // keep plus merge animation (but no vertical bar / no bg blur)
+      // plus merge animation
       const merge = () => {
-        if (document.body.classList.contains("plus-merged")) return;
+        // allow retrigger if user clicks different items quickly
         document.body.classList.remove("plus-merged");
         void document.body.offsetWidth;
 
@@ -473,6 +467,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           return;
         }
 
+        // NEW: apply same plus animation for any [data-node] click
+        const nodeEl = target.closest("[data-node]");
+        if (nodeEl && isNodeTrigger(nodeEl)) {
+          merge();
+          return;
+        }
+
         const backEl = target.closest("button, a");
         if (backEl && isBackTrigger(backEl)) {
           unmerge();
@@ -480,15 +481,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         }
       }, { capture: true });
 
-      window.addEventListener("resize", () => {
-        updateConnectorWidth();
-      }, { passive: true });
-
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("is-intro");
           window.runGalleryIntroCascadeOnce?.();
-          updateConnectorWidth();
 
           requestAnimationFrame(() => {
             runIntroCascadeWhenReady();
