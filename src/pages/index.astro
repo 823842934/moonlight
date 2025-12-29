@@ -171,7 +171,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 100%;
       max-width: 100%;
       overflow: visible;
-      transform-origin: top left;
+      transform-origin: 0 0;
       transition: transform 500ms cubic-bezier(.4,0,.2,1);
       will-change: transform;
     }
@@ -240,7 +240,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       inset: 0;
       width: 100%;
       max-width: 100%;
-      transition: opacity 260ms ease, transform 260ms ease;
+      transition: opacity 260ms ease;
     }
 
     .view:not(.view--active) {
@@ -250,7 +250,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     .view.view--active { opacity: 1; }
 
-    .zoomed { transform: scale(1.15); }
+    .zoomed { 
+      /* No transform on views - only viewport scales */
+    }
 
     .cascade {
       opacity: 0;
@@ -354,31 +356,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     let lastOrigin = null;
 
     function applyZoomOriginFromEl(el) {
-      if (!el) return;
-
-      const vpRect = viewport.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
-
-      const x = Math.max(0, elRect.left - vpRect.left + 4);
-
-      /* fixed vertical origin for consistent height */
-      const y = vpRect.height * 0.5;
-
-      lastOrigin = { x, y };
-
-      const originStr = `${x}px ${y}px`;
-      viewport.style.transformOrigin = originStr;
-      studyView.style.transformOrigin = originStr;
-      nodeView.style.transformOrigin = originStr;
+      // DO NOTHING - keep fixed origin at 0 0
     }
 
     function clearZoomOriginAfterOut() {
-      window.setTimeout(() => {
-        viewport.style.transformOrigin = "";
-        studyView.style.transformOrigin = "";
-        nodeView.style.transformOrigin = "";
-        lastOrigin = null;
-      }, 520);
+      // DO NOTHING - origin is always fixed
     }
 
     let galleryCascadeHasRun = false;
