@@ -332,22 +332,25 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     let lastOrigin = null;
 
-    function applyZoomOriginFromEl(el) {
-      if (!el) return;
+  function applyZoomOriginFromEl(el) {
+  if (!el) return;
 
-      const vpRect = viewport.getBoundingClientRect();
-      const elRect = el.getBoundingClientRect();
+  const vpRect = viewport.getBoundingClientRect();
+  const elRect = el.getBoundingClientRect();
 
-      const x = Math.max(0, elRect.left - vpRect.left + 4);
-      const y = Math.max(0, elRect.top - vpRect.top + (elRect.height * 0.5));
+  const x = Math.max(0, elRect.left - vpRect.left + 4);
 
-      lastOrigin = { x, y };
+  // FIXED vertical origin (center of viewport)
+  const y = vpRect.height * 0.5;
 
-      const originStr = `${x}px ${y}px`;
-      viewport.style.transformOrigin = originStr;
-      studyView.style.transformOrigin = originStr;
-      nodeView.style.transformOrigin = originStr;
-    }
+  lastOrigin = { x, y };
+
+  const originStr = `${x}px ${y}px`;
+  viewport.style.transformOrigin = originStr;
+  studyView.style.transformOrigin = originStr;
+  nodeView.style.transformOrigin = originStr;
+}
+
 
     function clearZoomOriginAfterOut() {
       window.setTimeout(() => {
