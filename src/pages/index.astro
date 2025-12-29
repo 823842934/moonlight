@@ -492,6 +492,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         studyRoot.textContent = name;
       }
 
+      // Lock the logo position before triggering
+      logo.style.transform = `translateX(${getComputedStyle(stack).getPropertyValue('--logo-shift')})`;
+      
       document.body.classList.add("study-triggered");
 
       nodeView.classList.remove("view--active");
@@ -502,10 +505,18 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       logo.classList.add("logo-blur");
 
       requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
+      
+      // Reset inline transform after fade completes
+      setTimeout(() => {
+        logo.style.transform = '';
+      }, 500);
     }
 
     function showLeaf(key) {
       stopGlyphLoop();
+
+      // Lock the logo position before triggering
+      logo.style.transform = `translateX(${getComputedStyle(stack).getPropertyValue('--logo-shift')})`;
 
       document.body.classList.add("study-triggered");
 
@@ -522,6 +533,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       logo.classList.add("logo-blur");
 
       playCascade(nodeView);
+      
+      // Reset inline transform after fade completes
+      setTimeout(() => {
+        logo.style.transform = '';
+      }, 500);
     }
 
     function clearStudyInlineAnim() {
@@ -538,6 +554,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     function showGallery() {
       stopGlyphLoop();
 
+      // Lock the logo position before removing study-triggered
+      logo.style.transform = `translateX(${getComputedStyle(stack).getPropertyValue('--logo-shift')})`;
+
       document.body.classList.remove("study-triggered");
 
       studyView.classList.remove("view--active");
@@ -551,6 +570,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       clearStudyInlineAnim();
 
       if (lastOrigin) clearZoomOriginAfterOut();
+      
+      // Reset inline transform after animation completes
+      setTimeout(() => {
+        logo.style.transform = '';
+      }, 500);
     }
 
     syncTreeToLogo();
