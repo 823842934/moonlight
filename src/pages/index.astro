@@ -129,6 +129,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 100%;
       text-align: center;
       text-rendering: geometricPrecision;
+      
+      /* FIXED: Isolate logo from tree viewport transforms */
+      position: relative;
+      z-index: 10;
     }
 
     .logo-blur { filter: blur(6px); }
@@ -136,15 +140,13 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     #logo {
       transform: translateX(var(--logo-shift, 0px));
       transition:
-        opacity 1200ms cubic-bezier(.22,.61,.36,1),
-        filter 1200ms cubic-bezier(.22,.61,.36,1),
-        transform 1200ms cubic-bezier(.22,.61,.36,1);
-      will-change: opacity, filter, transform;
+        opacity 400ms cubic-bezier(.22,.61,.36,1),
+        filter 400ms cubic-bezier(.22,.61,.36,1);
+      will-change: opacity, filter;
     }
     body.study-triggered #logo {
       opacity: 0;
       filter: blur(10px);
-      transform: translateX(var(--logo-shift, 0px)) scale(0.985);
       pointer-events: none;
     }
 
@@ -156,6 +158,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 100%;
       box-sizing: border-box;
       padding-left: var(--logo-left, 0px);
+      
+      /* FIXED: Isolate tree from logo */
+      position: relative;
+      z-index: 5;
     }
 
     .tree-viewport {
