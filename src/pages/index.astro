@@ -26,7 +26,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
             </div>
 
-            <!-- ✅ NON-CLICKABLE PARENTS (was buttons with data-folder) -->
+            <!-- ✅ NON-CLICKABLE PARENTS -->
             <div class="root gallery-line">about</div>
             <div class="children">
               <button class="item item-btn gallery-line" type="button" data-node="biography">├─ biography</button>
@@ -63,7 +63,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             </div>
           </div>
 
-          <!-- NODE VIEW (used for folders AND leaf nodes) -->
+          <!-- NODE VIEW -->
           <div id="nodeView" class="view zoomed">
             <button id="nodeBackBtn" class="back" type="button">
               <span class="arrow">←</span><span class="label"> back</span>
@@ -221,7 +221,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       transform-origin: top left;
     }
 
-    /* (kept) cascade class used by studyView */
     .cascade {
       opacity: 0;
       transform: translateX(16px);
@@ -294,7 +293,13 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       stack.style.setProperty("--logo-left", `${left}px`);
     }
 
+    // ✅ HARD one-time gate (prevents "back" from reapplying opacity/animation to studies)
+    let galleryCascadeHasRun = false;
+
     function runGalleryIntroCascadeOnce() {
+      if (galleryCascadeHasRun) return;
+      galleryCascadeHasRun = true;
+
       const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
       if (!lines.length) return;
 
@@ -313,6 +318,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           el.style.opacity = "";
           el.style.transform = "";
           el.style.filter = "";
+          el.style.animation = "";
         });
       }, total);
     }
@@ -350,7 +356,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       return { glyph: m[1], id: m[2] };
     }
 
-    // ✅ RELIABLE cascade player (exact same 260ms + 80ms stagger)
     function playCascade(containerEl) {
       if (!containerEl) return;
       if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
@@ -402,7 +407,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
     }
 
-    // leaf nodes (you can expand later; keeping placeholder)
     function showLeaf(key) {
       stopGlyphLoop();
 
@@ -423,6 +427,18 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       playCascade(nodeView);
     }
 
+    // ✅ remove any leftover inline animation/opacity on studies (prevents the "light grey -> black" on back)
+    function clearStudyInlineAnim() {
+      const studyLines = Array.from(document.querySelectorAll('#galleryView [data-study].gallery-line'));
+      studyLines.forEach((el) => {
+        el.style.animation = "";
+        el.style.animationDelay = "";
+        el.style.opacity = "";
+        el.style.transform = "";
+        el.style.filter = "";
+      });
+    }
+
     function showGallery() {
       stopGlyphLoop();
 
@@ -434,20 +450,25 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       viewport.classList.remove("zoom-in");
       logo.classList.remove("logo-blur");
+
+      // ✅ ensure studies never get re-styled/animated when returning
+      document.body.classList.remove("gallery-intro-cascade");
+      clearStudyInlineAnim();
     }
 
     syncTreeToLogo();
     addEventListener("resize", syncTreeToLogo);
 
+    // keep the initial load effect (only once)
+    requestAnimationFrame(runGalleryIntroCascadeOnce);
+
     studyButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
-        // ignore if it's a folder or leaf node; those are handled elsewhere
         if (btn.dataset.folder || btn.dataset.node) return;
         showStudy(btn.dataset.study);
       });
     });
 
-    // existing leaf clicks from gallery still go to leaf placeholder view
     nodeButtons.forEach((btn) => {
       btn.addEventListener("click", () => showLeaf(btn.dataset.node));
     });
