@@ -41,7 +41,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
             <div class="root gallery-line">fine-print</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//fine-print-placeholder]" data-node="placeholder">└─ placeholder</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//fine-print-placeholder]" data-node="fine-print">└─ placeholder</button>
             </div>
           </div>
 
@@ -62,18 +62,15 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             </div>
           </div>
 
-          <!-- NODE VIEW (new sections: NO about/purpose/date) -->
+          <!-- NODE VIEW (folders: cascade their subcontents exactly the same way) -->
           <div id="nodeView" class="view zoomed">
             <button id="nodeBackBtn" class="back" type="button">
               <span class="arrow">←</span><span class="label"> back</span>
             </button>
 
-            <!-- ✅ make title participate in the same cascade style -->
             <div id="nodeRoot" class="root cascade" data-cascade="0"></div>
 
-            <div class="children children--indented" id="nodeChildren">
-              <div class="item cascade" data-cascade="1">└─ placeholder</div>
-            </div>
+            <div class="children children--indented" id="nodeChildren"></div>
           </div>
         </div>
       </div>
@@ -223,7 +220,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       transform-origin: top left;
     }
 
-    /* ✅ this is the animation style study uses; node will now use it too */
+    /* cascade base */
     .cascade {
       opacity: 0;
       transform: translateX(16px);
@@ -235,11 +232,16 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       transform: translateX(0);
     }
 
-    /* ✅ allow the node title to pop first */
+    /* cascade delays (same logic as study) */
     .view--active .cascade[data-cascade="0"] { transition-delay: 0ms; }
     .view--active .cascade[data-cascade="1"] { transition-delay: 80ms; }
     .view--active .cascade[data-cascade="2"] { transition-delay: 160ms; }
     .view--active .cascade[data-cascade="3"] { transition-delay: 240ms; }
+    .view--active .cascade[data-cascade="4"] { transition-delay: 320ms; }
+    .view--active .cascade[data-cascade="5"] { transition-delay: 400ms; }
+    .view--active .cascade[data-cascade="6"] { transition-delay: 480ms; }
+    .view--active .cascade[data-cascade="7"] { transition-delay: 560ms; }
+    .view--active .cascade[data-cascade="8"] { transition-delay: 640ms; }
 
     .glyph-slot {
       display: inline-block;
@@ -275,6 +277,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         filter: none !important;
       }
       #logo { transition: none !important; }
+      .cascade { transition: none !important; transform: none !important; opacity: 1 !important; }
     }
   </style>
 
@@ -359,36 +362,25 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       studyGlyph.textContent = "//";
     }
 
-    function parseStudy(str) {
-      const m = String(str || "").match(/^study:\[(\/\/|--|\\\\|\|\s\|)([0-9]{3}-[0-0000]{3}-[0-9]{5})\]$/i);
-      if (!m) return null;
-      return { glyph: m[1], id: m[2] };
-    }
-
-    // ✅ FIX: your original regex is correct; keep it exactly as you had
     function parseStudyFixed(str) {
       const m = String(str || "").match(/^study:\[(\/\/|--|\\\\|\|\s\|)([0-9]{3}-[0-9]{5})\]$/i);
       if (!m) return null;
       return { glyph: m[1], id: m[2] };
     }
 
-    // ✅ re-run the same cascade animation style for dynamically-updated node content
     function retriggerCascade(containerEl) {
       if (!containerEl) return;
       const els = Array.from(containerEl.querySelectorAll(".cascade")).filter((el) => el instanceof HTMLElement);
       if (!els.length) return;
 
-      // force them back to "hidden" state immediately
       els.forEach((el) => {
         el.style.transition = "none";
         el.style.opacity = "0";
         el.style.transform = "translateX(16px)";
       });
 
-      // reflow
       void containerEl.offsetWidth;
 
-      // next frame: clear inline so CSS transitions run
       requestAnimationFrame(() => {
         els.forEach((el) => {
           el.style.transition = "";
@@ -419,15 +411,32 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
     }
 
+    // folder -> its subcontents (rendered with the exact same cascade timing scheme)
+    const NODE_CHILDREN = {
+      biography: ["└─ placeholder"],
+      statement: ["└─ placeholder"],
+      process: ["└─ placeholder"],
+      hello: ["└─ placeholder"],
+      social: ["└─ placeholder"],
+      "fine-print": ["└─ placeholder"],
+    };
+
+    function renderCascadingChildren(lines) {
+      const items = Array.isArray(lines) ? lines : ["└─ placeholder"];
+      nodeChildren.innerHTML = items
+        .map((text, i) => `<div class="item cascade" data-cascade="${i + 1}">${text}</div>`)
+        .join("");
+    }
+
     function showNode(node) {
       stopGlyphLoop();
 
       document.body.classList.add("study-triggered");
 
-      nodeRoot.textContent = String(node || "").trim();
+      const key = String(node || "").trim();
+      nodeRoot.textContent = key;
 
-      // you can change this later; keeping your placeholder, but now it will animate reliably
-      nodeChildren.innerHTML = `<div class="item cascade" data-cascade="1">└─ placeholder</div>`;
+      renderCascadingChildren(NODE_CHILDREN[key]);
 
       studyView.classList.remove("view--active");
       galleryView.classList.remove("view--active");
@@ -436,7 +445,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       viewport.classList.add("zoom-in");
       logo.classList.add("logo-blur");
 
-      // ✅ this is the missing piece: retrigger the cascade on dynamic node content
       requestAnimationFrame(() => {
         retriggerCascade(nodeView);
       });
