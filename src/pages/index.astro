@@ -2,7 +2,7 @@
 import FrameLayout from "../layouts/FrameLayout.astro";
 ---
 
-<FrameLayout title="Brandyura">
+<FrameLayout title="brandyura">
   <section class="hero">
     <div class="stack" id="stack">
       <h1 id="logo">Brandyura</h1>
@@ -78,6 +78,19 @@ import FrameLayout from "../layouts/FrameLayout.astro";
   </section>
 
   <style>
+    /* ===== MOBILE HORIZONTAL SCROLL FIX (GLOBAL FOR THIS PAGE) ===== */
+    html, body {
+      max-width: 100%;
+      overflow-x: hidden;
+      overscroll-behavior-x: none;
+    }
+
+    /* Safety clamp against transform/fit-content overflow */
+    * {
+      box-sizing: border-box;
+      max-width: 100%;
+    }
+
     .hero {
       min-height: 100dvh;
 
@@ -93,6 +106,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       /* START HIGHER: align towards top, not centered */
       align-items: flex-start;
+
+      /* horizontal overflow lock for this section */
+      overflow-x: hidden;
     }
 
     .stack {
@@ -146,6 +162,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       position: relative;
       min-height: 12.5rem;
       width: 100%;
+      max-width: 100%;
+      overflow-x: hidden;
       overflow: visible;
       transform-origin: center left;
       transition: transform 500ms cubic-bezier(.4,0,.2,1);
@@ -215,6 +233,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       position: absolute;
       inset: 0;
       width: 100%;
+      max-width: 100%;
       transition: opacity 260ms ease, transform 260ms ease;
     }
 
@@ -272,20 +291,26 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     @media (max-width: 520px) {
-  .hero {
-    /* move everything DOWN a bit on mobile */
-    padding-top: 9px; /* was 10px */
-    padding-bottom: 16px;
+      html, body {
+        overflow-x: hidden;
+        touch-action: pan-y;
+      }
 
-    /* optional iOS notch/status-bar safety */
-    padding-top: calc(22px + env(safe-area-inset-top, 0px));
-  }
+      body {
+        position: relative;
+      }
 
-  .tree-viewport.zoom-in {
-    transform: scale(1.2) translateX(28px);
-  }
-}
+      .hero {
+        /* adjust this value to move everything up/down on mobile */
+        padding-top: calc(22px + env(safe-area-inset-top, 0px));
+        padding-bottom: 16px;
+      }
 
+      /* reduce transform push to prevent sideways "drift" */
+      .tree-viewport.zoom-in {
+        transform: scale(1.15) translateX(12px);
+      }
+    }
   </style>
 
   <script>
@@ -332,25 +357,24 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     let lastOrigin = null;
 
-  function applyZoomOriginFromEl(el) {
-  if (!el) return;
+    function applyZoomOriginFromEl(el) {
+      if (!el) return;
 
-  const vpRect = viewport.getBoundingClientRect();
-  const elRect = el.getBoundingClientRect();
+      const vpRect = viewport.getBoundingClientRect();
+      const elRect = el.getBoundingClientRect();
 
-  const x = Math.max(0, elRect.left - vpRect.left + 4);
+      const x = Math.max(0, elRect.left - vpRect.left + 4);
 
-  // FIXED vertical origin (center of viewport)
-  const y = vpRect.height * 0.5;
+      /* fixed vertical origin for consistent height */
+      const y = vpRect.height * 0.5;
 
-  lastOrigin = { x, y };
+      lastOrigin = { x, y };
 
-  const originStr = `${x}px ${y}px`;
-  viewport.style.transformOrigin = originStr;
-  studyView.style.transformOrigin = originStr;
-  nodeView.style.transformOrigin = originStr;
-}
-
+      const originStr = `${x}px ${y}px`;
+      viewport.style.transformOrigin = originStr;
+      studyView.style.transformOrigin = originStr;
+      nodeView.style.transformOrigin = originStr;
+    }
 
     function clearZoomOriginAfterOut() {
       window.setTimeout(() => {
