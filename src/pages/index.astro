@@ -25,15 +25,35 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00009]">├─ study:[//000-00009]</button>
               <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
             </div>
+
+            <div class="root gallery-line">about/</div>
+            <div class="children">
+              <!-- NOTE: data-study is ONLY to trigger FrameLayout animations (blur/plus merge).
+                   data-node is what we actually route to in this page script. -->
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-biography]" data-node="biography" data-section="about">├─ biography/</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-statement]" data-node="statement" data-section="about">├─ statement/</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//about-process]" data-node="process" data-section="about">└─ process/</button>
+            </div>
+
+            <div class="root gallery-line">contact/</div>
+            <div class="children">
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-hello]" data-node="hello" data-section="contact">├─ hello/</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//contact-social]" data-node="social" data-section="contact">└─ social/</button>
+            </div>
+
+            <div class="root gallery-line">fine-print/</div>
+            <div class="children">
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//fine-print-placeholder]" data-node="placeholder" data-section="fine-print">└─ placeholder/</button>
+            </div>
           </div>
 
-          <!-- STUDY VIEW -->
+          <!-- STUDY VIEW (unique: shows about/purpose/date) -->
           <div id="studyView" class="view zoomed">
             <button id="backBtn" class="back" type="button">
               <span class="arrow">←</span><span class="label"> back</span>
             </button>
 
-            <!-- We render a fixed-width glyph slot so it never shifts -->
+            <!-- fixed-width glyph slot so it never shifts -->
             <div id="studyRoot" class="root">
               study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
             </div>
@@ -42,6 +62,20 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <div class="item cascade" data-cascade="1">├─ about</div>
               <div class="item cascade" data-cascade="2">├─ purpose</div>
               <div class="item cascade" data-cascade="3">└─ date</div>
+            </div>
+          </div>
+
+          <!-- NODE VIEW (new sections: NO about/purpose/date) -->
+          <div id="nodeView" class="view zoomed">
+            <button id="nodeBackBtn" class="back" type="button">
+              <span class="arrow">←</span><span class="label"> back</span>
+            </button>
+
+            <div id="nodeRoot" class="root"></div>
+
+            <!-- placeholder content for now -->
+            <div class="children children--indented" id="nodeChildren">
+              <div class="item cascade" data-cascade="1">└─ placeholder</div>
             </div>
           </div>
         </div>
@@ -78,7 +112,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       filter: blur(6px);
     }
 
-    /* ✅ NEW: fade OUT logo on study */
+    /* fade OUT logo on any "node" transition */
     #logo {
       transition:
         opacity 1200ms cubic-bezier(.22,.61,.36,1),
@@ -134,10 +168,12 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       display: grid;
       gap: 0.18rem;
       width: fit-content;
+      margin-bottom: 0.55rem; /* gives breathing room between sections */
     }
 
     .children--indented {
       padding-left: 2ch;
+      margin-bottom: 0;
     }
 
     .item {
@@ -250,13 +286,19 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     const viewport = document.getElementById("viewport");
     const galleryView = document.getElementById("galleryView");
     const studyView = document.getElementById("studyView");
+    const nodeView = document.getElementById("nodeView");
 
     const studyRoot = document.getElementById("studyRoot");
     const studyGlyph = document.getElementById("studyGlyph");
     const studyId = document.getElementById("studyId");
 
+    const nodeRoot = document.getElementById("nodeRoot");
+    const nodeChildren = document.getElementById("nodeChildren");
+
     const backBtn = document.getElementById("backBtn");
-    const studyButtons = document.querySelectorAll("[data-study]");
+    const nodeBackBtn = document.getElementById("nodeBackBtn");
+
+    const allButtons = document.querySelectorAll("[data-study]");
 
     function syncTreeToLogo() {
       const stackRect = stack.getBoundingClientRect();
@@ -330,28 +372,53 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         studyGlyph.textContent = "//";
         studyId.textContent = parsed.id;
       } else {
+        // fallback, but your study buttons already match the regex
         studyRoot.textContent = name;
       }
 
-      // ✅ NEW: trigger logo fade-out
       document.body.classList.add("study-triggered");
 
+      nodeView.classList.remove("view--active");
       galleryView.classList.remove("view--active");
       studyView.classList.add("view--active");
+
       viewport.classList.add("zoom-in");
       logo.classList.add("logo-blur");
 
       requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
     }
 
+    function showNode(section, node) {
+      stopGlyphLoop();
+
+      document.body.classList.add("study-triggered");
+
+      // header like: about/biography/  (or fine-print/placeholder/)
+      const s = String(section || "").trim();
+      const n = String(node || "").trim();
+      const header = s ? `${s}/${n}/` : `${n}/`;
+      nodeRoot.textContent = header;
+
+      // keep placeholder child for now (as requested)
+      nodeChildren.innerHTML = `<div class="item cascade" data-cascade="1">└─ placeholder</div>`;
+
+      studyView.classList.remove("view--active");
+      galleryView.classList.remove("view--active");
+      nodeView.classList.add("view--active");
+
+      viewport.classList.add("zoom-in");
+      logo.classList.add("logo-blur");
+    }
+
     function showGallery() {
       stopGlyphLoop();
 
-      // ✅ NEW: bring logo back
       document.body.classList.remove("study-triggered");
 
       studyView.classList.remove("view--active");
+      nodeView.classList.remove("view--active");
       galleryView.classList.add("view--active");
+
       viewport.classList.remove("zoom-in");
       logo.classList.remove("logo-blur");
     }
@@ -359,10 +426,18 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     syncTreeToLogo();
     addEventListener("resize", syncTreeToLogo);
 
-    studyButtons.forEach((btn) => {
-      btn.addEventListener("click", () => showStudy(btn.dataset.study));
+    allButtons.forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const isNode = !!btn.dataset.node;
+        if (isNode) {
+          showNode(btn.dataset.section, btn.dataset.node);
+          return;
+        }
+        showStudy(btn.dataset.study);
+      });
     });
 
     backBtn.addEventListener("click", showGallery);
+    nodeBackBtn.addEventListener("click", showGallery);
   </script>
 </FrameLayout>
