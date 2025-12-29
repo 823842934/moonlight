@@ -130,30 +130,30 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       text-align: center;
       text-rendering: geometricPrecision;
       
-      /* FIXED: Isolate logo from tree viewport transforms */
-      position: relative;
+      /* FIXED: Completely isolate logo from all transforms */
+      position: fixed;
+      top: clamp(10px, 2.2vh, calc(var(--corner-inset, 22px) * 0.6 + var(--corner-size, 28px) * 0.6));
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 10;
+      pointer-events: none;
     }
 
     .logo-blur { filter: blur(6px); }
 
     #logo {
-      transform: translateX(var(--logo-shift, 0px));
       transition:
         opacity 400ms cubic-bezier(.22,.61,.36,1),
-        filter 400ms cubic-bezier(.22,.61,.36,1),
-        transform 400ms cubic-bezier(.22,.61,.36,1);
-      will-change: opacity, filter, transform;
+        filter 400ms cubic-bezier(.22,.61,.36,1);
+      will-change: opacity, filter;
     }
     body.study-triggered #logo {
       opacity: 0;
       filter: blur(10px);
-      pointer-events: none;
-      transform: translateX(var(--logo-shift, 0px)) !important;
     }
 
     .tree {
-      margin-top: 0.5rem;
+      margin-top: calc(clamp(56px, 16vw, 260px) + 0.5rem);
       font-family: "ABC Diatype", system-ui, sans-serif;
       font-size: clamp(14px, 3.5vw, 18px);
       letter-spacing: 0.02em;
@@ -343,7 +343,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     const studyButtons = document.querySelectorAll("[data-study]");
     const nodeButtons = document.querySelectorAll("[data-node]");
 
+    let isTransitioning = false;
+
     function centerLogoAcrossDevices() {
+      if (isTransitioning) return;
+      
       const stackRect = stack.getBoundingClientRect();
       const logoRect = logo.getBoundingClientRect();
 
@@ -355,6 +359,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     function syncTreeToLogo() {
+      if (isTransitioning) return;
+      
       centerLogoAcrossDevices();
 
       const stackRect = stack.getBoundingClientRect();
@@ -492,8 +498,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         studyRoot.textContent = name;
       }
 
-      // Lock the logo position before triggering
-      logo.style.transform = `translateX(${getComputedStyle(stack).getPropertyValue('--logo-shift')})`;
+      isTransitioning = true;
       
       document.body.classList.add("study-triggered");
 
@@ -506,17 +511,15 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
       
-      // Reset inline transform after fade completes
       setTimeout(() => {
-        logo.style.transform = '';
-      }, 500);
+        isTransitioning = false;
+      }, 600);
     }
 
     function showLeaf(key) {
       stopGlyphLoop();
 
-      // Lock the logo position before triggering
-      logo.style.transform = `translateX(${getComputedStyle(stack).getPropertyValue('--logo-shift')})`;
+      isTransitioning = true;
 
       document.body.classList.add("study-triggered");
 
@@ -534,10 +537,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       playCascade(nodeView);
       
-      // Reset inline transform after fade completes
       setTimeout(() => {
-        logo.style.transform = '';
-      }, 500);
+        isTransitioning = false;
+      }, 600);
     }
 
     function clearStudyInlineAnim() {
@@ -554,8 +556,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     function showGallery() {
       stopGlyphLoop();
 
-      // Lock the logo position before removing study-triggered
-      logo.style.transform = `translateX(${getComputedStyle(stack).getPropertyValue('--logo-shift')})`;
+      isTransitioning = true;
 
       document.body.classList.remove("study-triggered");
 
@@ -571,10 +572,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       if (lastOrigin) clearZoomOriginAfterOut();
       
-      // Reset inline transform after animation completes
       setTimeout(() => {
-        logo.style.transform = '';
-      }, 500);
+        isTransitioning = false;
+      }, 600);
     }
 
     syncTreeToLogo();
