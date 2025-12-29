@@ -81,25 +81,24 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .hero {
       min-height: 100dvh;
 
-      /* NEW: keep the whole block aligned between the corner pluses */
+      /* reserve space for the corner pluses */
       padding-left: 5vw;
       padding-right: 5vw;
       padding-top: calc(var(--corner-inset, 22px) + var(--corner-size, 28px));
       padding-bottom: calc(var(--corner-inset, 22px) + var(--corner-size, 28px));
 
+      /* IMPORTANT: anchor content to the top of the safe area (not vertical center) */
       display: flex;
       justify-content: center;
+      align-items: flex-start;
     }
 
     .stack {
       width: min(1100px, 100%);
       box-sizing: border-box;
 
-      /* NEW: make the block fill the safe vertical space */
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
+      /* optional: tiny nudge so the block visually clears the top plus */
+      padding-top: 6px;
     }
 
     h1 {
@@ -225,7 +224,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     .zoomed {
       transform: scale(1.15);
-      /* IMPORTANT: do NOT lock origin here; we will set inline origin dynamically */
     }
 
     .cascade {
@@ -302,7 +300,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       stack.style.setProperty("--logo-left", `${left}px`);
     }
 
-    // ✅ zoom origin stored; applied to viewport + zoomed views
     let lastOrigin = null;
 
     function applyZoomOriginFromEl(el) {
@@ -331,7 +328,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       }, 520);
     }
 
-    // ✅ HARD one-time gate for intro cascade (no re-opacity on back)
     let galleryCascadeHasRun = false;
 
     function runGalleryIntroCascadeOnce() {
@@ -463,7 +459,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       playCascade(nodeView);
     }
 
-    // ✅ remove any leftover inline animation/opacity on studies when returning
     function clearStudyInlineAnim() {
       const studyLines = Array.from(document.querySelectorAll('#galleryView [data-study].gallery-line'));
       studyLines.forEach((el) => {
@@ -490,7 +485,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       document.body.classList.remove("gallery-intro-cascade");
       clearStudyInlineAnim();
 
-      // ✅ keep origin during zoom-out; then reset
       if (lastOrigin) clearZoomOriginAfterOut();
     }
 
@@ -499,7 +493,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     requestAnimationFrame(runGalleryIntroCascadeOnce);
 
-    // ✅ set origin from the clicked line
     studyButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         applyZoomOriginFromEl(btn);
