@@ -14,46 +14,46 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             <div class="root gallery-line">Gallery</div>
 
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-study="Study:[//000-00001]">├─ Study:[//000-00001]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="Study:[//000-00002]">├─ Study:[//000-00002]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="Study:[//000-00003]">├─ Study:[//000-00003]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="Study:[//000-00004]">├─ Study:[//000-00004]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="Study:[//000-00005]">├─ Study:[//000-00005]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="Study:[//000-00006]">├─ Study:[//000-00006]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="Study:[//000-00007]">├─ Study:[//000-00007]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="Study:[//000-00008]">├─ Study:[//000-00008]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="Study:[//000-00009]">├─ Study:[//000-00009]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="Study:[//000-00010]">└─ Study:[//000-00010]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00001]">├─ Study:[//000-00001]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00002]">├─ Study:[//000-00002]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00003]">├─ Study:[//000-00003]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00004]">├─ Study:[//000-00004]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00005]">├─ Study:[//000-00005]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00006]">├─ Study:[//000-00006]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00007]">├─ Study:[//000-00007]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00008]">├─ Study:[//000-00008]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00009]">├─ Study:[//000-00009]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ Study:[//000-00010]</button>
             </div>
 
             <!-- NON-CLICKABLE PARENTS -->
             <div class="root gallery-line">About</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="Biography">├─ Biography</button>
-              <button class="item item-btn gallery-line" type="button" data-node="Statement">├─ Statement</button>
-              <button class="item item-btn gallery-line" type="button" data-node="Process">└─ Process</button>
+              <button class="item item-btn gallery-line" type="button" data-node="biography">├─ Biography</button>
+              <button class="item item-btn gallery-line" type="button" data-node="statement">├─ Statement</button>
+              <button class="item item-btn gallery-line" type="button" data-node="process">└─ Process</button>
             </div>
 
             <div class="root gallery-line">Contact</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="Hello">├─ Hello</button>
-              <button class="item item-btn gallery-line" type="button" data-node="Social">└─ Social</button>
+              <button class="item item-btn gallery-line" type="button" data-node="hello">├─ Hello</button>
+              <button class="item item-btn gallery-line" type="button" data-node="social">└─ Social</button>
             </div>
 
             <div class="root gallery-line">Legal</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="Placeholder">└─ Placeholder</button>
+              <button class="item item-btn gallery-line" type="button" data-node="placeholder">└─ Placeholder</button>
             </div>
           </div>
 
           <!-- STUDY VIEW -->
           <div id="studyView" class="view zoomed">
             <button id="backBtn" class="back" type="button">
-              <span class="arrow">←</span><span class="label"> back</span>
+              <span class="arrow">←</span><span class="label"> Back</span>
             </button>
 
             <div id="studyRoot" class="root">
-              study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
+              Study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
             </div>
 
             <div class="children children--indented">
@@ -66,7 +66,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           <!-- NODE VIEW -->
           <div id="nodeView" class="view zoomed">
             <button id="nodeBackBtn" class="back" type="button">
-              <span class="arrow">←</span><span class="label"> back</span>
+              <span class="arrow">←</span><span class="label"> Back</span>
             </button>
 
             <div id="nodeRoot" class="root" data-cascade="0"></div>
@@ -87,7 +87,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       padding-top: calc(var(--corner-inset, 22px) + var(--corner-size, 28px));
       padding-bottom: calc(var(--corner-inset, 22px) + var(--corner-size, 28px));
 
-      /* IMPORTANT: anchor content to the top of the safe area (not vertical center) */
+      /* anchor content to the top of the safe area */
       display: flex;
       justify-content: center;
       align-items: flex-start;
@@ -97,7 +97,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: min(1100px, 100%);
       box-sizing: border-box;
 
-      /* optional: tiny nudge so the block visually clears the top plus */
+      /* tiny nudge so the block visually clears the top plus */
       padding-top: 6px;
     }
 
