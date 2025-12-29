@@ -243,6 +243,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 100%;
       max-width: 100%;
       transition: opacity 260ms ease, transform 260ms ease;
+      opacity: 1;
     }
 
     .view:not(.view--active) {
@@ -250,7 +251,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       pointer-events: none;
     }
 
-    .view.view--active { opacity: 1; }
+    .view.view--active.fade-in-delayed {
+      opacity: 0;
+    }
 
     .zoomed { transform: scale(1.15); }
 
@@ -562,6 +565,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       studyView.classList.remove("view--active");
       nodeView.classList.remove("view--active");
+      
+      // Add delayed fade class, then make active
+      galleryView.classList.add("fade-in-delayed");
       galleryView.classList.add("view--active");
 
       viewport.classList.remove("zoom-in");
@@ -572,9 +578,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       if (lastOrigin) clearZoomOriginAfterOut();
       
+      // Wait for viewport un-zoom to complete, then fade in gallery
       setTimeout(() => {
+        galleryView.classList.remove("fade-in-delayed");
         isTransitioning = false;
-      }, 600);
+      }, 520);
     }
 
     syncTreeToLogo();
