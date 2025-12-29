@@ -26,7 +26,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ study:[//000-00010]</button>
             </div>
 
-            <!-- ✅ NON-CLICKABLE PARENTS -->
+            <!-- NON-CLICKABLE PARENTS -->
             <div class="root gallery-line">about</div>
             <div class="children">
               <button class="item item-btn gallery-line" type="button" data-node="biography">├─ biography</button>
@@ -70,7 +70,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             </button>
 
             <div id="nodeRoot" class="root" data-cascade="0"></div>
-
             <div class="children children--indented" id="nodeChildren"></div>
           </div>
         </div>
@@ -134,10 +133,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       min-height: 12.5rem;
       width: 100%;
       overflow: visible;
-
-      /* ✅ will be set dynamically to the clicked line */
       transform-origin: center left;
-
       transition: transform 500ms cubic-bezier(.4,0,.2,1);
       will-change: transform;
     }
@@ -217,7 +213,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     .zoomed {
       transform: scale(1.15);
-      transform-origin: top left;
+      /* IMPORTANT: do NOT lock origin here; we will set inline origin dynamically */
     }
 
     .cascade {
@@ -261,6 +257,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       }
       #logo { transition: none !important; }
       .tree-viewport { transition: none !important; }
+      .view { transition: none !important; }
     }
   </style>
 
@@ -293,32 +290,36 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       stack.style.setProperty("--logo-left", `${left}px`);
     }
 
-    // ✅ sets zoom origin to the clicked line (so zoom-out returns from same spot)
-    let lastZoomOrigin = null; // { x, y } in px within viewport box
+    // ✅ zoom origin stored; applied to viewport + zoomed views
+    let lastOrigin = null;
 
-    function setZoomOriginFromEl(el) {
+    function applyZoomOriginFromEl(el) {
       if (!el) return;
 
       const vpRect = viewport.getBoundingClientRect();
       const elRect = el.getBoundingClientRect();
 
-      // anchor near the left edge of the clicked line + vertical center of the line
       const x = Math.max(0, elRect.left - vpRect.left + 4);
-      const y = Math.max(0, (elRect.top - vpRect.top) + (elRect.height * 0.5));
+      const y = Math.max(0, elRect.top - vpRect.top + (elRect.height * 0.5));
 
-      lastZoomOrigin = { x, y };
-      viewport.style.transformOrigin = `${x}px ${y}px`;
+      lastOrigin = { x, y };
+
+      const originStr = `${x}px ${y}px`;
+      viewport.style.transformOrigin = originStr;
+      studyView.style.transformOrigin = originStr;
+      nodeView.style.transformOrigin = originStr;
     }
 
-    function resetZoomOriginAfterZoomOut() {
-      // let the zoom-out animation finish first (matches CSS 500ms)
+    function clearZoomOriginAfterOut() {
       window.setTimeout(() => {
         viewport.style.transformOrigin = "";
-        lastZoomOrigin = null;
+        studyView.style.transformOrigin = "";
+        nodeView.style.transformOrigin = "";
+        lastOrigin = null;
       }, 520);
     }
 
-    // ✅ HARD one-time gate for the intro cascade (no re-opacity on back)
+    // ✅ HARD one-time gate for intro cascade (no re-opacity on back)
     let galleryCascadeHasRun = false;
 
     function runGalleryIntroCascadeOnce() {
@@ -347,8 +348,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         });
       }, total);
     }
-
-    window.runGalleryIntroCascadeOnce = runGalleryIntroCascadeOnce;
 
     const GLYPHS = ["//", "--", "\\\\", "| |"];
     const GLYPH_MS = 110;
@@ -452,7 +451,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       playCascade(nodeView);
     }
 
-    // ✅ ensure no leftover inline opacity/animation on studies when returning
+    // ✅ remove any leftover inline animation/opacity on studies when returning
     function clearStudyInlineAnim() {
       const studyLines = Array.from(document.querySelectorAll('#galleryView [data-study].gallery-line'));
       studyLines.forEach((el) => {
@@ -479,8 +478,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       document.body.classList.remove("gallery-intro-cascade");
       clearStudyInlineAnim();
 
-      // ✅ zoom-out should originate from the last clicked line, then reset origin
-      if (lastZoomOrigin) resetZoomOriginAfterZoomOut();
+      // ✅ keep origin during zoom-out; then reset
+      if (lastOrigin) clearZoomOriginAfterOut();
     }
 
     syncTreeToLogo();
@@ -488,18 +487,17 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     requestAnimationFrame(runGalleryIntroCascadeOnce);
 
-    // ✅ set zoom-origin BEFORE zooming in, using the clicked element
+    // ✅ set origin from the clicked line
     studyButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
-        if (btn.dataset.folder || btn.dataset.node) return;
-        setZoomOriginFromEl(btn);
+        applyZoomOriginFromEl(btn);
         showStudy(btn.dataset.study);
       });
     });
 
     nodeButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
-        setZoomOriginFromEl(btn);
+        applyZoomOriginFromEl(btn);
         showLeaf(btn.dataset.node);
       });
     });
