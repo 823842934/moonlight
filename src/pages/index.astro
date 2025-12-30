@@ -346,162 +346,169 @@ import FrameLayout from "../layouts/FrameLayout.astro";
   </style>
 
   <script>
-    // ===== TIMING CONSTANTS =====
-    // All transition timings in one place for easy adjustment
+    // =========================================================================
+    // CONFIGURATION
+    // =========================================================================
     const TIMINGS = {
-      DUST_EFFECT_DELAY: 260,      // How long to wait before transitioning views
-      BACK_FADE_OUT: 260,           // How long the back fade-out takes
-      GALLERY_FADE_IN: 200,         // How long the gallery fade-in takes
-      GLYPH_INTERVAL: 110,          // Glyph animation speed
+      DUST_EFFECT_DELAY: 260,
+      BACK_FADE_OUT: 260,
+      GALLERY_FADE_IN: 200,
+      GLYPH_INTERVAL: 110,
     };
 
-    // ===== DOM ELEMENTS =====
+    const GLYPHS = ["//", "--", "\\\\", "| |"];
+    const STUDY_REGEX = /^study:\[(\/\/|--|\\\\|\|\s\|)([0-9]{3}-[0-9]{5})\]$/i;
+
+    // =========================================================================
+    // DOM ELEMENTS
+    // =========================================================================
     const stack = document.getElementById("stack");
     const logo = document.getElementById("logo");
-
     const viewport = document.getElementById("viewport");
     const galleryView = document.getElementById("galleryView");
     const studyView = document.getElementById("studyView");
     const nodeView = document.getElementById("nodeView");
-
     const studyRoot = document.getElementById("studyRoot");
     const studyGlyph = document.getElementById("studyGlyph");
     const studyId = document.getElementById("studyId");
-
     const nodeRoot = document.getElementById("nodeRoot");
     const nodeChildren = document.getElementById("nodeChildren");
-
     const backBtn = document.getElementById("backBtn");
     const nodeBackBtn = document.getElementById("nodeBackBtn");
-
     const studyButtons = document.querySelectorAll("[data-study]");
     const nodeButtons = document.querySelectorAll("[data-node]");
 
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-    // ===== PLACEHOLDER FUNCTIONS =====
+    // =========================================================================
+    // PLACEHOLDER FUNCTIONS (preserved for future use)
+    // =========================================================================
     function centerLogoAcrossDevices() {}
     function syncTreeToLogo() {}
     let lastOrigin = null;
     function applyZoomOriginFromEl(el) {}
     function clearZoomOriginAfterOut() {}
 
-    // ===== GALLERY INTRO CASCADE =====
-    let galleryCascadeHasRun = false;
+    // =========================================================================
+    // GLYPH ANIMATION
+    // =========================================================================
+    const GlyphAnimator = {
+      studyTimer: null,
+      studyIndex: 0,
+      galleryTimer: null,
+      galleryIndex: 0,
 
-    function runGalleryIntroCascadeOnce() {
-      if (galleryCascadeHasRun) return;
-      galleryCascadeHasRun = true;
+      startStudyLoop() {
+        if (this.studyTimer) return;
+        this.studyIndex = 0;
+        studyGlyph.textContent = GLYPHS[0];
 
-      const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
-      if (!lines.length) return;
+        this.studyTimer = setInterval(() => {
+          this.studyIndex = (this.studyIndex + 1) % GLYPHS.length;
+          studyGlyph.textContent = GLYPHS[this.studyIndex];
+        }, TIMINGS.GLYPH_INTERVAL);
+      },
 
-      document.body.classList.add("gallery-intro-cascade");
+      stopStudyLoop() {
+        if (this.studyTimer) {
+          clearInterval(this.studyTimer);
+          this.studyTimer = null;
+        }
+        this.studyIndex = 0;
+        studyGlyph.textContent = GLYPHS[0];
+      },
 
-      const stagger = 80;
-      const ms = 420;
-      
-      requestAnimationFrame(() => {
-        lines.forEach((el, i) => { 
-          el.style.animationDelay = `${i * stagger}ms`; 
+      startGalleryLoop() {
+        if (this.galleryTimer) return;
+
+        const glyphElements = document.querySelectorAll('.glyph-animated');
+        if (!glyphElements.length) return;
+
+        this.galleryIndex = 0;
+
+        this.galleryTimer = setInterval(() => {
+          this.galleryIndex = (this.galleryIndex + 1) % GLYPHS.length;
+          glyphElements.forEach(el => {
+            el.textContent = GLYPHS[this.galleryIndex];
+          });
+        }, TIMINGS.GLYPH_INTERVAL);
+      },
+
+      stopGalleryLoop() {
+        if (this.galleryTimer) {
+          clearInterval(this.galleryTimer);
+          this.galleryTimer = null;
+        }
+        document.querySelectorAll('.glyph-animated').forEach(el => {
+          el.textContent = GLYPHS[0];
         });
-      });
+        this.galleryIndex = 0;
+      },
+    };
 
-      const total = ms + (lines.length - 1) * stagger + 60;
+    // =========================================================================
+    // GALLERY INTRO CASCADE
+    // =========================================================================
+    const IntroCascade = {
+      hasRun: false,
 
-      setTimeout(() => {
-        document.body.classList.remove("gallery-intro-cascade");
+      run() {
+        if (this.hasRun) return;
+        this.hasRun = true;
+
+        const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
+        if (!lines.length) return;
+
+        document.body.classList.add("gallery-intro-cascade");
+
+        const stagger = 80;
+        const duration = 420;
+
         requestAnimationFrame(() => {
-          lines.forEach((el) => {
-            el.style.animationDelay = "";
-            el.style.opacity = "";
-            el.style.transform = "";
-            el.style.filter = "";
-            el.style.animation = "";
+          lines.forEach((el, i) => {
+            el.style.animationDelay = `${i * stagger}ms`;
           });
         });
-      }, total);
+
+        const total = duration + (lines.length - 1) * stagger + 60;
+
+        setTimeout(() => {
+          document.body.classList.remove("gallery-intro-cascade");
+          requestAnimationFrame(() => {
+            lines.forEach(el => {
+              el.style.animationDelay = "";
+              el.style.opacity = "";
+              el.style.transform = "";
+              el.style.filter = "";
+              el.style.animation = "";
+            });
+          });
+        }, total);
+      },
+    };
+
+    // =========================================================================
+    // UTILITIES
+    // =========================================================================
+    function parseStudy(str) {
+      const match = String(str || "").match(STUDY_REGEX);
+      return match ? { glyph: match[1], id: match[2] } : null;
     }
 
-    // ===== GLYPH ANIMATION =====
-    const GLYPHS = ["//", "--", "\\\\", "| |"];
-    let glyphTimer = null;
-    let glyphIndex = 0;
-    let galleryGlyphTimer = null;
-    let galleryGlyphIndex = 0;
-
-    // Start the glyph loop for the detail view (single glyph)
-    function startGlyphLoop() {
-      if (glyphTimer) return;
-      glyphIndex = 0;
-      studyGlyph.textContent = "//";
-
-      glyphTimer = setInterval(() => {
-        glyphIndex = (glyphIndex + 1) % GLYPHS.length;
-        studyGlyph.textContent = GLYPHS[glyphIndex];
-      }, TIMINGS.GLYPH_INTERVAL);
-    }
-
-    function stopGlyphLoop() {
-      if (glyphTimer) {
-        clearInterval(glyphTimer);
-        glyphTimer = null;
-      }
-      glyphIndex = 0;
-      studyGlyph.textContent = "//";
-    }
-
-    // Start glyph loop for ALL gallery study items (continuous)
-    function startGalleryGlyphLoop() {
-      if (galleryGlyphTimer) return;
-      
-      const galleryGlyphs = document.querySelectorAll('.glyph-animated');
-      if (!galleryGlyphs.length) return;
-
-      galleryGlyphIndex = 0;
-
-      galleryGlyphTimer = setInterval(() => {
-        galleryGlyphIndex = (galleryGlyphIndex + 1) % GLYPHS.length;
-        galleryGlyphs.forEach((glyph) => {
-          glyph.textContent = GLYPHS[galleryGlyphIndex];
-        });
-      }, TIMINGS.GLYPH_INTERVAL);
-    }
-
-    function stopGalleryGlyphLoop() {
-      if (galleryGlyphTimer) {
-        clearInterval(galleryGlyphTimer);
-        galleryGlyphTimer = null;
-      }
-      const galleryGlyphs = document.querySelectorAll('.glyph-animated');
-      galleryGlyphs.forEach((glyph) => {
-        glyph.textContent = "//";
-      });
-      galleryGlyphIndex = 0;
-    }
-
-    // ===== STUDY PARSING =====
-    const studyRegex = /^study:\[(\/\/|--|\\\\|\|\s\|)([0-9]{3}-[0-9]{5})\]$/i;
-    
-    function parseStudyFixed(str) {
-      const m = String(str || "").match(studyRegex);
-      if (!m) return null;
-      return { glyph: m[1], id: m[2] };
-    }
-
-    // ===== CASCADE ANIMATION =====
+    // =========================================================================
+    // CASCADE ANIMATION
+    // =========================================================================
     function playCascade(containerEl) {
-      if (!containerEl) return;
-      if (prefersReducedMotion.matches) return;
+      if (!containerEl || prefersReducedMotion.matches) return;
 
-      const els = Array.from(containerEl.querySelectorAll("[data-cascade]"))
-        .filter((el) => el instanceof HTMLElement)
+      const elements = Array.from(containerEl.querySelectorAll("[data-cascade]"))
+        .filter(el => el instanceof HTMLElement)
         .sort((a, b) => (Number(a.dataset.cascade) || 0) - (Number(b.dataset.cascade) || 0));
 
-      if (!els.length) return;
+      if (!elements.length) return;
 
       requestAnimationFrame(() => {
-        els.forEach((el) => {
+        elements.forEach(el => {
           const n = Number(el.dataset.cascade) || 0;
           el.style.cssText = `
             transition-property: opacity, transform;
@@ -516,7 +523,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         void containerEl.offsetWidth;
 
         requestAnimationFrame(() => {
-          els.forEach((el) => {
+          elements.forEach(el => {
             el.style.opacity = "1";
             el.style.transform = "translateX(0)";
           });
@@ -524,98 +531,97 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       });
     }
 
-    // ===== DUST EFFECT =====
-    function triggerDustEffect(excludeElement) {
-      if (prefersReducedMotion.matches) return;
+    // =========================================================================
+    // DUST EFFECT
+    // =========================================================================
+    const DustEffect = {
+      trigger(excludeElement) {
+        if (prefersReducedMotion.matches) return;
 
-      const lines = document.querySelectorAll('#galleryView .gallery-line');
-      
-      lines.forEach((line) => {
-        // Apply dust effect to all lines
-        line.classList.add('dust-out');
-        
-        // But hide the clicked element instantly instead
-        if (line === excludeElement || line.contains(excludeElement)) {
-          line.style.opacity = "0";
-          line.style.transition = "opacity 100ms ease";
-        }
-      });
-    }
+        document.querySelectorAll('#galleryView .gallery-line').forEach(line => {
+          line.classList.add('dust-out');
 
-    function clearDustEffect() {
-      const lines = document.querySelectorAll('#galleryView .gallery-line');
-      
-      lines.forEach((line) => {
-        line.classList.remove('dust-out');
-        line.style.opacity = "";
-        line.style.filter = "";
-        line.style.transition = "";
-      });
-    }
+          if (line === excludeElement || line.contains(excludeElement)) {
+            line.style.opacity = "0";
+            line.style.transition = "opacity 100ms ease";
+          }
+        });
+      },
 
-    // ===== SHARED TRANSITION LOGIC =====
-    // This is the core function that handles transitioning to any view
+      clear() {
+        document.querySelectorAll('#galleryView .gallery-line').forEach(line => {
+          line.classList.remove('dust-out');
+          line.style.opacity = "";
+          line.style.filter = "";
+          line.style.transition = "";
+        });
+      },
+    };
+
+    // =========================================================================
+    // VIEW TRANSITIONS
+    // =========================================================================
     function transitionToView(targetView, clickedElement, setupCallback) {
-      // Add study-triggered immediately so logo starts fading
       document.body.classList.add("study-triggered");
-      
-      // Trigger dust effect
-      triggerDustEffect(clickedElement);
-      
-      // Delay view change for effect to complete
+      DustEffect.trigger(clickedElement);
+
       setTimeout(() => {
-        // Stop gallery glyph animation after dust effect completes
-        stopGalleryGlyphLoop();
-        
+        GlyphAnimator.stopGalleryLoop();
+
         requestAnimationFrame(() => {
-          // Hide all views
           galleryView.classList.remove("view--active");
           studyView.classList.remove("view--active");
           nodeView.classList.remove("view--active");
-          
-          // Remove zoom animation from all views first
+
           studyView.classList.remove("zoom-animate");
           nodeView.classList.remove("zoom-animate");
-          
-          // Show target view
+
           targetView.classList.add("view--active");
           logo.classList.add("logo-blur");
-          
-          // Trigger zoom animation on the target view
-          void targetView.offsetWidth; // Force reflow
+
+          void targetView.offsetWidth;
           targetView.classList.add("zoom-animate");
 
-          // Run any view-specific setup
-          if (setupCallback) {
-            setupCallback();
-          }
+          if (setupCallback) setupCallback();
         });
       }, TIMINGS.DUST_EFFECT_DELAY);
     }
 
-    // ===== VIEW NAVIGATION =====
+    function clearStudyInlineAnim() {
+      const studyLines = Array.from(document.querySelectorAll('#galleryView [data-study].gallery-line'));
+      requestAnimationFrame(() => {
+        studyLines.forEach(el => {
+          el.style.cssText = "";
+        });
+      });
+    }
+
+    // =========================================================================
+    // VIEW NAVIGATION
+    // =========================================================================
     function showStudy(name, clickedElement) {
-      const parsed = parseStudyFixed(name);
+      const parsed = parseStudy(name);
+
       if (parsed) {
-        studyGlyph.textContent = "//";
+        studyGlyph.textContent = GLYPHS[0];
         studyId.textContent = parsed.id;
       } else {
         studyRoot.textContent = `└─ ${name}`;
       }
 
       transitionToView(studyView, clickedElement, () => {
-        requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
+        requestAnimationFrame(() => requestAnimationFrame(() => {
+          GlyphAnimator.startStudyLoop();
+        }));
       });
     }
 
     function showLeaf(key, clickedElement) {
-      stopGlyphLoop();
+      GlyphAnimator.stopStudyLoop();
 
-      // Add └─ prefix to maintain hierarchy theme
-      const formattedKey = String(key || "").replace(/(^|\s|-|_)\S/g, (m) => m.toUpperCase());
+      const formattedKey = String(key || "").replace(/(^|\s|-|_)\S/g, m => m.toUpperCase());
       nodeRoot.textContent = `└─ ${formattedKey}`;
-      
-      // Special handling for Info node with nested items
+
       if (key === 'info') {
         nodeChildren.innerHTML = `
           <div class="item cascade" data-cascade="1" style="opacity: 0; transform: translateX(16px);">├─ Rights / Usage</div>
@@ -633,22 +639,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       });
     }
 
-    function clearStudyInlineAnim() {
-      const studyLines = Array.from(document.querySelectorAll('#galleryView [data-study].gallery-line'));
-      requestAnimationFrame(() => {
-        studyLines.forEach((el) => {
-          el.style.cssText = "";
-        });
-      });
-    }
-
     function showGallery() {
-      stopGlyphLoop();
-      
-      // Clear dust effect immediately
-      clearDustEffect();
+      GlyphAnimator.stopStudyLoop();
+      DustEffect.clear();
 
-      // First, fade out the current view completely
       requestAnimationFrame(() => {
         if (studyView.classList.contains("view--active")) {
           studyView.style.opacity = "0";
@@ -658,51 +652,57 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         }
       });
 
-      // After current view fades, show gallery with instant snap + mild fade
       setTimeout(() => {
         requestAnimationFrame(() => {
           document.body.classList.remove("study-triggered");
           studyView.classList.remove("view--active");
           nodeView.classList.remove("view--active");
-          
-          // Reset opacity on hidden views
+
           studyView.style.opacity = "";
           nodeView.style.opacity = "";
-          
-          // Show gallery with mild fade (no cascade)
+
           galleryView.classList.add("view--active");
           galleryView.style.opacity = "0";
           galleryView.style.transition = `opacity ${TIMINGS.GALLERY_FADE_IN}ms ease`;
-          
+
           requestAnimationFrame(() => {
             galleryView.style.opacity = "1";
-            
-            // Clear inline styles after transition completes
+
             setTimeout(() => {
               galleryView.style.opacity = "";
               galleryView.style.transition = "";
             }, TIMINGS.GALLERY_FADE_IN);
           });
-          
+
           logo.classList.remove("logo-blur");
           document.body.classList.remove("gallery-intro-cascade");
-          
-          // Restart gallery glyph animation
-          startGalleryGlyphLoop();
+          GlyphAnimator.startGalleryLoop();
         });
 
         clearStudyInlineAnim();
-        
-        // Remove any residual animations/delays from gallery lines
-        const lines = document.querySelectorAll('#galleryView .gallery-line');
-        lines.forEach((line) => {
+
+        document.querySelectorAll('#galleryView .gallery-line').forEach(line => {
           line.style.animation = "";
           line.style.animationDelay = "";
         });
       }, TIMINGS.BACK_FADE_OUT);
     }
 
-    // ===== EVENT LISTENERS =====
+    // =========================================================================
+    // BACK BUTTON HANDLER
+    // =========================================================================
+    function handleBackClick(e) {
+      const btn = e.currentTarget;
+      btn.classList.remove('flash');
+      void btn.offsetWidth;
+      btn.classList.add('flash');
+      btn.addEventListener('animationend', () => btn.classList.remove('flash'), { once: true });
+      showGallery();
+    }
+
+    // =========================================================================
+    // INITIALIZATION
+    // =========================================================================
     syncTreeToLogo();
     addEventListener("resize", syncTreeToLogo);
 
@@ -711,45 +711,29 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
     addEventListener("load", () => syncTreeToLogo());
 
-    requestAnimationFrame(runGalleryIntroCascadeOnce);
-    
-    // Start gallery glyph animation on page load
+    requestAnimationFrame(() => IntroCascade.run());
+
     requestAnimationFrame(() => {
       requestAnimationFrame(() => {
-        startGalleryGlyphLoop();
+        GlyphAnimator.startGalleryLoop();
       });
     });
 
-    studyButtons.forEach((btn) => {
+    studyButtons.forEach(btn => {
       btn.addEventListener("click", () => {
         applyZoomOriginFromEl(btn);
         showStudy(btn.dataset.study, btn);
       });
     });
 
-    nodeButtons.forEach((btn) => {
+    nodeButtons.forEach(btn => {
       btn.addEventListener("click", () => {
         applyZoomOriginFromEl(btn);
         showLeaf(btn.dataset.node, btn);
       });
     });
 
-    backBtn.addEventListener("click", (e) => {
-      const btn = e.currentTarget;
-      btn.classList.remove('flash'); // Remove first in case it's still there
-      void btn.offsetWidth; // Force reflow
-      btn.classList.add('flash');
-      btn.addEventListener('animationend', () => btn.classList.remove('flash'), { once: true });
-      showGallery();
-    });
-    
-    nodeBackBtn.addEventListener("click", (e) => {
-      const btn = e.currentTarget;
-      btn.classList.remove('flash'); // Remove first in case it's still there
-      void btn.offsetWidth; // Force reflow
-      btn.classList.add('flash');
-      btn.addEventListener('animationend', () => btn.classList.remove('flash'), { once: true });
-      showGallery();
-    });
+    backBtn.addEventListener("click", handleBackClick);
+    nodeBackBtn.addEventListener("click", handleBackClick);
   </script>
 </FrameLayout>
