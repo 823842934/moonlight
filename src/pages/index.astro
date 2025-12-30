@@ -83,7 +83,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       min-height: 100dvh;
       padding-left: 5vw;
       padding-right: 5vw;
-      padding-top: clamp(10px, 2.2vh, calc(var(--corner-inset, 22px) * 0.6 + var(--corner-size, 28px) * 0.6));
+      padding-top: clamp(60px, 8vh, 100px);
       padding-bottom: clamp(16px, 4vh, calc(var(--corner-inset, 22px) + var(--corner-size, 28px)));
       display: flex;
       justify-content: center;
@@ -108,7 +108,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       text-align: center;
       text-rendering: geometricPrecision;
       position: fixed;
-      top: clamp(10px, 2.2vh, calc(var(--corner-inset, 22px) * 0.6 + var(--corner-size, 28px) * 0.6));
+      top: clamp(60px, 8vh, 100px);
       left: 50%;
       transform: translateX(-50%);
       z-index: 10;
@@ -119,8 +119,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     #logo {
       transition:
-        opacity 600ms cubic-bezier(.22,.61,.36,1),
-        filter 600ms cubic-bezier(.22,.61,.36,1);
+        opacity 260ms cubic-bezier(.22,.61,.36,1),
+        filter 260ms cubic-bezier(.22,.61,.36,1);
       will-change: opacity, filter;
     }
     body.study-triggered #logo {
