@@ -14,16 +14,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             <div class="root gallery-line">Gallery</div>
 
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00001]">├─ Study:[//000-00001]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00002]">├─ Study:[//000-00002]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00003]">├─ Study:[//000-00003]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00004]">├─ Study:[//000-00004]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00005]">├─ Study:[//000-00005]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00006]">├─ Study:[//000-00006]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00007]">├─ Study:[//000-00007]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00008]">├─ Study:[//000-00008]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00009]">├─ Study:[//000-00009]</button>
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ Study:[//000-00010]</button>
+              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00001]">└─ Study:[<span class="glyph-slot glyph-animated">//</span>000-00001]</button>
             </div>
 
             <div class="root gallery-line">About</div>
@@ -35,13 +26,12 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
             <div class="root gallery-line">Contact</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="hello">├─ Hello</button>
               <button class="item item-btn gallery-line" type="button" data-node="social">└─ Social</button>
             </div>
 
             <div class="root gallery-line">Legal</div>
             <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="placeholder">└─ Placeholder</button>
+              <button class="item item-btn gallery-line" type="button" data-node="info">└─ Info</button>
             </div>
           </div>
 
@@ -129,8 +119,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     #logo {
       transition:
-        opacity 400ms cubic-bezier(.22,.61,.36,1),
-        filter 400ms cubic-bezier(.22,.61,.36,1);
+        opacity 600ms cubic-bezier(.22,.61,.36,1),
+        filter 600ms cubic-bezier(.22,.61,.36,1);
       will-change: opacity, filter;
     }
     body.study-triggered #logo {
@@ -210,6 +200,20 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       align-items: center;
       gap: 0.15em;
       margin-bottom: 0.35rem;
+      transition: transform 80ms ease, opacity 80ms ease;
+    }
+
+    @keyframes backFlash {
+      0% { 
+        opacity: 1;
+      }
+      100% { 
+        opacity: 0;
+      }
+    }
+
+    .back.flash {
+      animation: backFlash 300ms linear;
     }
 
     .view {
@@ -227,7 +231,22 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     .view.view--active { opacity: 1; }
 
-    .zoomed { }
+    .zoomed { 
+      font-size: clamp(18px, 4.5vw, 26px);
+    }
+
+    .zoomed.zoom-animate {
+      animation: textZoomIn 400ms cubic-bezier(.22,.61,.36,1) forwards;
+    }
+
+    @keyframes textZoomIn {
+      0% {
+        font-size: clamp(14px, 3.5vw, 18px);
+      }
+      100% {
+        font-size: clamp(18px, 4.5vw, 26px);
+      }
+    }
 
     .cascade {
       opacity: 0;
@@ -327,6 +346,16 @@ import FrameLayout from "../layouts/FrameLayout.astro";
   </style>
 
   <script>
+    // ===== TIMING CONSTANTS =====
+    // All transition timings in one place for easy adjustment
+    const TIMINGS = {
+      DUST_EFFECT_DELAY: 260,      // How long to wait before transitioning views
+      BACK_FADE_OUT: 260,           // How long the back fade-out takes
+      GALLERY_FADE_IN: 200,         // How long the gallery fade-in takes
+      GLYPH_INTERVAL: 110,          // Glyph animation speed
+    };
+
+    // ===== DOM ELEMENTS =====
     const stack = document.getElementById("stack");
     const logo = document.getElementById("logo");
 
@@ -350,12 +379,14 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
+    // ===== PLACEHOLDER FUNCTIONS =====
     function centerLogoAcrossDevices() {}
     function syncTreeToLogo() {}
     let lastOrigin = null;
     function applyZoomOriginFromEl(el) {}
     function clearZoomOriginAfterOut() {}
 
+    // ===== GALLERY INTRO CASCADE =====
     let galleryCascadeHasRun = false;
 
     function runGalleryIntroCascadeOnce() {
@@ -392,11 +423,14 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       }, total);
     }
 
+    // ===== GLYPH ANIMATION =====
     const GLYPHS = ["//", "--", "\\\\", "| |"];
-    const GLYPH_MS = 110;
     let glyphTimer = null;
     let glyphIndex = 0;
+    let galleryGlyphTimer = null;
+    let galleryGlyphIndex = 0;
 
+    // Start the glyph loop for the detail view (single glyph)
     function startGlyphLoop() {
       if (glyphTimer) return;
       glyphIndex = 0;
@@ -405,7 +439,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       glyphTimer = setInterval(() => {
         glyphIndex = (glyphIndex + 1) % GLYPHS.length;
         studyGlyph.textContent = GLYPHS[glyphIndex];
-      }, GLYPH_MS);
+      }, TIMINGS.GLYPH_INTERVAL);
     }
 
     function stopGlyphLoop() {
@@ -417,6 +451,36 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       studyGlyph.textContent = "//";
     }
 
+    // Start glyph loop for ALL gallery study items (continuous)
+    function startGalleryGlyphLoop() {
+      if (galleryGlyphTimer) return;
+      
+      const galleryGlyphs = document.querySelectorAll('.glyph-animated');
+      if (!galleryGlyphs.length) return;
+
+      galleryGlyphIndex = 0;
+
+      galleryGlyphTimer = setInterval(() => {
+        galleryGlyphIndex = (galleryGlyphIndex + 1) % GLYPHS.length;
+        galleryGlyphs.forEach((glyph) => {
+          glyph.textContent = GLYPHS[galleryGlyphIndex];
+        });
+      }, TIMINGS.GLYPH_INTERVAL);
+    }
+
+    function stopGalleryGlyphLoop() {
+      if (galleryGlyphTimer) {
+        clearInterval(galleryGlyphTimer);
+        galleryGlyphTimer = null;
+      }
+      const galleryGlyphs = document.querySelectorAll('.glyph-animated');
+      galleryGlyphs.forEach((glyph) => {
+        glyph.textContent = "//";
+      });
+      galleryGlyphIndex = 0;
+    }
+
+    // ===== STUDY PARSING =====
     const studyRegex = /^study:\[(\/\/|--|\\\\|\|\s\|)([0-9]{3}-[0-9]{5})\]$/i;
     
     function parseStudyFixed(str) {
@@ -425,6 +489,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       return { glyph: m[1], id: m[2] };
     }
 
+    // ===== CASCADE ANIMATION =====
     function playCascade(containerEl) {
       if (!containerEl) return;
       if (prefersReducedMotion.matches) return;
@@ -459,6 +524,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       });
     }
 
+    // ===== DUST EFFECT =====
     function triggerDustEffect(excludeElement) {
       if (prefersReducedMotion.matches) return;
 
@@ -478,6 +544,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     function clearDustEffect() {
       const lines = document.querySelectorAll('#galleryView .gallery-line');
+      
       lines.forEach((line) => {
         line.classList.remove('dust-out');
         line.style.opacity = "";
@@ -486,6 +553,47 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       });
     }
 
+    // ===== SHARED TRANSITION LOGIC =====
+    // This is the core function that handles transitioning to any view
+    function transitionToView(targetView, clickedElement, setupCallback) {
+      // Add study-triggered immediately so logo starts fading
+      document.body.classList.add("study-triggered");
+      
+      // Trigger dust effect
+      triggerDustEffect(clickedElement);
+      
+      // Delay view change for effect to complete
+      setTimeout(() => {
+        // Stop gallery glyph animation after dust effect completes
+        stopGalleryGlyphLoop();
+        
+        requestAnimationFrame(() => {
+          // Hide all views
+          galleryView.classList.remove("view--active");
+          studyView.classList.remove("view--active");
+          nodeView.classList.remove("view--active");
+          
+          // Remove zoom animation from all views first
+          studyView.classList.remove("zoom-animate");
+          nodeView.classList.remove("zoom-animate");
+          
+          // Show target view
+          targetView.classList.add("view--active");
+          logo.classList.add("logo-blur");
+          
+          // Trigger zoom animation on the target view
+          void targetView.offsetWidth; // Force reflow
+          targetView.classList.add("zoom-animate");
+
+          // Run any view-specific setup
+          if (setupCallback) {
+            setupCallback();
+          }
+        });
+      }, TIMINGS.DUST_EFFECT_DELAY);
+    }
+
+    // ===== VIEW NAVIGATION =====
     function showStudy(name, clickedElement) {
       const parsed = parseStudyFixed(name);
       if (parsed) {
@@ -495,21 +603,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         studyRoot.textContent = `└─ ${name}`;
       }
 
-      // Trigger dust effect
-      triggerDustEffect(clickedElement);
-      
-      // Delay view change for effect to complete
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          document.body.classList.add("study-triggered");
-          nodeView.classList.remove("view--active");
-          galleryView.classList.remove("view--active");
-          studyView.classList.add("view--active");
-          logo.classList.add("logo-blur");
-        });
-
+      transitionToView(studyView, clickedElement, () => {
         requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
-      }, 600);
+      });
     }
 
     function showLeaf(key, clickedElement) {
@@ -518,24 +614,23 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       // Add └─ prefix to maintain hierarchy theme
       const formattedKey = String(key || "").replace(/(^|\s|-|_)\S/g, (m) => m.toUpperCase());
       nodeRoot.textContent = `└─ ${formattedKey}`;
-      nodeRoot.setAttribute("data-cascade", "0");
-      nodeChildren.innerHTML = `<div class="item" data-cascade="1">└─ Placeholder</div>`;
+      
+      // Special handling for Info node with nested items
+      if (key === 'info') {
+        nodeChildren.innerHTML = `
+          <div class="item cascade" data-cascade="1" style="opacity: 0; transform: translateX(16px);">├─ Rights / Usage</div>
+          <div class="item cascade" data-cascade="2" style="opacity: 0; transform: translateX(16px);">├─ Licensing</div>
+          <div class="item cascade" data-cascade="3" style="opacity: 0; transform: translateX(16px);">└─ Acknowledgements</div>
+        `;
+      } else {
+        nodeChildren.innerHTML = `
+          <div class="item cascade" data-cascade="1" style="opacity: 0; transform: translateX(16px);">└─ Placeholder</div>
+        `;
+      }
 
-      // Trigger dust effect
-      triggerDustEffect(clickedElement);
-
-      // Delay view change for effect to complete
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          document.body.classList.add("study-triggered");
-          studyView.classList.remove("view--active");
-          galleryView.classList.remove("view--active");
-          nodeView.classList.add("view--active");
-          logo.classList.add("logo-blur");
-        });
-
+      transitionToView(nodeView, clickedElement, () => {
         playCascade(nodeView);
-      }, 600);
+      });
     }
 
     function clearStudyInlineAnim() {
@@ -577,7 +672,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           // Show gallery with mild fade (no cascade)
           galleryView.classList.add("view--active");
           galleryView.style.opacity = "0";
-          galleryView.style.transition = "opacity 200ms ease";
+          galleryView.style.transition = `opacity ${TIMINGS.GALLERY_FADE_IN}ms ease`;
           
           requestAnimationFrame(() => {
             galleryView.style.opacity = "1";
@@ -586,11 +681,14 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             setTimeout(() => {
               galleryView.style.opacity = "";
               galleryView.style.transition = "";
-            }, 200);
+            }, TIMINGS.GALLERY_FADE_IN);
           });
           
           logo.classList.remove("logo-blur");
           document.body.classList.remove("gallery-intro-cascade");
+          
+          // Restart gallery glyph animation
+          startGalleryGlyphLoop();
         });
 
         clearStudyInlineAnim();
@@ -601,9 +699,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           line.style.animation = "";
           line.style.animationDelay = "";
         });
-      }, 260); // Wait for fade out
+      }, TIMINGS.BACK_FADE_OUT);
     }
 
+    // ===== EVENT LISTENERS =====
     syncTreeToLogo();
     addEventListener("resize", syncTreeToLogo);
 
@@ -613,6 +712,13 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     addEventListener("load", () => syncTreeToLogo());
 
     requestAnimationFrame(runGalleryIntroCascadeOnce);
+    
+    // Start gallery glyph animation on page load
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        startGalleryGlyphLoop();
+      });
+    });
 
     studyButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -628,7 +734,22 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       });
     });
 
-    backBtn.addEventListener("click", showGallery);
-    nodeBackBtn.addEventListener("click", showGallery);
+    backBtn.addEventListener("click", (e) => {
+      const btn = e.currentTarget;
+      btn.classList.remove('flash'); // Remove first in case it's still there
+      void btn.offsetWidth; // Force reflow
+      btn.classList.add('flash');
+      btn.addEventListener('animationend', () => btn.classList.remove('flash'), { once: true });
+      showGallery();
+    });
+    
+    nodeBackBtn.addEventListener("click", (e) => {
+      const btn = e.currentTarget;
+      btn.classList.remove('flash'); // Remove first in case it's still there
+      void btn.offsetWidth; // Force reflow
+      btn.classList.add('flash');
+      btn.addEventListener('animationend', () => btn.classList.remove('flash'), { once: true });
+      showGallery();
+    });
   </script>
 </FrameLayout>
