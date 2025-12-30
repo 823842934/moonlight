@@ -26,7 +26,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
               <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00010]">└─ Study:[//000-00010]</button>
             </div>
 
-            <!-- NON-CLICKABLE PARENTS -->
             <div class="root gallery-line">About</div>
             <div class="children">
               <button class="item item-btn gallery-line" type="button" data-node="biography">├─ Biography</button>
@@ -53,7 +52,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             </button>
 
             <div id="studyRoot" class="root">
-              Study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
+              └─ Study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
             </div>
 
             <div class="children children--indented">
@@ -85,7 +84,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       overscroll-behavior-x: none;
     }
 
-    /* Safety clamp against transform/fit-content overflow */
     * {
       box-sizing: border-box;
       max-width: 100%;
@@ -93,29 +91,19 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     .hero {
       min-height: 100dvh;
-
       padding-left: 5vw;
       padding-right: 5vw;
-
-      /* START HIGHER: less top padding, still respects corner vars */
       padding-top: clamp(10px, 2.2vh, calc(var(--corner-inset, 22px) * 0.6 + var(--corner-size, 28px) * 0.6));
       padding-bottom: clamp(16px, 4vh, calc(var(--corner-inset, 22px) + var(--corner-size, 28px)));
-
       display: flex;
       justify-content: center;
-
-      /* START HIGHER: align towards top, not centered */
       align-items: flex-start;
-
-      /* horizontal overflow lock for this section */
       overflow-x: hidden;
     }
 
     .stack {
       width: min(1100px, 100%);
       box-sizing: border-box;
-
-      /* START HIGHER: add only a tiny nudge instead of the old 6px */
       padding-top: 2px;
     }
 
@@ -129,8 +117,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 100%;
       text-align: center;
       text-rendering: geometricPrecision;
-      
-      /* FIXED: Completely isolate logo from all transforms */
       position: fixed;
       top: clamp(10px, 2.2vh, calc(var(--corner-inset, 22px) * 0.6 + var(--corner-size, 28px) * 0.6));
       left: 50%;
@@ -159,8 +145,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       letter-spacing: 0.02em;
       width: 100%;
       box-sizing: border-box;
-      
-      /* FIXED: Keep left-aligned, no dynamic padding */
       position: relative;
       z-index: 5;
     }
@@ -171,13 +155,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       width: 100%;
       max-width: 100%;
       overflow: visible;
-      transform-origin: 0 0;
-      transition: transform 500ms cubic-bezier(.4,0,.2,1);
-      will-change: transform;
-    }
-
-    .tree-viewport.zoom-in {
-      transform: scale(1.25);
     }
 
     .root,
@@ -250,9 +227,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     .view.view--active { opacity: 1; }
 
-    .zoomed { 
-      /* No transform on views - only viewport scales */
-    }
+    .zoomed { }
 
     .cascade {
       opacity: 0;
@@ -279,11 +254,45 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
     }
 
-    .gallery-line { opacity: 1; }
+    .gallery-line { 
+      opacity: 1;
+      transition: opacity 600ms ease, filter 600ms ease;
+    }
 
     body.gallery-intro-cascade .gallery-line {
       opacity: 0;
       animation: galleryIntroCascade 420ms cubic-bezier(.25,.8,.25,1) forwards;
+    }
+
+    /* Thanos snap effect - pure CSS */
+    .gallery-line.dust-out {
+      animation: dustDissolve 600ms ease-out forwards;
+    }
+
+    @keyframes dustDissolve {
+      0% {
+        opacity: 1;
+        filter: blur(0px);
+      }
+      50% {
+        opacity: 0.5;
+        filter: blur(2px);
+      }
+      100% {
+        opacity: 0;
+        filter: blur(4px);
+      }
+    }
+
+    @keyframes instantSlideUp {
+      0% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      100% {
+        opacity: 0;
+        transform: translateY(-20px);
+      }
     }
 
     @media (prefers-reduced-motion: reduce) {
@@ -296,6 +305,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       #logo { transition: none !important; }
       .tree-viewport { transition: none !important; }
       .view { transition: none !important; }
+      .gallery-line { transition: none !important; }
+      .gallery-line.dust-out { animation: none !important; }
     }
 
     @media (max-width: 520px) {
@@ -309,14 +320,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       }
 
       .hero {
-        /* adjust this value to move everything up/down on mobile */
         padding-top: calc(22px + env(safe-area-inset-top, 0px));
         padding-bottom: 16px;
-      }
-
-      /* reduce transform push to prevent sideways "drift" */
-      .tree-viewport.zoom-in {
-        transform: scale(1.15) translateX(12px);
       }
     }
   </style>
@@ -343,25 +348,13 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     const studyButtons = document.querySelectorAll("[data-study]");
     const nodeButtons = document.querySelectorAll("[data-node]");
 
-    let isTransitioning = false;
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-    function centerLogoAcrossDevices() {
-      // Logo is now fixed position, no need for this
-    }
-
-    function syncTreeToLogo() {
-      // No longer needed - tree uses static centering
-    }
-
+    function centerLogoAcrossDevices() {}
+    function syncTreeToLogo() {}
     let lastOrigin = null;
-
-    function applyZoomOriginFromEl(el) {
-      // DO NOTHING - keep fixed origin at 0 0
-    }
-
-    function clearZoomOriginAfterOut() {
-      // DO NOTHING - origin is always fixed
-    }
+    function applyZoomOriginFromEl(el) {}
+    function clearZoomOriginAfterOut() {}
 
     let galleryCascadeHasRun = false;
 
@@ -375,19 +368,26 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       document.body.classList.add("gallery-intro-cascade");
 
       const stagger = 80;
-      lines.forEach((el, i) => { el.style.animationDelay = `${i * stagger}ms`; });
-
       const ms = 420;
+      
+      requestAnimationFrame(() => {
+        lines.forEach((el, i) => { 
+          el.style.animationDelay = `${i * stagger}ms`; 
+        });
+      });
+
       const total = ms + (lines.length - 1) * stagger + 60;
 
       setTimeout(() => {
         document.body.classList.remove("gallery-intro-cascade");
-        lines.forEach((el) => {
-          el.style.animationDelay = "";
-          el.style.opacity = "";
-          el.style.transform = "";
-          el.style.filter = "";
-          el.style.animation = "";
+        requestAnimationFrame(() => {
+          lines.forEach((el) => {
+            el.style.animationDelay = "";
+            el.style.opacity = "";
+            el.style.transform = "";
+            el.style.filter = "";
+            el.style.animation = "";
+          });
         });
       }, total);
     }
@@ -417,15 +417,17 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       studyGlyph.textContent = "//";
     }
 
+    const studyRegex = /^study:\[(\/\/|--|\\\\|\|\s\|)([0-9]{3}-[0-9]{5})\]$/i;
+    
     function parseStudyFixed(str) {
-      const m = String(str || "").match(/^study:\[(\/\/|--|\\\\|\|\s\|)([0-9]{3}-[0-9]{5})\]$/i);
+      const m = String(str || "").match(studyRegex);
       if (!m) return null;
       return { glyph: m[1], id: m[2] };
     }
 
     function playCascade(containerEl) {
       if (!containerEl) return;
-      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      if (prefersReducedMotion.matches) return;
 
       const els = Array.from(containerEl.querySelectorAll("[data-cascade]"))
         .filter((el) => el instanceof HTMLElement)
@@ -433,112 +435,173 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       if (!els.length) return;
 
-      els.forEach((el) => {
-        const n = Number(el.dataset.cascade) || 0;
-        el.style.transitionProperty = "opacity, transform";
-        el.style.transitionDuration = "260ms";
-        el.style.transitionTimingFunction = "ease";
-        el.style.transitionDelay = `${n * 80}ms`;
-        el.style.opacity = "0";
-        el.style.transform = "translateX(16px)";
-      });
-
-      void containerEl.offsetWidth;
-
       requestAnimationFrame(() => {
         els.forEach((el) => {
-          el.style.opacity = "1";
-          el.style.transform = "translateX(0)";
+          const n = Number(el.dataset.cascade) || 0;
+          el.style.cssText = `
+            transition-property: opacity, transform;
+            transition-duration: 260ms;
+            transition-timing-function: ease;
+            transition-delay: ${n * 80}ms;
+            opacity: 0;
+            transform: translateX(16px);
+          `;
+        });
+
+        void containerEl.offsetWidth;
+
+        requestAnimationFrame(() => {
+          els.forEach((el) => {
+            el.style.opacity = "1";
+            el.style.transform = "translateX(0)";
+          });
         });
       });
     }
 
-    function showStudy(name) {
+    function triggerDustEffect(excludeElement) {
+      if (prefersReducedMotion.matches) return;
+
+      const lines = document.querySelectorAll('#galleryView .gallery-line');
+      
+      lines.forEach((line) => {
+        // Apply dust effect to all lines
+        line.classList.add('dust-out');
+        
+        // But hide the clicked element instantly instead
+        if (line === excludeElement || line.contains(excludeElement)) {
+          line.style.opacity = "0";
+          line.style.transition = "opacity 100ms ease";
+        }
+      });
+    }
+
+    function clearDustEffect() {
+      const lines = document.querySelectorAll('#galleryView .gallery-line');
+      lines.forEach((line) => {
+        line.classList.remove('dust-out');
+        line.style.opacity = "";
+        line.style.filter = "";
+        line.style.transition = "";
+      });
+    }
+
+    function showStudy(name, clickedElement) {
       const parsed = parseStudyFixed(name);
       if (parsed) {
         studyGlyph.textContent = "//";
         studyId.textContent = parsed.id;
       } else {
-        studyRoot.textContent = name;
+        studyRoot.textContent = `└─ ${name}`;
       }
 
-      isTransitioning = true;
+      // Trigger dust effect
+      triggerDustEffect(clickedElement);
       
-      document.body.classList.add("study-triggered");
-
-      nodeView.classList.remove("view--active");
-      galleryView.classList.remove("view--active");
-      studyView.classList.add("view--active");
-
-      viewport.classList.add("zoom-in");
-      logo.classList.add("logo-blur");
-
-      requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
-      
+      // Delay view change for effect to complete
       setTimeout(() => {
-        isTransitioning = false;
+        requestAnimationFrame(() => {
+          document.body.classList.add("study-triggered");
+          nodeView.classList.remove("view--active");
+          galleryView.classList.remove("view--active");
+          studyView.classList.add("view--active");
+          logo.classList.add("logo-blur");
+        });
+
+        requestAnimationFrame(() => requestAnimationFrame(startGlyphLoop));
       }, 600);
     }
 
-    function showLeaf(key) {
+    function showLeaf(key, clickedElement) {
       stopGlyphLoop();
 
-      isTransitioning = true;
-
-      document.body.classList.add("study-triggered");
-
-      nodeRoot.textContent = String(key || "").replace(/(^|\s|-|_)\S/g, (m) => m.toUpperCase());
+      // Add └─ prefix to maintain hierarchy theme
+      const formattedKey = String(key || "").replace(/(^|\s|-|_)\S/g, (m) => m.toUpperCase());
+      nodeRoot.textContent = `└─ ${formattedKey}`;
       nodeRoot.setAttribute("data-cascade", "0");
-
       nodeChildren.innerHTML = `<div class="item" data-cascade="1">└─ Placeholder</div>`;
 
-      studyView.classList.remove("view--active");
-      galleryView.classList.remove("view--active");
-      nodeView.classList.add("view--active");
+      // Trigger dust effect
+      triggerDustEffect(clickedElement);
 
-      viewport.classList.add("zoom-in");
-      logo.classList.add("logo-blur");
-
-      playCascade(nodeView);
-      
+      // Delay view change for effect to complete
       setTimeout(() => {
-        isTransitioning = false;
+        requestAnimationFrame(() => {
+          document.body.classList.add("study-triggered");
+          studyView.classList.remove("view--active");
+          galleryView.classList.remove("view--active");
+          nodeView.classList.add("view--active");
+          logo.classList.add("logo-blur");
+        });
+
+        playCascade(nodeView);
       }, 600);
     }
 
     function clearStudyInlineAnim() {
       const studyLines = Array.from(document.querySelectorAll('#galleryView [data-study].gallery-line'));
-      studyLines.forEach((el) => {
-        el.style.animation = "";
-        el.style.animationDelay = "";
-        el.style.opacity = "";
-        el.style.transform = "";
-        el.style.filter = "";
+      requestAnimationFrame(() => {
+        studyLines.forEach((el) => {
+          el.style.cssText = "";
+        });
       });
     }
 
     function showGallery() {
       stopGlyphLoop();
-
-      isTransitioning = true;
-
-      document.body.classList.remove("study-triggered");
-
-      studyView.classList.remove("view--active");
-      nodeView.classList.remove("view--active");
-      galleryView.classList.add("view--active");
-
-      viewport.classList.remove("zoom-in");
-      logo.classList.remove("logo-blur");
-
-      document.body.classList.remove("gallery-intro-cascade");
-      clearStudyInlineAnim();
-
-      if (lastOrigin) clearZoomOriginAfterOut();
       
+      // Clear dust effect immediately
+      clearDustEffect();
+
+      // First, fade out the current view completely
+      requestAnimationFrame(() => {
+        if (studyView.classList.contains("view--active")) {
+          studyView.style.opacity = "0";
+        }
+        if (nodeView.classList.contains("view--active")) {
+          nodeView.style.opacity = "0";
+        }
+      });
+
+      // After current view fades, show gallery with instant snap + mild fade
       setTimeout(() => {
-        isTransitioning = false;
-      }, 600);
+        requestAnimationFrame(() => {
+          document.body.classList.remove("study-triggered");
+          studyView.classList.remove("view--active");
+          nodeView.classList.remove("view--active");
+          
+          // Reset opacity on hidden views
+          studyView.style.opacity = "";
+          nodeView.style.opacity = "";
+          
+          // Show gallery with mild fade (no cascade)
+          galleryView.classList.add("view--active");
+          galleryView.style.opacity = "0";
+          galleryView.style.transition = "opacity 200ms ease";
+          
+          requestAnimationFrame(() => {
+            galleryView.style.opacity = "1";
+            
+            // Clear inline styles after transition completes
+            setTimeout(() => {
+              galleryView.style.opacity = "";
+              galleryView.style.transition = "";
+            }, 200);
+          });
+          
+          logo.classList.remove("logo-blur");
+          document.body.classList.remove("gallery-intro-cascade");
+        });
+
+        clearStudyInlineAnim();
+        
+        // Remove any residual animations/delays from gallery lines
+        const lines = document.querySelectorAll('#galleryView .gallery-line');
+        lines.forEach((line) => {
+          line.style.animation = "";
+          line.style.animationDelay = "";
+        });
+      }, 260); // Wait for fade out
     }
 
     syncTreeToLogo();
@@ -554,14 +617,14 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     studyButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         applyZoomOriginFromEl(btn);
-        showStudy(btn.dataset.study);
+        showStudy(btn.dataset.study, btn);
       });
     });
 
     nodeButtons.forEach((btn) => {
       btn.addEventListener("click", () => {
         applyZoomOriginFromEl(btn);
-        showLeaf(btn.dataset.node);
+        showLeaf(btn.dataset.node, btn);
       });
     });
 
