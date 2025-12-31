@@ -391,7 +391,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
       const isBackTrigger = (el) => {
         const txt = (el.textContent || "").trim().toLowerCase();
-        return txt === "<- back" || txt === "← back" || txt === "back";
+        return txt === "<- back" || txt === "← back" || txt === "back" || txt === "⟵ back";
       };
 
       const cssNum = (name, fallback) => {
@@ -510,6 +510,13 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       document.addEventListener("click", (e) => {
         const target = e.target;
         if (!target || !target.closest) return;
+
+        // Check if animation is in progress
+        if (document.body.hasAttribute('data-is-animating')) {
+          e.stopPropagation();
+          e.preventDefault();
+          return;
+        }
 
         const studyEl = target.closest("[data-study]");
         if (studyEl && isStudyTrigger(studyEl)) {

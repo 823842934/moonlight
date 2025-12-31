@@ -36,9 +36,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           </div>
 
           <!-- STUDY VIEW -->
-          <div id="studyView" class="view zoomed">
+          <div id="studyView" class="view">
             <button id="backBtn" class="back" type="button">
-              <span class="arrow">←</span><span class="label"> Back</span>
+              <span class="arrow">⟵</span><span class="label"> Back</span>
             </button>
 
             <div id="studyRoot" class="root">
@@ -53,9 +53,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           </div>
 
           <!-- NODE VIEW -->
-          <div id="nodeView" class="view zoomed">
+          <div id="nodeView" class="view">
             <button id="nodeBackBtn" class="back" type="button">
-              <span class="arrow">←</span><span class="label"> Back</span>
+              <span class="arrow">⟵</span><span class="label"> Back</span>
             </button>
 
             <div id="nodeRoot" class="root" data-cascade="0"></div>
@@ -404,7 +404,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     const TIMINGS = {
       DUST_EFFECT_DELAY: 260,
       BACK_FADE_OUT: 260,
-      GALLERY_FADE_IN: 400,
+      GALLERY_FADE_IN: 200,
       GLYPH_INTERVAL: 110,
     };
 
@@ -434,6 +434,15 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     // Animation lock to prevent spam clicking
     let isAnimating = false;
+
+    function setAnimating(value) {
+      isAnimating = value;
+      if (value) {
+        document.body.setAttribute('data-is-animating', 'true');
+      } else {
+        document.body.removeAttribute('data-is-animating');
+      }
+    }
 
     // =========================================================================
     // PLACEHOLDER FUNCTIONS (preserved for future use)
@@ -618,7 +627,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     // =========================================================================
     function transitionToView(targetView, clickedElement, setupCallback) {
       if (isAnimating) return;
-      isAnimating = true;
+      setAnimating(true);
 
       document.body.classList.add("study-triggered");
       DustEffect.trigger(clickedElement);
@@ -654,7 +663,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           
           // Unlock after animation completes
           setTimeout(() => {
-            isAnimating = false;
+            setAnimating(false);
           }, 400);
         });
       }, TIMINGS.DUST_EFFECT_DELAY);
@@ -714,7 +723,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     function showGallery() {
       if (isAnimating) return;
-      isAnimating = true;
+      setAnimating(true);
 
       GlyphAnimator.stopStudyLoop();
       DustEffect.clear();
@@ -750,9 +759,13 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             setTimeout(() => {
               galleryView.style.opacity = "";
               galleryView.style.transition = "";
-              isAnimating = false; // Unlock after animation completes
             }, TIMINGS.GALLERY_FADE_IN);
           });
+
+          // Unlock after fade in completes (we're already 600ms in)
+          setTimeout(() => {
+            setAnimating(false);
+          }, TIMINGS.GALLERY_FADE_IN);
 
           logo.classList.remove("logo-blur");
           document.body.classList.remove("gallery-intro-cascade");
@@ -801,8 +814,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     });
 
     studyButtons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        if (isAnimating) return;
+      btn.addEventListener("click", (e) => {
+        if (isAnimating || !galleryView.classList.contains('view--active')) {
+          e.stopPropagation(); // Stop event from bubbling to FrameLayout
+          return;
+        }
         
         btn.classList.remove('flash');
         void btn.offsetWidth;
@@ -815,8 +831,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     });
 
     nodeButtons.forEach(btn => {
-      btn.addEventListener("click", () => {
-        if (isAnimating) return;
+      btn.addEventListener("click", (e) => {
+        if (isAnimating || !galleryView.classList.contains('view--active')) {
+          e.stopPropagation(); // Stop event from bubbling to FrameLayout
+          return;
+        }
         
         btn.classList.remove('flash');
         void btn.offsetWidth;
