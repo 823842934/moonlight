@@ -132,14 +132,28 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       background: #ffffff;
       z-index: 0;
       pointer-events: none;
-      transform: translateZ(0);
+      transform: translateY(30%) translateZ(0);
       object-fit: contain;
-      object-position: center bottom;
-      will-change: transform;
+      object-position: center center;
+      will-change: transform, filter;
       isolation: isolate;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
       contain: layout style paint;
+      opacity: 0;
+      filter: blur(20px);
+      animation: videoBlurIn 2s ease-out 0.5s forwards;
+    }
+
+    @keyframes videoBlurIn {
+      from {
+        filter: blur(20px);
+        opacity: 0;
+      }
+      to {
+        filter: blur(0);
+        opacity: 1;
+      }
     }
 
     /* Animated WebP fallback (always works; used on iOS) */
@@ -162,21 +176,24 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       height: 100%;
       display: block;
       object-fit: contain;
-      object-position: center bottom;
-      transform: translateZ(0);
+      object-position: center center;
+      transform: translateY(30%) translateZ(0);
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
+      opacity: 0;
+      filter: blur(20px);
+      animation: videoBlurIn 2s ease-out 0.5s forwards;
     }
 
     /* Tall screens (phones) */
     @media (max-width: 640px) {
       .bg-video {
         object-fit: cover;
-        object-position: center bottom;
+        object-position: center center;
       }
       .bg-fallback img {
         object-fit: cover;
-        object-position: center bottom;
+        object-position: center center;
       }
     }
 
@@ -184,11 +201,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     @media (min-aspect-ratio: 19/10) {
       .bg-video {
         object-fit: cover;
-        object-position: center bottom;
+        object-position: center center;
       }
       .bg-fallback img {
         object-fit: cover;
-        object-position: center bottom;
+        object-position: center center;
       }
     }
 
@@ -406,21 +423,35 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return Number.isFinite(n) ? n : fallback;
       };
 
+      // Track navigation depth
+      // 0 = gallery, 1 = study/node view (2nd level), 2+ = deeper levels
+      let currentDepth = 0;
+
       // plus merge animation
       const merge = () => {
-        // allow retrigger if user clicks different items quickly
-        document.body.classList.remove("plus-merged");
-        void document.body.offsetWidth;
+        // Only trigger animation if going from gallery (depth 0) to 2nd level (depth 1)
+        if (currentDepth === 0) {
+          // allow retrigger if user clicks different items quickly
+          document.body.classList.remove("plus-merged");
+          void document.body.offsetWidth;
 
-        requestAnimationFrame(() => {
           requestAnimationFrame(() => {
-            document.body.classList.add("plus-merged");
+            requestAnimationFrame(() => {
+              document.body.classList.add("plus-merged");
+            });
           });
-        });
+          
+          currentDepth = 1;
+        }
+        // If already at depth 1 or deeper, don't re-trigger animation
       };
 
       const unmerge = () => {
-        document.body.classList.remove("plus-merged");
+        // Only unmerge when going back to gallery (depth 0)
+        if (currentDepth === 1) {
+          document.body.classList.remove("plus-merged");
+          currentDepth = 0;
+        }
       };
 
       const animateStudyListCascade = () => {

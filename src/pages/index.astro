@@ -4,70 +4,250 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
 <FrameLayout title="Body of Work">
   <section class="hero">
-    <div class="stack" id="stack">
+    <div class="stack">
       <h1 id="logo">brandyura</h1>
-
-      <div class="tree" id="tree" aria-label="gallery tree">
-        <div class="tree-viewport" id="viewport">
-          <!-- GALLERY VIEW -->
-          <div id="galleryView" class="view view--active">
-            <div class="root gallery-line">Gallery</div>
-
-            <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-study="study:[//000-00001]">└─ Study:[<span class="glyph-slot glyph-animated">//</span>000-00001]</button>
-            </div>
-
-            <div class="root gallery-line">About</div>
-            <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="biography">├─ Biography</button>
-              <button class="item item-btn gallery-line" type="button" data-node="statement">├─ Statement</button>
-              <button class="item item-btn gallery-line" type="button" data-node="process">└─ Process</button>
-            </div>
-
-            <div class="root gallery-line">Contact</div>
-            <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="social">└─ Social</button>
-            </div>
-
-            <div class="root gallery-line">Legal</div>
-            <div class="children">
-              <button class="item item-btn gallery-line" type="button" data-node="info">└─ Info</button>
-            </div>
-          </div>
-
-          <!-- STUDY VIEW -->
-          <div id="studyView" class="view">
-            <button id="backBtn" class="back" type="button">
-              <span class="arrow">⟵</span><span class="label"> Back</span>
-            </button>
-
-            <div id="studyRoot" class="root">
-              └─ Study:[<span id="studyGlyph" class="glyph-slot">//</span><span id="studyId">000-00001</span>]
-            </div>
-
-            <div class="children children--indented">
-              <div class="item cascade" data-cascade="1">├─ About</div>
-              <div class="item cascade" data-cascade="2">├─ Purpose</div>
-              <div class="item cascade" data-cascade="3">└─ Date</div>
-            </div>
-          </div>
-
-          <!-- NODE VIEW -->
-          <div id="nodeView" class="view">
-            <button id="nodeBackBtn" class="back" type="button">
-              <span class="arrow">⟵</span><span class="label"> Back</span>
-            </button>
-
-            <div id="nodeRoot" class="root" data-cascade="0"></div>
-            <div class="children children--indented" id="nodeChildren"></div>
-          </div>
-        </div>
-      </div>
+      <nav id="folder-nav"></nav>
     </div>
   </section>
 
+  <script>
+    interface Study {
+      id: string;
+      children: string[];
+    }
+
+    interface NavState {
+      path: string[];
+      direction: "in" | "out" | null;
+    }
+
+    const studies: Study[] = [
+      { id: "000-0001", children: ["About", "Purpose", "Date"] },
+    ];
+
+    const l1Sections: Record<string, string[]> = {
+      "Gallery": studies.map((s) => `Study:[//${s.id}]`),
+      "About": ["Biography", "Statement", "Process"],
+      "Contact": ["Social"],
+      "Legal": ["Info"],
+    };
+
+    function buildStructure(): Record<string, string[]> {
+      const struct: Record<string, string[]> = {
+        // L3 - About's children
+        "root/About/Biography": ["Placeholder"],
+        "root/About/Statement": ["Placeholder"],
+        "root/About/Process": ["Placeholder"],
+        
+        // L3 - Contact's children
+        "root/Contact/Social": ["Placeholder"],
+        
+        // L3 - Legal's children -> Info
+        "root/Legal/Info": ["Rights + Usage", "Licensing", "Disclosures"],
+        
+        // L4 - Info's children
+        "root/Legal/Info/Rights + Usage": ["All content on this website, including but not limited to images, text, video, and other media, is protected by copyright and remains the property of the artist unless otherwise stated.", "The content may be viewed for personal and informational purposes and may be shared by linking to this site. No content may be copied, reproduced, modified, distributed, transmitted, displayed, published, or used for any commercial or public purpose without prior written permission from the artist.", "Nothing on this website shall be construed as granting any license or right to use the content beyond personal viewing and linking."],
+        "root/Legal/Info/Licensing": ["Licenses may be granted for limited purposes such as publication, exhibition, reproduction, editorial use, or other specific uses as agreed in writing. All licenses are non-exclusive, non-transferable, and apply only to the particular use approved. No license is implied by the presence of content on this website or by access to it.", "Requests for licensing must include a clear description of the intended use, context, duration, and distribution. Approval, modification, or denial of any request is at the sole discretion of the artist."],
+        "root/Legal/Info/Disclosures": ["This website does not currently include sponsored content, paid placements, or third-party promotional material."],
+      };
+
+      // Generate study paths
+      studies.forEach((study) => {
+        const studyKey = `root/Gallery/Study:[//${study.id}]`;
+        struct[studyKey] = study.children;
+
+        study.children.forEach((child) => {
+          struct[`${studyKey}/${child}`] = ["Placeholder"];
+        });
+      });
+
+      return struct;
+    }
+
+    const structure = buildStructure();
+
+    const state: NavState = {
+      path: ["root"],
+      direction: null,
+    };
+
+    const nav = document.getElementById("folder-nav")!;
+
+    function isFolder(name: string, basePath: string): boolean {
+      const fullPath = `${basePath}/${name}`;
+      return structure.hasOwnProperty(fullPath) && name !== "Placeholder";
+    }
+
+    function getCurrentKey(): string {
+      return state.path.join("/");
+    }
+
+    function createItem(name: string, type: "folder" | "file" | "back", basePath?: string, isLast?: boolean): HTMLElement {
+      const el = document.createElement("div");
+      el.className = "folder-item";
+      el.dataset.name = name;
+      el.dataset.type = type;
+      if (basePath) el.dataset.basePath = basePath;
+
+      // Base styles
+      el.style.fontFamily = '"ABC Diatype", system-ui, sans-serif';
+      el.style.fontSize = "clamp(12px, 2.5vw, 16px)";
+      el.style.lineHeight = "1.2";
+      el.style.padding = "4px 0";
+      el.style.userSelect = "none";
+      el.style.display = "inline-block";
+      el.style.width = "fit-content";
+      el.style.maxWidth = "80vw";
+
+      if (type === "back") {
+        el.innerHTML = '<span class="back-symbol" style="display: inline-block; width: 1em; text-align: center;">|</span> Back';
+        el.style.padding = "0 0 4px 0";
+        el.style.marginBottom = "4px";
+        
+        // Animate the symbol (clockwise rotation)
+        const symbols = ['|', '/', '—', '\\'];
+        let index = 0;
+        const symbolSpan = el.querySelector('.back-symbol') as HTMLElement;
+        setInterval(() => {
+          index = (index + 1) % symbols.length;
+          symbolSpan.textContent = symbols[index];
+        }, 150);
+      } else {
+        const symbol = isLast ? "└── " : "├── ";
+        el.textContent = symbol + name;
+      }
+
+      if (type === "folder" || type === "back") {
+        el.classList.add(type);
+        el.style.cursor = "pointer";
+        el.addEventListener("click", () => handleClick(name, type, basePath));
+      } else {
+        el.style.cursor = "default";
+      }
+
+      return el;
+    }
+
+    function createHeader(name: string, isFirst: boolean): HTMLElement {
+      const el = document.createElement("div");
+      el.className = "folder-header";
+      el.textContent = name;
+      el.setAttribute("data-state", "entering");
+      
+      // Inline styles
+      el.style.fontFamily = '"ABC Diatype", system-ui, sans-serif';
+      el.style.fontSize = "clamp(12px, 2.5vw, 16px)";
+      el.style.lineHeight = "1.2";
+      el.style.padding = isFirst ? "0 0 4px 0" : "12px 0 4px 0";
+      el.style.userSelect = "none";
+      el.style.display = "inline-block";
+      el.style.width = "fit-content";
+      
+      return el;
+    }
+
+    function clearItems(callback?: () => void): void {
+      const items = Array.from(nav.querySelectorAll(".folder-item, .folder-header"));
+      
+      if (items.length === 0) {
+        callback?.();
+        return;
+      }
+
+      items.forEach((el) => {
+        el.setAttribute("data-state", "exiting");
+      });
+
+      // Future: wait for animation here
+      items.forEach((el) => el.remove());
+      callback?.();
+    }
+
+    function renderItems(): void {
+      const isHome = state.path.length === 1 && state.path[0] === "root";
+
+      if (isHome) {
+        // Home: L1 headers with L2 children
+        const entries = Object.entries(l1Sections);
+        entries.forEach(([l1Name, l2Items], sectionIndex) => {
+          nav.appendChild(createHeader(l1Name, sectionIndex === 0));
+
+          const basePath = `root/${l1Name}`;
+          l2Items.forEach((name, index) => {
+            const type = isFolder(name, basePath) ? "folder" : "file";
+            const isLast = index === l2Items.length - 1;
+            const el = createItem(name, type, basePath, isLast);
+            el.setAttribute("data-state", "entering");
+            nav.appendChild(el);
+          });
+        });
+      } else {
+        // Deeper: back + parent label + children
+        const backEl = createItem("back", "back");
+        backEl.setAttribute("data-state", "entering");
+        nav.appendChild(backEl);
+
+        // Parent label (current folder name)
+        const parentName = state.path[state.path.length - 1];
+        const parentEl = createHeader("└── " + parentName, true);
+        parentEl.setAttribute("data-state", "entering");
+        nav.appendChild(parentEl);
+
+        const key = getCurrentKey();
+        const items = structure[key] || [];
+
+        items.forEach((name, index) => {
+          const type = isFolder(name, key) ? "folder" : "file";
+          const isLast = index === items.length - 1;
+          const el = createItem(name, type, key, isLast);
+          el.setAttribute("data-state", "entering");
+          el.style.paddingLeft = "1em";
+          el.style.display = "block";
+          el.style.width = "auto";
+          el.style.maxWidth = "400px";
+          el.style.whiteSpace = "normal";
+          el.style.wordWrap = "break-word";
+          nav.appendChild(el);
+        });
+      }
+
+      nav.querySelectorAll(".folder-item, .folder-header").forEach((el) => {
+        el.setAttribute("data-state", "idle");
+      });
+    }
+
+    function navigate(direction: "in" | "out", folder?: string, basePath?: string): void {
+      state.direction = direction;
+
+      if (direction === "in" && folder) {
+        if (basePath && state.path.join("/") !== basePath) {
+          state.path = basePath.split("/");
+        }
+        state.path.push(folder);
+      } else if (direction === "out") {
+        state.path.pop();
+        // If we pop back to an L1 folder, go back to root
+        if (state.path.length === 2 && state.path[0] === "root") {
+          state.path = ["root"];
+        }
+      }
+
+      clearItems(() => renderItems());
+    }
+
+    function handleClick(name: string, type: "folder" | "back", basePath?: string): void {
+      if (type === "back") {
+        navigate("out");
+      } else if (type === "folder") {
+        navigate("in", name, basePath);
+      }
+    }
+
+    // Initial render
+    renderItems();
+  </script>
+
   <style>
-    /* ===== MOBILE HORIZONTAL SCROLL FIX (GLOBAL FOR THIS PAGE) ===== */
     html, body {
       max-width: 100%;
       overflow: hidden !important;
@@ -77,7 +257,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     html::-webkit-scrollbar,
-    body::-webkit-scrollbar {
+    body::-webkit-scrollbar,
+    *::-webkit-scrollbar {
       display: none !important;
       width: 0 !important;
       height: 0 !important;
@@ -90,18 +271,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       -ms-overflow-style: none !important;
     }
 
-    *::-webkit-scrollbar {
-      display: none !important;
-      width: 0 !important;
-      height: 0 !important;
-    }
-
     .hero {
       min-height: 100dvh;
-      padding-left: 5vw;
-      padding-right: 5vw;
-      padding-top: clamp(60px, 8vh, 100px);
-      padding-bottom: clamp(16px, 4vh, calc(var(--corner-inset, 22px) + var(--corner-size, 28px)));
+      padding: clamp(60px, 8vh, 100px) 5vw clamp(16px, 4vh, calc(var(--corner-inset, 22px) + var(--corner-size, 28px)));
       display: flex;
       justify-content: center;
       align-items: flex-start;
@@ -110,18 +282,16 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     .stack {
       width: min(1100px, 100%);
-      box-sizing: border-box;
       padding-top: 2px;
     }
 
-    h1 {
+    #logo {
       font-family: "ABC Diatype", system-ui, sans-serif;
       font-weight: 700;
       font-size: clamp(56px, 16vw, 260px);
       letter-spacing: -0.05em;
       line-height: 1;
       margin: 0;
-      width: 100%;
       text-align: center;
       text-rendering: geometricPrecision;
       position: fixed;
@@ -132,722 +302,76 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       pointer-events: none;
     }
 
-    .logo-blur { filter: blur(6px); }
-
-    #logo {
-      transition:
-        opacity 260ms cubic-bezier(.22,.61,.36,1),
-        filter 260ms cubic-bezier(.22,.61,.36,1);
-      will-change: opacity, filter;
-    }
-    body.study-triggered #logo {
-      opacity: 0;
-      filter: blur(10px);
+    #folder-nav {
+      margin-top: clamp(80px, 20vw, 280px);
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
     }
 
-    .tree {
-      margin-top: calc(clamp(56px, 16vw, 260px) + clamp(3rem, 6vh, 4rem));
+    .folder-header {
       font-family: "ABC Diatype", system-ui, sans-serif;
-      font-size: clamp(14px, 3.5vw, 18px);
-      letter-spacing: 0.02em;
-      width: 100%;
-      box-sizing: border-box;
-      position: relative;
-      z-index: 5;
+      font-size: clamp(14px, 3vw, 18px);
+      padding: 20px 0 4px 0;
+      opacity: 0.5;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      user-select: none;
     }
 
-    .tree-viewport {
-      position: relative;
-      min-height: 12.5rem;
-      width: 100%;
-      max-width: 100%;
-      overflow: visible;
+    .folder-header:first-child {
+      padding-top: 0;
     }
 
-    .root,
-    .item,
-    .item-btn,
-    .back {
-      white-space: nowrap;
-      overflow-wrap: normal;
-      word-break: normal;
-      hyphens: none;
+    .folder-item {
+      font-family: "ABC Diatype", system-ui, sans-serif;
+      font-size: clamp(18px, 4vw, 32px);
+      padding: 4px 0;
+      cursor: default;
+      user-select: none;
     }
 
-    .root { margin: 0; }
-
-    .children {
-      margin-top: 0.35rem;
-      display: grid;
-      gap: 0.18rem;
-      width: fit-content;
-      margin-bottom: 0.55rem;
-    }
-
-    .children--indented {
-      padding-left: 2ch;
-      margin-bottom: 0;
-    }
-
-    .item {
-      line-height: 1.25;
-      width: fit-content;
-    }
-
-    .item-btn {
-      background: none;
-      border: 0;
-      padding: 0;
-      font: inherit;
-      color: inherit;
+    .folder-item.folder,
+    .folder-item.back {
       cursor: pointer;
-      text-align: left;
-      display: inline-block;
-      width: fit-content;
     }
 
-    .back {
-      background: none;
-      border: 0;
-      padding: 0;
-      font: inherit;
-      color: inherit;
-      cursor: pointer;
-      display: inline-flex;
-      align-items: center;
-      gap: 0.15em;
-      margin-bottom: 0.35rem;
-      transition: transform 80ms ease, opacity 80ms ease;
+    .folder-item.folder:hover,
+    .folder-item.back:hover {
+      opacity: 0.6;
     }
 
-    @keyframes itemFlash {
-      0% { 
-        transform: scale(1);
-        filter: brightness(1);
-      }
-      50% {
-        transform: scale(1.05);
-        filter: brightness(2);
-      }
-      100% { 
-        transform: scale(1);
-        filter: brightness(1);
-      }
+    .folder-item.back {
+      opacity: 0.5;
+      margin-bottom: 8px;
     }
 
-    @keyframes backFlash {
-      0% { 
-        transform: scale(1);
-        filter: brightness(1);
-        opacity: 1;
-      }
-      30% {
-        transform: scale(1.05);
-        filter: brightness(2);
-        opacity: 1;
-      }
-      100% { 
-        transform: scale(1);
-        filter: brightness(1);
-        opacity: 0;
-      }
-    }
+    /* Animation-ready states */
+    .folder-item[data-state="entering"] {}
+    .folder-item[data-state="exiting"] {}
+    .folder-item[data-state="idle"] {}
+    .folder-header[data-state="entering"] {}
+    .folder-header[data-state="exiting"] {}
+    .folder-header[data-state="idle"] {}
 
-    .back.flash {
-      animation: backFlash 300ms ease-out forwards;
-    }
-
-    .item-btn.flash {
-      animation: itemFlash 200ms ease-out !important;
-      animation-fill-mode: forwards;
-    }
-
-    .view {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      max-width: 100%;
-      transition: opacity 260ms ease;
-    }
-
-    .view:not(.view--active) {
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .view.view--active { opacity: 1; }
-
-    .zoomed { 
-      font-size: clamp(18px, 4.5vw, 26px);
-    }
-
-    .zoomed.zoom-animate {
-      animation: textZoomIn 400ms cubic-bezier(.22,.61,.36,1) forwards;
-    }
-
-    @keyframes textZoomIn {
-      0% {
-        font-size: clamp(14px, 3.5vw, 18px);
-      }
-      100% {
-        font-size: clamp(18px, 4.5vw, 26px);
-      }
-    }
-
-    .cascade {
-      opacity: 0;
-      transform: translateX(16px);
-      transition: opacity 260ms ease, transform 260ms ease;
-    }
-    .view--active .cascade {
-      opacity: 1;
-      transform: translateX(0);
-    }
-    .view--active .cascade[data-cascade="0"] { transition-delay: 0ms; }
-    .view--active .cascade[data-cascade="1"] { transition-delay: 80ms; }
-    .view--active .cascade[data-cascade="2"] { transition-delay: 160ms; }
-    .view--active .cascade[data-cascade="3"] { transition-delay: 240ms; }
-
-    .glyph-slot {
-      display: inline-block;
-      width: 2ch;
-      text-align: center;
-    }
-
-    @keyframes galleryIntroCascade {
-      from { opacity: 0; transform: translateY(-10px); filter: blur(1px); }
-      to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
-    }
-
-    .gallery-line { 
-      opacity: 1;
-      transition: opacity 600ms ease, filter 600ms ease;
-    }
-
-    body.gallery-intro-cascade .gallery-line {
-      opacity: 0;
-      animation: galleryIntroCascade 420ms cubic-bezier(.25,.8,.25,1) forwards;
-    }
-
-    /* Thanos snap effect - pure CSS */
-    .gallery-line.dust-out {
-      animation: dustDissolve 600ms ease-out forwards;
-    }
-
-    .root.dust-out,
-    .children.dust-out,
-    .item.dust-out {
-      animation: dustDissolve 600ms ease-out forwards;
-    }
-
-    @keyframes dustDissolve {
-      0% {
-        opacity: 1;
-        filter: blur(0px);
-      }
-      50% {
-        opacity: 0.5;
-        filter: blur(2px);
-      }
-      100% {
-        opacity: 0;
-        filter: blur(4px);
-      }
-    }
-
-    @keyframes instantSlideUp {
-      0% {
-        opacity: 1;
-        transform: translateY(0);
-      }
-      100% {
-        opacity: 0;
-        transform: translateY(-20px);
-      }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      body.gallery-intro-cascade .gallery-line {
-        opacity: 1;
-        animation: none !important;
-        transform: none !important;
-        filter: none !important;
-      }
-      #logo { transition: none !important; }
-      .tree-viewport { transition: none !important; }
-      .view { transition: none !important; }
-      .gallery-line { transition: none !important; }
-      .gallery-line.dust-out { animation: none !important; }
-    }
-
-    @media (max-width: 520px) {
+    @media (max-width: 768px) {
       html, body {
-        overflow-x: hidden;
+        position: fixed;
+        width: 100%;
+        overflow: hidden;
+        overscroll-behavior: none;
+        -webkit-overflow-scrolling: touch;
         touch-action: pan-y;
-      }
-
-      body {
-        position: relative;
       }
 
       .hero {
         padding-top: calc(22px + env(safe-area-inset-top, 0px));
         padding-bottom: 16px;
       }
+
+      #folder-nav {
+        margin-top: clamp(120px, 30vw, 200px);
+      }
     }
   </style>
-
-  <script>
-    // =========================================================================
-    // CONFIGURATION
-    // =========================================================================
-    const TIMINGS = {
-      DUST_EFFECT_DELAY: 260,
-      BACK_FADE_OUT: 260,
-      GALLERY_FADE_IN: 200,
-      GLYPH_INTERVAL: 110,
-    };
-
-    const GLYPHS = ["//", "--", "\\\\", "| |"];
-    const STUDY_REGEX = /^study:\[(\/\/|--|\\\\|\|\s\|)([0-9]{3}-[0-9]{5})\]$/i;
-
-    // =========================================================================
-    // DOM ELEMENTS
-    // =========================================================================
-    const stack = document.getElementById("stack");
-    const logo = document.getElementById("logo");
-    const viewport = document.getElementById("viewport");
-    const galleryView = document.getElementById("galleryView");
-    const studyView = document.getElementById("studyView");
-    const nodeView = document.getElementById("nodeView");
-    const studyRoot = document.getElementById("studyRoot");
-    const studyGlyph = document.getElementById("studyGlyph");
-    const studyId = document.getElementById("studyId");
-    const nodeRoot = document.getElementById("nodeRoot");
-    const nodeChildren = document.getElementById("nodeChildren");
-    const backBtn = document.getElementById("backBtn");
-    const nodeBackBtn = document.getElementById("nodeBackBtn");
-    const studyButtons = document.querySelectorAll("[data-study]");
-    const nodeButtons = document.querySelectorAll("[data-node]");
-
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-
-    // Animation lock to prevent spam clicking
-    let isAnimating = false;
-
-    function setAnimating(value) {
-      isAnimating = value;
-      if (value) {
-        document.body.setAttribute('data-is-animating', 'true');
-      } else {
-        document.body.removeAttribute('data-is-animating');
-      }
-    }
-
-    // =========================================================================
-    // PLACEHOLDER FUNCTIONS (preserved for future use)
-    // =========================================================================
-    function centerLogoAcrossDevices() {}
-    function syncTreeToLogo() {}
-    let lastOrigin = null;
-    function applyZoomOriginFromEl(el) {}
-    function clearZoomOriginAfterOut() {}
-
-    // =========================================================================
-    // GLYPH ANIMATION
-    // =========================================================================
-    const GlyphAnimator = {
-      studyTimer: null,
-      studyIndex: 0,
-      galleryTimer: null,
-      galleryIndex: 0,
-
-      startStudyLoop() {
-        if (this.studyTimer) return;
-        this.studyIndex = 0;
-        studyGlyph.textContent = GLYPHS[0];
-
-        this.studyTimer = setInterval(() => {
-          this.studyIndex = (this.studyIndex + 1) % GLYPHS.length;
-          studyGlyph.textContent = GLYPHS[this.studyIndex];
-        }, TIMINGS.GLYPH_INTERVAL);
-      },
-
-      stopStudyLoop() {
-        if (this.studyTimer) {
-          clearInterval(this.studyTimer);
-          this.studyTimer = null;
-        }
-        this.studyIndex = 0;
-        studyGlyph.textContent = GLYPHS[0];
-      },
-
-      startGalleryLoop() {
-        if (this.galleryTimer) return;
-
-        const glyphElements = document.querySelectorAll('.glyph-animated');
-        if (!glyphElements.length) return;
-
-        this.galleryIndex = 0;
-
-        this.galleryTimer = setInterval(() => {
-          this.galleryIndex = (this.galleryIndex + 1) % GLYPHS.length;
-          glyphElements.forEach(el => {
-            el.textContent = GLYPHS[this.galleryIndex];
-          });
-        }, TIMINGS.GLYPH_INTERVAL);
-      },
-
-      stopGalleryLoop() {
-        if (this.galleryTimer) {
-          clearInterval(this.galleryTimer);
-          this.galleryTimer = null;
-        }
-        document.querySelectorAll('.glyph-animated').forEach(el => {
-          el.textContent = GLYPHS[0];
-        });
-        this.galleryIndex = 0;
-      },
-    };
-
-    // =========================================================================
-    // GALLERY INTRO CASCADE
-    // =========================================================================
-    const IntroCascade = {
-      hasRun: false,
-
-      run() {
-        if (this.hasRun) return;
-        this.hasRun = true;
-
-        const lines = Array.from(document.querySelectorAll("#galleryView .gallery-line"));
-        if (!lines.length) return;
-
-        document.body.classList.add("gallery-intro-cascade");
-
-        const stagger = 80;
-        const duration = 420;
-
-        requestAnimationFrame(() => {
-          lines.forEach((el, i) => {
-            el.style.animationDelay = `${i * stagger}ms`;
-          });
-        });
-
-        const total = duration + (lines.length - 1) * stagger + 60;
-
-        setTimeout(() => {
-          document.body.classList.remove("gallery-intro-cascade");
-          requestAnimationFrame(() => {
-            lines.forEach(el => {
-              el.style.animationDelay = "";
-              el.style.opacity = "";
-              el.style.transform = "";
-              el.style.filter = "";
-              el.style.animation = "";
-            });
-          });
-        }, total);
-      },
-    };
-
-    // =========================================================================
-    // UTILITIES
-    // =========================================================================
-    function parseStudy(str) {
-      const match = String(str || "").match(STUDY_REGEX);
-      return match ? { glyph: match[1], id: match[2] } : null;
-    }
-
-    // =========================================================================
-    // CASCADE ANIMATION
-    // =========================================================================
-    function playCascade(containerEl) {
-      if (!containerEl || prefersReducedMotion.matches) return;
-
-      const elements = Array.from(containerEl.querySelectorAll("[data-cascade]"))
-        .filter(el => el instanceof HTMLElement)
-        .sort((a, b) => (Number(a.dataset.cascade) || 0) - (Number(b.dataset.cascade) || 0));
-
-      if (!elements.length) return;
-
-      requestAnimationFrame(() => {
-        elements.forEach(el => {
-          const n = Number(el.dataset.cascade) || 0;
-          el.style.cssText = `
-            transition-property: opacity, transform;
-            transition-duration: 260ms;
-            transition-timing-function: ease;
-            transition-delay: ${n * 80}ms;
-            opacity: 0;
-            transform: translateX(16px);
-          `;
-        });
-
-        void containerEl.offsetWidth;
-
-        requestAnimationFrame(() => {
-          elements.forEach(el => {
-            el.style.opacity = "1";
-            el.style.transform = "translateX(0)";
-          });
-        });
-      });
-    }
-
-    // =========================================================================
-    // DUST EFFECT
-    // =========================================================================
-    const DustEffect = {
-      trigger(excludeElement) {
-        if (prefersReducedMotion.matches) return;
-
-        document.querySelectorAll('#galleryView .gallery-line').forEach(line => {
-          line.classList.add('dust-out');
-
-          if (line === excludeElement || line.contains(excludeElement)) {
-            line.style.opacity = "0";
-            line.style.transition = "opacity 100ms ease";
-          }
-        });
-      },
-
-      clear() {
-        document.querySelectorAll('#galleryView .gallery-line').forEach(line => {
-          line.classList.remove('dust-out');
-          line.style.opacity = "";
-          line.style.filter = "";
-          line.style.transition = "";
-        });
-      },
-    };
-
-    // =========================================================================
-    // VIEW TRANSITIONS
-    // =========================================================================
-    function transitionToView(targetView, clickedElement, setupCallback) {
-      if (isAnimating) return;
-      setAnimating(true);
-
-      document.body.classList.add("study-triggered");
-      DustEffect.trigger(clickedElement);
-
-      setTimeout(() => {
-        GlyphAnimator.stopGalleryLoop();
-
-        requestAnimationFrame(() => {
-          galleryView.classList.remove("view--active");
-          studyView.classList.remove("view--active");
-          nodeView.classList.remove("view--active");
-
-          studyView.classList.remove("zoom-animate");
-          nodeView.classList.remove("zoom-animate");
-
-          // Clear dust-out from the target view before showing it
-          targetView.querySelectorAll('.root, .children, .item').forEach(el => {
-            el.classList.remove('dust-out');
-          });
-
-          // Clear flash class from back buttons
-          targetView.querySelectorAll('.back').forEach(btn => {
-            btn.classList.remove('flash');
-          });
-
-          targetView.classList.add("view--active");
-          logo.classList.add("logo-blur");
-
-          void targetView.offsetWidth;
-          targetView.classList.add("zoom-animate");
-
-          if (setupCallback) setupCallback();
-          
-          // Unlock after animation completes
-          setTimeout(() => {
-            setAnimating(false);
-          }, 400);
-        });
-      }, TIMINGS.DUST_EFFECT_DELAY);
-    }
-
-    function clearStudyInlineAnim() {
-      const studyLines = Array.from(document.querySelectorAll('#galleryView [data-study].gallery-line'));
-      requestAnimationFrame(() => {
-        studyLines.forEach(el => {
-          el.style.cssText = "";
-        });
-      });
-    }
-
-    // =========================================================================
-    // VIEW NAVIGATION
-    // =========================================================================
-    function showStudy(name, clickedElement) {
-      const parsed = parseStudy(name);
-
-      if (parsed) {
-        studyGlyph.textContent = GLYPHS[0];
-        studyId.textContent = parsed.id;
-      } else {
-        studyRoot.textContent = `└─ ${name}`;
-      }
-
-      transitionToView(studyView, clickedElement, () => {
-        requestAnimationFrame(() => requestAnimationFrame(() => {
-          GlyphAnimator.startStudyLoop();
-        }));
-      });
-    }
-
-    function showLeaf(key, clickedElement) {
-      GlyphAnimator.stopStudyLoop();
-
-      const formattedKey = String(key || "").replace(/(^|\s|-|_)\S/g, m => m.toUpperCase());
-      nodeRoot.textContent = `└─ ${formattedKey}`;
-
-      if (key === 'info') {
-        nodeChildren.innerHTML = `
-          <div class="item cascade" data-cascade="1" style="opacity: 0; transform: translateX(16px);">├─ Rights / Usage</div>
-          <div class="item cascade" data-cascade="2" style="opacity: 0; transform: translateX(16px);">├─ Licensing</div>
-          <div class="item cascade" data-cascade="3" style="opacity: 0; transform: translateX(16px);">└─ Acknowledgements</div>
-        `;
-      } else {
-        nodeChildren.innerHTML = `
-          <div class="item cascade" data-cascade="1" style="opacity: 0; transform: translateX(16px);">└─ Placeholder</div>
-        `;
-      }
-
-      transitionToView(nodeView, clickedElement, () => {
-        playCascade(nodeView);
-      });
-    }
-
-    function showGallery() {
-      if (isAnimating) return;
-      setAnimating(true);
-
-      GlyphAnimator.stopStudyLoop();
-      DustEffect.clear();
-
-      // Apply dustDissolve effect to content (not the back button)
-      requestAnimationFrame(() => {
-        const activeView = studyView.classList.contains("view--active") ? studyView : nodeView;
-        const contentElements = activeView.querySelectorAll('.root, .children, .item');
-        
-        console.log('Found elements:', contentElements.length);
-        contentElements.forEach(el => {
-          console.log('Adding dust-out to:', el);
-          el.classList.add('dust-out');
-        });
-      });
-
-      setTimeout(() => {
-        requestAnimationFrame(() => {
-          document.body.classList.remove("study-triggered");
-          studyView.classList.remove("view--active");
-          nodeView.classList.remove("view--active");
-
-          studyView.style.opacity = "";
-          nodeView.style.opacity = "";
-
-          galleryView.classList.add("view--active");
-          galleryView.style.opacity = "0";
-          galleryView.style.transition = `opacity ${TIMINGS.GALLERY_FADE_IN}ms ease`;
-
-          requestAnimationFrame(() => {
-            galleryView.style.opacity = "1";
-
-            setTimeout(() => {
-              galleryView.style.opacity = "";
-              galleryView.style.transition = "";
-            }, TIMINGS.GALLERY_FADE_IN);
-          });
-
-          // Unlock after fade in completes (we're already 600ms in)
-          setTimeout(() => {
-            setAnimating(false);
-          }, TIMINGS.GALLERY_FADE_IN);
-
-          logo.classList.remove("logo-blur");
-          document.body.classList.remove("gallery-intro-cascade");
-          GlyphAnimator.startGalleryLoop();
-        });
-
-        clearStudyInlineAnim();
-
-        document.querySelectorAll('#galleryView .gallery-line').forEach(line => {
-          line.style.animation = "";
-          line.style.animationDelay = "";
-        });
-      }, 600);
-    }
-
-    // =========================================================================
-    // BACK BUTTON HANDLER
-    // =========================================================================
-    function handleBackClick(e) {
-      if (isAnimating) return;
-      
-      const btn = e.currentTarget;
-      btn.classList.remove('flash');
-      void btn.offsetWidth;
-      btn.classList.add('flash');
-      showGallery();
-    }
-
-    // =========================================================================
-    // INITIALIZATION
-    // =========================================================================
-    syncTreeToLogo();
-    addEventListener("resize", syncTreeToLogo);
-
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(() => syncTreeToLogo());
-    }
-    addEventListener("load", () => syncTreeToLogo());
-
-    requestAnimationFrame(() => IntroCascade.run());
-
-    requestAnimationFrame(() => {
-      requestAnimationFrame(() => {
-        GlyphAnimator.startGalleryLoop();
-      });
-    });
-
-    studyButtons.forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        if (isAnimating || !galleryView.classList.contains('view--active')) {
-          e.stopPropagation(); // Stop event from bubbling to FrameLayout
-          return;
-        }
-        
-        btn.classList.remove('flash');
-        void btn.offsetWidth;
-        btn.classList.add('flash');
-        btn.addEventListener('animationend', () => btn.classList.remove('flash'), { once: true });
-        
-        applyZoomOriginFromEl(btn);
-        showStudy(btn.dataset.study, btn);
-      });
-    });
-
-    nodeButtons.forEach(btn => {
-      btn.addEventListener("click", (e) => {
-        if (isAnimating || !galleryView.classList.contains('view--active')) {
-          e.stopPropagation(); // Stop event from bubbling to FrameLayout
-          return;
-        }
-        
-        btn.classList.remove('flash');
-        void btn.offsetWidth;
-        btn.classList.add('flash');
-        btn.addEventListener('animationend', () => btn.classList.remove('flash'), { once: true });
-        
-        applyZoomOriginFromEl(btn);
-        showLeaf(btn.dataset.node, btn);
-      });
-    });
-
-    backBtn.addEventListener("click", handleBackClick);
-    nodeBackBtn.addEventListener("click", handleBackClick);
-  </script>
 </FrameLayout>
