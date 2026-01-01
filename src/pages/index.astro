@@ -5,12 +5,23 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 <FrameLayout title="Body of Work">
   <section class="hero">
     <div class="stack">
-      <h1 id="logo">brandyura</h1>
+      <h1 id="logo"><span class="logo-char">/ /</span>&nbsp;brandyura</h1>
       <nav id="folder-nav"></nav>
     </div>
   </section>
 
   <script>
+    // Logo animation
+    const logoChar = document.querySelector('.logo-char') as HTMLElement;
+    if (logoChar) {
+      const symbols = ['/ /', '- -', '\\ \\', '| |'];
+      let index = 0;
+      setInterval(() => {
+        index = (index + 1) % symbols.length;
+        logoChar.textContent = symbols[index];
+      }, 150);
+    }
+
     interface Study {
       id: string;
       children: string[];
@@ -34,13 +45,19 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     function buildStructure(): Record<string, string[]> {
       const struct: Record<string, string[]> = {
+        // L2 - Top level section children
+        "root/Gallery": studies.map((s) => `Study:[//${s.id}]`),
+        "root/About": ["Biography", "Statement", "Process"],
+        "root/Contact": ["Social"],
+        "root/Legal": ["Info"],
+        
         // L3 - About's children
-        "root/About/Biography": ["Placeholder"],
+        "root/About/Biography": ["This body of work experiments with a range of mediums, producing forms and situations that explore aesthetics, emotion, and identity across different contexts. Fluid movement between material, digital, spatial, and procedural approaches does not privilege a single format.", "Personal, cultural, and visual references are translated into form through abstraction and reduction. Narrative is avoided in favor of structure, texture, and composition."],
         "root/About/Statement": ["Placeholder"],
         "root/About/Process": ["Placeholder"],
         
         // L3 - Contact's children
-        "root/Contact/Social": ["Placeholder"],
+        "root/Contact/Social": ["Instagram->https://www.instagram.com/brandyura"],
         
         // L3 - Legal's children -> Info
         "root/Legal/Info": ["Rights + Usage", "Licensing", "Disclosures"],
@@ -72,6 +89,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     };
 
     const nav = document.getElementById("folder-nav")!;
+    let isAnimating = false;
 
     function isFolder(name: string, basePath: string): boolean {
       const fullPath = `${basePath}/${name}`;
@@ -82,10 +100,80 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       return state.path.join("/");
     }
 
-    function createItem(name: string, type: "folder" | "file" | "back", basePath?: string, isLast?: boolean): HTMLElement {
+    // Flash effect function - uses direct style manipulation
+    function triggerFlashEffect(el: HTMLElement, callback: () => void): void {
+      if (isAnimating) return;
+      isAnimating = true;
+      
+      // Flash sequence: black (100%) -> white (0%) -> black (100%) -> pause -> navigate
+      el.style.transition = 'opacity 70ms ease-out';
+      el.style.opacity = '0';
+      
+      setTimeout(() => {
+        // Fade back to black
+        el.style.opacity = '1';
+        
+        setTimeout(() => {
+          // Hold at 100% briefly before navigating
+          el.style.transition = '';
+          isAnimating = false;
+          
+          setTimeout(() => {
+            callback();
+          }, 50);
+        }, 70);
+      }, 70);
+    }
+
+    // Typewriter effect function - uses Date.now() to continue even when tab is inactive
+    function typewriterEffect(el: HTMLElement, text: string, speed: number = 10): void {
+      el.innerHTML = '';
+      const startTime = Date.now();
+      let lastCharCount = 0;
+      
+      const update = () => {
+        const elapsed = Date.now() - startTime;
+        const charsToShow = Math.min(Math.floor(elapsed / speed) + 1, text.length);
+        
+        if (charsToShow > lastCharCount) {
+          // Add new characters with fade-in
+          for (let i = lastCharCount; i < charsToShow; i++) {
+            const span = document.createElement('span');
+            span.textContent = text[i];
+            span.style.opacity = '0';
+            span.style.transition = 'opacity 150ms ease-out';
+            el.appendChild(span);
+            // Trigger reflow then fade in
+            requestAnimationFrame(() => {
+              span.style.opacity = '1';
+            });
+          }
+          lastCharCount = charsToShow;
+        }
+        
+        if (charsToShow < text.length) {
+          setTimeout(update, speed);
+        }
+      };
+      update();
+    }
+
+    function createItem(name: string, type: "folder" | "file" | "back", basePath?: string, isLast?: boolean, useTypewriter?: boolean): HTMLElement {
       const el = document.createElement("div");
       el.className = "folder-item";
-      el.dataset.name = name;
+      
+      // Check if this is a link item (format: "Text->URL")
+      const isLink = name.includes('->');
+      let displayName = name;
+      let linkUrl = '';
+      
+      if (isLink) {
+        const parts = name.split('->');
+        displayName = parts[0];
+        linkUrl = parts[1];
+      }
+      
+      el.dataset.name = displayName;
       el.dataset.type = type;
       if (basePath) el.dataset.basePath = basePath;
 
@@ -100,27 +188,53 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       el.style.maxWidth = "80vw";
 
       if (type === "back") {
-        el.innerHTML = '<span class="back-symbol" style="display: inline-block; width: 1em; text-align: center;">|</span> Back';
+        el.textContent = '◁ Back';
         el.style.padding = "0 0 4px 0";
         el.style.marginBottom = "4px";
-        
-        // Animate the symbol (clockwise rotation)
-        const symbols = ['|', '/', '—', '\\'];
-        let index = 0;
-        const symbolSpan = el.querySelector('.back-symbol') as HTMLElement;
-        setInterval(() => {
-          index = (index + 1) % symbols.length;
-          symbolSpan.textContent = symbols[index];
-        }, 150);
+      } else if (useTypewriter) {
+        // Start empty for typewriter effect
+        el.textContent = '';
       } else {
         const symbol = isLast ? "└── " : "├── ";
-        el.textContent = symbol + name;
+        el.textContent = symbol + displayName;
       }
 
       if (type === "folder" || type === "back") {
         el.classList.add(type);
         el.style.cursor = "pointer";
-        el.addEventListener("click", () => handleClick(name, type, basePath));
+        
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          if (isAnimating) return;
+          
+          if (type === "folder") {
+            // Apply flash effect then navigate
+            triggerFlashEffect(el, () => {
+              handleClick(displayName, type, basePath);
+            });
+          } else {
+            // Back button - no flash, navigate immediately
+            handleClick(displayName, type, basePath);
+          }
+        });
+      } else if (isLink) {
+        // File with link - make it clickable
+        el.classList.add('link');
+        el.style.cursor = "pointer";
+        
+        el.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          
+          if (isAnimating) return;
+          
+          // Apply flash effect then open link
+          triggerFlashEffect(el, () => {
+            window.open(linkUrl, '_blank');
+          });
+        });
       } else {
         el.style.cursor = "default";
       }
@@ -199,7 +313,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         items.forEach((name, index) => {
           const type = isFolder(name, key) ? "folder" : "file";
           const isLast = index === items.length - 1;
-          const el = createItem(name, type, key, isLast);
+          const el = createItem(name, type, key, isLast, true);
           el.setAttribute("data-state", "entering");
           el.style.paddingLeft = "1em";
           el.style.display = "block";
@@ -208,6 +322,32 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           el.style.whiteSpace = "normal";
           el.style.wordWrap = "break-word";
           nav.appendChild(el);
+          
+          // Apply typewriter effect for all items - cascading
+          const symbol = isLast ? "└── " : "├── ";
+          // Use display name (strip link URL if present)
+          const displayName = name.includes('->') ? name.split('->')[0] : name;
+          const fullText = symbol + displayName;
+          
+          // Check if we're in sections with longer text (needs faster speed)
+          const isLegalInfo = key === "root/Legal/Info/Rights + Usage" || 
+                             key === "root/Legal/Info/Licensing" || 
+                             key === "root/Legal/Info/Disclosures";
+          const isBiography = key === "root/About/Biography";
+          const speed = (isLegalInfo || isBiography) ? 2 : 5;
+          
+          // Calculate delay based on total length of all previous items
+          let totalPreviousChars = 0;
+          for (let i = 0; i < index; i++) {
+            const prevName = items[i];
+            const prevDisplayName = prevName.includes('->') ? prevName.split('->')[0] : prevName;
+            totalPreviousChars += prevDisplayName.length + 4; // +4 for symbol
+          }
+          const delay = totalPreviousChars * speed + (index * 100); // chars * speed + small gap between items
+          
+          setTimeout(() => {
+            typewriterEffect(el, fullText, speed);
+          }, delay);
         });
       }
 
@@ -273,7 +413,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     .hero {
       min-height: 100dvh;
-      padding: clamp(60px, 8vh, 100px) 5vw clamp(16px, 4vh, calc(var(--corner-inset, 22px) + var(--corner-size, 28px)));
+      padding: clamp(100px, 15vh, 160px) 5vw clamp(16px, 4vh, calc(var(--corner-inset, 22px) + var(--corner-size, 28px)));
       display: flex;
       justify-content: center;
       align-items: flex-start;
@@ -288,25 +428,33 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     #logo {
       font-family: "ABC Diatype", system-ui, sans-serif;
       font-weight: 700;
-      font-size: clamp(56px, 16vw, 260px);
+      font-size: 28px;
       letter-spacing: -0.05em;
       line-height: 1;
-      margin: 0;
-      text-align: center;
+      margin: 0 0 20px 0;
+      text-align: left;
       text-rendering: geometricPrecision;
-      position: fixed;
-      top: clamp(60px, 8vh, 100px);
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 10;
+      user-select: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
       pointer-events: none;
     }
 
+    .logo-char {
+      display: inline-block;
+      width: 1.8em;
+      text-align: center;
+      vertical-align: baseline;
+    }
+
     #folder-nav {
-      margin-top: clamp(80px, 20vw, 280px);
+      margin-top: 20px;
       display: flex;
       flex-direction: column;
       gap: 4px;
+      overflow-y: auto;
+      padding-bottom: 20px;
     }
 
     .folder-header {
@@ -332,12 +480,14 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     }
 
     .folder-item.folder,
-    .folder-item.back {
+    .folder-item.back,
+    .folder-item.link {
       cursor: pointer;
     }
 
     .folder-item.folder:hover,
-    .folder-item.back:hover {
+    .folder-item.back:hover,
+    .folder-item.link:hover {
       opacity: 0.6;
     }
 
@@ -365,12 +515,17 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       }
 
       .hero {
-        padding-top: calc(22px + env(safe-area-inset-top, 0px));
+        padding-top: calc(80px + env(safe-area-inset-top, 0px));
         padding-bottom: 16px;
+        padding-left: 8vw;
       }
 
       #folder-nav {
-        margin-top: clamp(120px, 30vw, 200px);
+        margin-top: 20px;
+      }
+
+      #logo {
+        font-size: clamp(22px, 6vw, 28px);
       }
     }
   </style>
