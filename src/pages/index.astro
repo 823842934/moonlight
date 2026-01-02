@@ -93,6 +93,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     const nav = document.getElementById("folder-nav")!;
     let isAnimating = false;
+    let isNavigating = false; // Separate lock for navigation
 
     function isFolder(name: string, basePath: string): boolean {
       const fullPath = `${basePath}/${name}`;
@@ -105,8 +106,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
     // Flash effect function - uses direct style manipulation
     function triggerFlashEffect(el: HTMLElement, callback: () => void): void {
-      if (isAnimating) return;
+      if (isAnimating || isNavigating) return;
       isAnimating = true;
+      isNavigating = true; // Lock navigation for entire transition
       
       // Flash sequence: black (100%) -> white (0%) -> black (100%) -> pause -> navigate
       el.style.transition = 'opacity 70ms ease-out';
@@ -123,6 +125,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           
           setTimeout(() => {
             callback();
+            // Release navigation lock after a delay to let rendering complete
+            setTimeout(() => {
+              isNavigating = false;
+            }, 300);
           }, 50);
         }, 70);
       }, 70);
@@ -262,7 +268,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           e.preventDefault();
           e.stopPropagation();
           
-          if (isAnimating) return;
+          if (isAnimating || isNavigating) return;
           
           if (type === "folder") {
             // Apply flash effect then navigate
@@ -271,7 +277,11 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             });
           } else {
             // Back button - no flash, navigate immediately
+            isNavigating = true;
             handleClick(displayName, type, basePath);
+            setTimeout(() => {
+              isNavigating = false;
+            }, 300);
           }
         });
       } else if (isLink) {
@@ -283,7 +293,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           e.preventDefault();
           e.stopPropagation();
           
-          if (isAnimating) return;
+          if (isAnimating || isNavigating) return;
           
           // Apply flash effect then open link
           triggerFlashEffect(el, () => {
