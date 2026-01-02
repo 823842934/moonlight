@@ -380,34 +380,6 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         }
       }
 
-      // Blur/unblur background based on depth
-      // path = ["root"] means we're at root level (no blur)
-      const isAtRoot = state.path.length === 1 && state.path[0] === "root";
-      const bgVideo = document.querySelector('.bg-video') as HTMLElement;
-      const bgFallbackImg = document.querySelector('.bg-fallback img') as HTMLElement;
-      
-      const applyBlur = (el: HTMLElement, blur: string) => {
-        // First, disable animation and set current computed filter as starting point
-        const currentFilter = getComputedStyle(el).filter;
-        el.style.animation = 'none';
-        el.style.opacity = '1';
-        el.style.filter = currentFilter;
-        el.style.transition = 'filter 0.6s ease-out';
-        
-        // Then on next frame, apply the target blur
-        requestAnimationFrame(() => {
-          el.style.filter = blur;
-        });
-      };
-      
-      if (isAtRoot) {
-        if (bgVideo) applyBlur(bgVideo, 'blur(0px)');
-        if (bgFallbackImg) applyBlur(bgFallbackImg, 'blur(0px)');
-      } else {
-        if (bgVideo) applyBlur(bgVideo, 'blur(2.5px)');
-        if (bgFallbackImg) applyBlur(bgFallbackImg, 'blur(6px)');
-      }
-
       clearItems(() => renderItems());
     }
 

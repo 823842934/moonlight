@@ -156,19 +156,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       }
     }
 
-    /* Background blur when navigated into folders */
-    .bg-video.is-blurred,
-    .bg-fallback img.is-blurred {
-      animation: none !important;
-      filter: blur(12px) !important;
-      opacity: 1 !important;
-      transition: filter 0.4s ease-out;
-    }
-    .bg-video:not(.is-blurred),
-    .bg-fallback img:not(.is-blurred) {
-      transition: filter 0.4s ease-out;
-    }
-
     /* Animated WebP fallback (always works; used on iOS) */
     .bg-fallback {
       position: fixed;
