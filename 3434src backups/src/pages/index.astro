@@ -161,6 +161,47 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       update();
     }
 
+    // SVG symbols for tree structure
+    function createBranchSvg(): SVGElement {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", "1.2em");
+      svg.setAttribute("height", "1.2em");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.style.verticalAlign = "middle";
+      svg.style.marginRight = "0.3em";
+      svg.style.flexShrink = "0";
+      
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "M8 0 V24 M8 12 H24");
+      path.setAttribute("stroke", "currentColor");
+      path.setAttribute("stroke-width", "1.75");
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke-linecap", "round");
+      
+      svg.appendChild(path);
+      return svg;
+    }
+    
+    function createLastBranchSvg(): SVGElement {
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.setAttribute("width", "1.2em");
+      svg.setAttribute("height", "1.2em");
+      svg.setAttribute("viewBox", "0 0 24 24");
+      svg.style.verticalAlign = "middle";
+      svg.style.marginRight = "0.3em";
+      svg.style.flexShrink = "0";
+      
+      const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+      path.setAttribute("d", "M8 0 V12 H24");
+      path.setAttribute("stroke", "currentColor");
+      path.setAttribute("stroke-width", "1.75");
+      path.setAttribute("fill", "none");
+      path.setAttribute("stroke-linecap", "round");
+      
+      svg.appendChild(path);
+      return svg;
+    }
+
     function createItem(name: string, type: "folder" | "file" | "back", basePath?: string, isLast?: boolean, useTypewriter?: boolean): HTMLElement {
       const el = document.createElement("div");
       el.className = "folder-item";
@@ -186,7 +227,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       el.style.lineHeight = "1.2";
       el.style.padding = "4px 0";
       el.style.userSelect = "none";
-      el.style.display = "inline-block";
+      el.style.display = "inline-flex";
+      el.style.alignItems = "flex-start";
       el.style.width = "fit-content";
       el.style.maxWidth = "80vw";
 
@@ -195,11 +237,21 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         el.style.padding = "0 0 4px 0";
         el.style.marginBottom = "4px";
       } else if (useTypewriter) {
-        // Start empty for typewriter effect
-        el.textContent = '';
+        // Add SVG symbol immediately, text will be typed after
+        const svg = isLast ? createLastBranchSvg() : createBranchSvg();
+        el.appendChild(svg);
+        // Create a span for the typewriter text
+        const textSpan = document.createElement("span");
+        textSpan.className = "item-text";
+        el.appendChild(textSpan);
       } else {
-        const symbol = isLast ? "└── " : "├── ";
-        el.textContent = symbol + displayName;
+        // Add SVG symbol + text
+        const svg = isLast ? createLastBranchSvg() : createBranchSvg();
+        el.appendChild(svg);
+        const textSpan = document.createElement("span");
+        textSpan.className = "item-text";
+        textSpan.textContent = displayName;
+        el.appendChild(textSpan);
       }
 
       if (type === "folder" || type === "back") {
@@ -319,7 +371,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           const el = createItem(name, type, key, isLast, true);
           el.setAttribute("data-state", "entering");
           el.style.paddingLeft = "1em";
-          el.style.display = "block";
+          el.style.display = "inline-flex";
           el.style.width = window.innerHeight > window.innerWidth ? "55vw" : "320px";
           el.style.maxWidth = "100%";
           el.style.whiteSpace = "normal";
@@ -329,11 +381,8 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           el.style.textAlign = "left";
           nav.appendChild(el);
           
-          // Apply typewriter effect for all items - cascading
-          const symbol = isLast ? "└── " : "├── ";
-          // Use display name (strip link URL if present)
+          // Apply typewriter effect to text span only (SVG is already visible)
           const displayName = name.includes('->') ? name.split('->')[0] : name;
-          const fullText = symbol + displayName;
           
           // Check if we're in sections with longer text (needs faster speed)
           const isLegalInfo = key === "root/Legal/Info/Rights + Usage" || 
@@ -349,12 +398,15 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           for (let i = 0; i < index; i++) {
             const prevName = items[i];
             const prevDisplayName = prevName.includes('->') ? prevName.split('->')[0] : prevName;
-            totalPreviousChars += prevDisplayName.length + 4; // +4 for symbol
+            totalPreviousChars += prevDisplayName.length;
           }
           const delay = totalPreviousChars * speed + (index * 100); // chars * speed + small gap between items
           
           setTimeout(() => {
-            typewriterEffect(el, fullText, speed);
+            const textSpan = el.querySelector('.item-text') as HTMLElement;
+            if (textSpan) {
+              typewriterEffect(textSpan, displayName, speed);
+            }
           }, delay);
         });
       }

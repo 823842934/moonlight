@@ -602,5 +602,22 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         max-width: 80vw;
       }
     }
+
+    /* Landscape mobile - allow scrolling */
+    @media (max-width: 932px) and (orientation: landscape) {
+      html, body {
+        position: relative !important;
+        overflow-y: auto !important;
+        height: auto;
+        min-height: 100%;
+      }
+
+      .hero {
+        min-height: auto;
+        padding-top: 40px;
+        padding-bottom: 40px;
+        overflow: visible;
+      }
+    }
   </style>
 </FrameLayout>
