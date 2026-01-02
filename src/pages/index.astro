@@ -52,9 +52,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         "root/Legal": ["Info"],
         
         // L3 - About's children
-        "root/About/Biography": ["This body of work experiments with a range of mediums, producing forms and situations that explore aesthetics, emotion, and identity across different contexts. Fluid movement between material, digital, spatial, and procedural approaches does not privilege a single format.", "Personal, cultural, and visual references are translated into form through abstraction and reduction. Narrative is avoided in favor of structure, texture, and composition."],
-        "root/About/Statement": ["Placeholder"],
-        "root/About/Process": ["Placeholder"],
+        "root/About/Biography": ["This body of work experiments with a range of mediums, producing forms and situations that explore aesthetics, emotion, and identity across different contexts. The work moves fluidly between material, digital, spatial, and procedural approaches, without privileging a single format.", "Personal, cultural, and visual references are translated into form through abstraction and reduction. Narrative is avoided in favor of structure, texture, and composition."],
+        "root/About/Statement": ["Often, things that seem stable turn out to depend on position, context, and relation. What feels fixed shifts when it is seen from another angle, placed somewhere else, or encountered at a different time. That instability is where this begins, not as something to solve, but as something to notice.", "Nothing here is meant to resolve that. The forms are not explanations. They leave space for things to feel unclear at first. Confusion is treated as a starting point rather than a problem, and curiosity is what follows. Meaning is not delivered in advance, but allowed to take shape through experience."],
+        "root/About/Process": ["Work begins from a loose idea rather than a fixed plan. The idea establishes a direction, not an outcome. Decisions are made in response to what emerges during making rather than in advance.", "Forms are modified, removed, or discarded as they develop. Completion is not defined by criteria, but by a point at which further change no longer feels necessary."],
         
         // L3 - Contact's children
         "root/Contact/Social": ["Instagram->https://www.instagram.com/brandyura"],
@@ -65,7 +65,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
         // L4 - Info's children
         "root/Legal/Info/Rights + Usage": ["All content on this website, including but not limited to images, text, video, and other media, is protected by copyright and remains the property of the artist unless otherwise stated.", "The content may be viewed for personal and informational purposes and may be shared by linking to this site. No content may be copied, reproduced, modified, distributed, transmitted, displayed, published, or used for any commercial or public purpose without prior written permission from the artist.", "Nothing on this website shall be construed as granting any license or right to use the content beyond personal viewing and linking."],
         "root/Legal/Info/Licensing": ["Licenses may be granted for limited purposes such as publication, exhibition, reproduction, editorial use, or other specific uses as agreed in writing. All licenses are non-exclusive, non-transferable, and apply only to the particular use approved. No license is implied by the presence of content on this website or by access to it.", "Requests for licensing must include a clear description of the intended use, context, duration, and distribution. Approval, modification, or denial of any request is at the sole discretion of the artist."],
-        "root/Legal/Info/Disclosures": ["This website does not currently include sponsored content, paid placements, or third-party promotional material."],
+        "root/Legal/Info/Disclosures": ["This website does not include sponsored content, paid placements, or third-party promotional material."],
       };
 
       // Generate study paths
@@ -317,10 +317,13 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           el.setAttribute("data-state", "entering");
           el.style.paddingLeft = "1em";
           el.style.display = "block";
-          el.style.width = "auto";
-          el.style.maxWidth = "400px";
+          el.style.width = window.innerHeight > window.innerWidth ? "55vw" : "320px";
+          el.style.maxWidth = "100%";
           el.style.whiteSpace = "normal";
           el.style.wordWrap = "break-word";
+          el.style.wordBreak = "break-word";
+          el.style.overflowWrap = "break-word";
+          el.style.textAlign = "left";
           nav.appendChild(el);
           
           // Apply typewriter effect for all items - cascading
@@ -333,8 +336,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           const isLegalInfo = key === "root/Legal/Info/Rights + Usage" || 
                              key === "root/Legal/Info/Licensing" || 
                              key === "root/Legal/Info/Disclosures";
-          const isBiography = key === "root/About/Biography";
-          const speed = (isLegalInfo || isBiography) ? 2 : 5;
+          const isAboutSection = key === "root/About/Biography" ||
+                                 key === "root/About/Statement" ||
+                                 key === "root/About/Process";
+          const speed = (isLegalInfo || isAboutSection) ? 2 : 5;
           
           // Calculate delay based on total length of all previous items
           let totalPreviousChars = 0;
@@ -452,6 +457,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       margin-top: 20px;
       display: flex;
       flex-direction: column;
+      align-items: flex-start;
       gap: 4px;
       overflow-y: auto;
       padding-bottom: 20px;
@@ -526,6 +532,19 @@ import FrameLayout from "../layouts/FrameLayout.astro";
 
       #logo {
         font-size: clamp(22px, 6vw, 28px);
+      }
+
+      .folder-item {
+        max-width: 80vw;
+        word-break: break-word;
+        overflow-wrap: break-word;
+      }
+    }
+
+    /* Portrait orientation - wrap text sooner */
+    @media (orientation: portrait) {
+      .folder-item {
+        max-width: 80vw;
       }
     }
   </style>
