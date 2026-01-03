@@ -62,11 +62,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       --corner-inset: 22px;
       --corner-size: 28px;
 
-      --intro-ms: 3000ms;
-      --intro-ease: cubic-bezier(.2,.9,.2,1);
-      --intro-blur: 18px;
-      --intro-scale: 0.985;
-
       --cascade-ms: 420ms;
       --cascade-stagger: 80ms;
       --cascade-from-opacity: 0.25;
@@ -123,8 +118,18 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       overflow-x: clip;
     }
 
-    /* background video */
-    .bg-video {
+    body.video-playing,
+    body.video-playing * {
+      cursor: default !important;
+      pointer-events: none !important;
+    }
+    
+    body.video-playing video {
+      pointer-events: auto !important;
+    }
+
+    /* background image */
+    .bg-image {
       position: fixed;
       inset: 0;
       width: 100%;
@@ -132,20 +137,46 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       background: #ffffff;
       z-index: 0;
       pointer-events: none;
-      transform: translateY(30%) translateZ(0);
       object-fit: contain;
       object-position: center center;
-      will-change: transform, filter;
+      will-change: opacity;
+      isolation: isolate;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+      contain: layout style paint;
+      opacity: 1;
+    }
+
+    .bg-image.hidden {
+      opacity: 0;
+      visibility: hidden;
+    }
+
+    /* background video (for transitions) */
+    .bg-video {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 0;
+      pointer-events: none;
+      object-fit: contain;
+      object-position: center center;
+      will-change: opacity;
       isolation: isolate;
       backface-visibility: hidden;
       -webkit-backface-visibility: hidden;
       contain: layout style paint;
       opacity: 0;
-      filter: blur(20px);
-      animation: videoBlurIn 0.5s ease-out 1s forwards;
+      visibility: hidden;
     }
 
-    @keyframes videoBlurIn {
+    .bg-video.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    @keyframes imageBlurIn {
       from {
         filter: blur(20px);
         opacity: 0;
@@ -156,42 +187,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       }
     }
 
-    /* Animated WebP fallback (always works; used on iOS) */
-    .bg-fallback {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      background: #ffffff;
-      z-index: 0;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity 160ms linear;
-      will-change: opacity;
-      isolation: isolate;
-      contain: layout style paint;
-    }
-    .bg-fallback img {
-      width: 100%;
-      height: 100%;
-      display: block;
-      object-fit: contain;
-      object-position: center center;
-      transform: translateY(30%) translateZ(0);
-      backface-visibility: hidden;
-      -webkit-backface-visibility: hidden;
-      opacity: 0;
-      filter: blur(20px);
-      animation: videoBlurIn 0.5s ease-out 1s forwards;
-    }
-
     /* Tall screens (phones) */
     @media (max-width: 640px) {
+      .bg-image,
       .bg-video {
-        object-fit: cover;
-        object-position: center center;
-      }
-      .bg-fallback img {
         object-fit: cover;
         object-position: center center;
       }
@@ -199,63 +198,26 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     /* Ultra-wide or landscape tablets/desktops */
     @media (min-aspect-ratio: 19/10) {
+      .bg-image,
       .bg-video {
-        object-fit: cover;
-        object-position: center center;
-      }
-      .bg-fallback img {
         object-fit: cover;
         object-position: center center;
       }
     }
 
-    /* Landscape mobile - reduce video offset */
+    /* Landscape mobile */
     @media (max-width: 932px) and (orientation: landscape) {
+      .bg-image,
       .bg-video {
-        transform: translateY(10%) translateZ(0);
-      }
-      .bg-fallback img {
-        transform: translateY(10%) translateZ(0);
+        object-fit: cover;
       }
     }
-
-    /*
-      iOS Safari can freeze background video after app switching.
-      The only zero-UI, always-moving solution is: use WebP on iOS.
-    */
-    body.is-ios .bg-video { display: none !important; }
-    body.is-ios .bg-fallback { opacity: 1; }
 
     .page-intro-wrap {
       position: relative;
       z-index: 1;
       min-height: 100%;
-      transition:
-        filter var(--intro-ms) var(--intro-ease),
-        transform var(--intro-ms) var(--intro-ease);
-      will-change: filter, transform;
     }
-
-    .intro-wash {
-      position: fixed;
-      inset: 0;
-      background: #ffffff;
-      z-index: 9000;
-      pointer-events: none;
-      opacity: 0;
-      transition: opacity var(--intro-ms) var(--intro-ease);
-      will-change: opacity;
-    }
-
-    body.is-intro { overflow: hidden; }
-
-    body.is-intro .page-intro-wrap {
-      filter: blur(var(--intro-blur));
-      transform: scale(var(--intro-scale));
-      transform-origin: center;
-    }
-
-    body.is-intro .intro-wash { opacity: 1; }
 
     .corner-plus {
       position: fixed;
@@ -268,12 +230,10 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       user-select: none;
       pointer-events: none;
       transform-origin: center;
-      will-change: transform, opacity;
-      transform: rotate(0deg) scale(1);
-      opacity: 1;
       transition:
         transform var(--plus-ms) var(--plus-ease),
         opacity var(--plus-ms) var(--plus-ease);
+      will-change: transform, opacity;
     }
 
     .corner-plus.tl { top: var(--corner-inset); left: var(--corner-inset); }
@@ -283,21 +243,20 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     body.plus-merged .corner-plus.tl,
     body.plus-merged .corner-plus.bl {
-      transform: rotate(360deg) scale(var(--left-scale));
-      opacity: 1;
+      transform: translateX(calc(50vw - var(--corner-inset) - var(--corner-size)/2)) scale(var(--left-scale));
+      opacity: 0;
     }
-
     body.plus-merged .corner-plus.tr,
     body.plus-merged .corner-plus.br {
-      transform: rotate(360deg) scale(var(--right-scale));
+      transform: translateX(calc(-50vw + var(--corner-inset) + var(--corner-size)/2)) scale(var(--right-scale));
       opacity: 0;
     }
 
     @keyframes studyCascadeIn {
       from {
-        opacity: var(--cascade-from-opacity);
-        transform: translateY(var(--cascade-from-y));
-        filter: blur(var(--cascade-from-blur));
+        opacity: var(--cascade-from-opacity, 0.25);
+        transform: translateY(var(--cascade-from-y, -10px));
+        filter: blur(var(--cascade-from-blur, 1px));
       }
       to {
         opacity: 1;
@@ -308,9 +267,9 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
     @keyframes introCascadeIn {
       from {
-        opacity: var(--intro-cascade-from-opacity);
-        transform: translateY(var(--intro-cascade-from-y));
-        filter: blur(var(--intro-cascade-from-blur));
+        opacity: var(--intro-cascade-from-opacity, 0);
+        transform: translateY(var(--intro-cascade-from-y, -10px));
+        filter: blur(var(--intro-cascade-from-blur, 2px));
       }
       to {
         opacity: 1;
@@ -318,49 +277,66 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         filter: blur(0);
       }
     }
-
-    @media (prefers-reduced-motion: reduce) {
-      :root {
-        --intro-ms: 0ms;
-        --cascade-ms: 0ms;
-        --cascade-stagger: 0ms;
-        --intro-cascade-ms: 0ms;
-        --intro-cascade-stagger: 0ms;
-        --plus-ms: 0ms;
-      }
-      .intro-wash { display: none; }
-      .corner-plus { transition: none !important; }
-      .bg-fallback { transition: none !important; }
-    }
   </style>
 </head>
 
-<body class="is-intro">
+<body>
+  <!-- Intro video (plays on page load) -->
+  <video
+    class="bg-video visible"
+    id="bg-video-intro"
+    muted
+    playsinline
+    webkit-playsinline
+    autoplay
+    preload="auto"
+    aria-hidden="true"
+    tabindex="-1"
+  >
+    <source src="/0000-0051.mp4" type="video/mp4" />
+  </video>
+
+  <!-- Background image (hidden until intro video ends) -->
+  <img
+    class="bg-image hidden"
+    id="bg-image"
+    src="/bradnyura-tile-rendertest1.png"
+    alt=""
+    aria-hidden="true"
+  />
+
+  <!-- Background video (hidden by default) -->
   <video
     class="bg-video"
-    autoplay
+    id="bg-video"
     muted
-    loop
     playsinline
     webkit-playsinline
     preload="auto"
     aria-hidden="true"
     tabindex="-1"
   >
-    <source src="/brandyura.mp4" type="video/mp4" />
+    <source src="/0071-0096.mp4" type="video/mp4" />
   </video>
 
-  <!-- iOS background: public/brandyura.webp -->
-  <div class="bg-fallback" aria-hidden="true">
-    <img src="/brandyura.webp" alt="" />
-  </div>
+  <!-- Background video for back transition -->
+  <video
+    class="bg-video"
+    id="bg-video-back"
+    muted
+    playsinline
+    webkit-playsinline
+    preload="auto"
+    aria-hidden="true"
+    tabindex="-1"
+  >
+    <source src="/0070-0096rev.mp4" type="video/mp4" />
+  </video>
 
   <div class="corner-plus tl">＋</div>
   <div class="corner-plus tr">＋</div>
   <div class="corner-plus bl">＋</div>
   <div class="corner-plus br">＋</div>
-
-  <div class="intro-wash" aria-hidden="true"></div>
 
   <div class="page-intro-wrap">
     <slot />
@@ -368,41 +344,111 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
   <script is:inline>
     (() => {
-      // Aggressive video playback protection
-      const video = document.querySelector('.bg-video');
-      if (video) {
-        // Force video to stay playing
-        const keepPlaying = () => {
-          if (video.paused) {
-            video.play().catch(() => {});
-          }
-        };
-
-        // Monitor for any interruptions
-        video.addEventListener('pause', keepPlaying);
-        video.addEventListener('suspend', keepPlaying);
-        
-        // Check every animation frame
-        let lastCheck = 0;
-        const checkPlayback = (timestamp) => {
-          if (timestamp - lastCheck > 100) { // Check every 100ms
-            keepPlaying();
-            lastCheck = timestamp;
-          }
-          requestAnimationFrame(checkPlayback);
-        };
-        requestAnimationFrame(checkPlayback);
-
-        // Ensure video is on its own layer
-        video.style.willChange = 'transform';
-      }
-
       const root = document.documentElement;
 
-      // iOS: always use WebP background (no freeze, no taps, no switching logic)
-      const ua = navigator.userAgent || "";
-      const isIOS = /iPhone|iPad|iPod/i.test(ua);
-      if (isIOS) document.body.classList.add("is-ios");
+      // Video transition elements
+      const bgImage = document.getElementById('bg-image');
+      const bgVideo = document.getElementById('bg-video');
+      const bgVideoBack = document.getElementById('bg-video-back');
+      const bgVideoIntro = document.getElementById('bg-video-intro');
+
+      // Lock to prevent clicks during video playback
+      let isVideoPlaying = true; // Start locked since intro is playing
+
+      // Set body class for cursor
+      document.body.classList.add('video-playing');
+
+      // Handle intro video ending
+      if (bgVideoIntro) {
+        bgVideoIntro.addEventListener('ended', () => {
+          bgVideoIntro.classList.remove('visible');
+          bgImage.classList.remove('hidden');
+          bgImage.classList.add('fade-in');
+          isVideoPlaying = false;
+          document.body.classList.remove('video-playing');
+        });
+      }
+
+      // Trigger items that should play the video
+      const videoTriggerItems = ['studies', 'biography', 'statement', 'process', 'social', 'info'];
+
+      // Check if a clicked item should trigger video
+      const shouldTriggerVideo = (itemName) => {
+        return videoTriggerItems.includes(itemName.toLowerCase());
+      };
+
+      // Play video transition: hide image -> show & play video -> on end, hide video -> show image
+      const playVideoTransition = () => {
+        if (!bgImage || !bgVideo || isVideoPlaying) return;
+
+        isVideoPlaying = true;
+        document.body.classList.add('video-playing');
+
+        // IMMEDIATELY hide image and show video - no waiting
+        bgImage.style.visibility = 'hidden';
+        bgImage.style.opacity = '0';
+        bgVideo.style.visibility = 'visible';
+        bgVideo.style.opacity = '1';
+        bgImage.classList.add('hidden');
+        bgVideo.classList.add('visible');
+        
+        // Reset and play video
+        bgVideo.currentTime = 0;
+        bgVideo.play().catch(() => {});
+
+        // When video ends, swap back to image
+        const onEnded = () => {
+          bgVideo.classList.remove('visible');
+          bgVideo.style.visibility = '';
+          bgVideo.style.opacity = '';
+          bgImage.classList.remove('hidden');
+          bgImage.style.visibility = '';
+          bgImage.style.opacity = '';
+          bgVideo.removeEventListener('ended', onEnded);
+          isVideoPlaying = false;
+          document.body.classList.remove('video-playing');
+        };
+        bgVideo.addEventListener('ended', onEnded);
+      };
+
+      // Play back video transition (L2 -> L1)
+      const playBackVideoTransition = () => {
+        if (!bgImage || !bgVideoBack || isVideoPlaying) return;
+
+        isVideoPlaying = true;
+        document.body.classList.add('video-playing');
+
+        // IMMEDIATELY hide image and show video - no waiting
+        bgImage.style.visibility = 'hidden';
+        bgImage.style.opacity = '0';
+        bgVideoBack.style.visibility = 'visible';
+        bgVideoBack.style.opacity = '1';
+        bgImage.classList.add('hidden');
+        bgVideoBack.classList.add('visible');
+        
+        // Reset and play video
+        bgVideoBack.currentTime = 0;
+        bgVideoBack.play().catch(() => {});
+
+        // When video ends, swap back to image
+        const onEnded = () => {
+          bgVideoBack.classList.remove('visible');
+          bgVideoBack.style.visibility = '';
+          bgVideoBack.style.opacity = '';
+          bgImage.classList.remove('hidden');
+          bgImage.style.visibility = '';
+          bgImage.style.opacity = '';
+          bgVideoBack.removeEventListener('ended', onEnded);
+          isVideoPlaying = false;
+          document.body.classList.remove('video-playing');
+        };
+        bgVideoBack.addEventListener('ended', onEnded);
+      };
+
+      // Expose functions globally so index.astro can call them
+      window.playBackgroundVideo = playVideoTransition;
+      window.playBackgroundVideoBack = playBackVideoTransition;
+      window.isBackgroundVideoPlaying = () => isVideoPlaying;
 
       // study triggers (existing)
       const isStudyTrigger = (el) => {
@@ -552,6 +598,38 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         const target = e.target;
         if (!target || !target.closest) return;
 
+        // Block all clicks while video is playing (but allow the initial click through)
+        if (isVideoPlaying) {
+          e.stopPropagation();
+          e.preventDefault();
+          return;
+        }
+
+        // Trigger videos IMMEDIATELY on click
+        // Check for folder item clicks that should trigger video (L1 -> L2)
+        const folderItem = target.closest(".folder-item.folder");
+        if (folderItem) {
+          const itemName = folderItem.dataset.name || folderItem.textContent || "";
+          if (shouldTriggerVideo(itemName.trim())) {
+            playVideoTransition();
+            // Don't block - let the click continue to index.astro
+          }
+        }
+
+        // Check for back button click from L2 to L1 ONLY
+        const backItem = target.closest(".folder-item.back");
+        if (backItem) {
+          const parentHeader = document.querySelector('.folder-header');
+          if (parentHeader && parentHeader.textContent) {
+            const headerText = parentHeader.textContent.replace('└── ', '').trim().toLowerCase();
+            const l2Items = ['studies', 'biography', 'statement', 'process', 'social', 'info'];
+            if (l2Items.includes(headerText)) {
+              playBackVideoTransition();
+              // Don't block - let the click continue to index.astro
+            }
+          }
+        }
+
         // Check if animation is in progress
         if (document.body.hasAttribute('data-is-animating')) {
           e.stopPropagation();
@@ -592,7 +670,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          document.body.classList.remove("is-intro");
           window.runGalleryIntroCascadeOnce?.();
 
           requestAnimationFrame(() => {

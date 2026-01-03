@@ -209,6 +209,16 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       }
     }
 
+    /* Landscape mobile - reduce video offset */
+    @media (max-width: 932px) and (orientation: landscape) {
+      .bg-video {
+        transform: translateY(10%) translateZ(0);
+      }
+      .bg-fallback img {
+        transform: translateY(10%) translateZ(0);
+      }
+    }
+
     /*
       iOS Safari can freeze background video after app switching.
       The only zero-UI, always-moving solution is: use WebP on iOS.

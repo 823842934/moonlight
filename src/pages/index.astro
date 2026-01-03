@@ -111,7 +111,7 @@ import FrameLayout from "../layouts/FrameLayout.astro";
       isNavigating = true; // Lock navigation for entire transition
       
       // Flash sequence: black (100%) -> white (0%) -> black (100%) -> pause -> navigate
-      el.style.transition = 'opacity 70ms ease-out';
+      el.style.transition = 'opacity 150ms ease-out';
       el.style.opacity = '0';
       
       setTimeout(() => {
@@ -129,9 +129,9 @@ import FrameLayout from "../layouts/FrameLayout.astro";
             setTimeout(() => {
               isNavigating = false;
             }, 300);
-          }, 50);
-        }, 70);
-      }, 70);
+          }, 100);
+        }, 150);
+      }, 150);
     }
 
     // Typewriter effect function - uses Date.now() to continue even when tab is inactive
@@ -271,12 +271,27 @@ import FrameLayout from "../layouts/FrameLayout.astro";
           if (isAnimating || isNavigating) return;
           
           if (type === "folder") {
+            // Trigger video IMMEDIATELY before any animation
+            const videoTriggers = ['studies', 'biography', 'statement', 'process', 'social', 'info'];
+            if (videoTriggers.includes(displayName.toLowerCase()) && window.playBackgroundVideo) {
+              window.playBackgroundVideo();
+            }
+            
             // Apply flash effect then navigate
             triggerFlashEffect(el, () => {
               handleClick(displayName, type, basePath);
             });
           } else {
-            // Back button - no flash, navigate immediately
+            // Back button - check if going from L2 to L1
+            const l2Items = ['studies', 'biography', 'statement', 'process', 'social', 'info'];
+            const parentHeader = document.querySelector('.folder-header');
+            if (parentHeader && parentHeader.textContent) {
+              const headerText = parentHeader.textContent.replace('└── ', '').trim().toLowerCase();
+              if (l2Items.includes(headerText) && window.playBackgroundVideoBack) {
+                window.playBackgroundVideoBack();
+              }
+            }
+            
             isNavigating = true;
             handleClick(displayName, type, basePath);
             setTimeout(() => {
@@ -484,8 +499,10 @@ import FrameLayout from "../layouts/FrameLayout.astro";
     .hero {
       min-height: 100dvh;
       padding: clamp(100px, 15vh, 160px) 5vw clamp(16px, 4vh, calc(var(--corner-inset, 22px) + var(--corner-size, 28px)));
+      padding-left: 8vw;
+      padding-top: 30vh;
       display: flex;
-      justify-content: center;
+      justify-content: flex-start;
       align-items: flex-start;
       overflow-x: hidden;
     }
