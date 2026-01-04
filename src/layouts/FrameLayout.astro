@@ -384,27 +384,32 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         isVideoPlaying = true;
         document.body.classList.add('video-playing');
 
-        // Helper to hide image and start video playback
-        const startPlayback = () => {
-          // Now safe to hide image - video has pixels ready
-          bgImage.style.visibility = 'hidden';
-          bgImage.style.opacity = '0';
-          bgImage.classList.add('hidden');
-          bgVideo.play().catch(() => {});
-        };
-
-        // Prepare video element (visible but layered, image still on top visually)
+        // Prepare video element
+        bgVideo.currentTime = 0;
         bgVideo.style.visibility = 'visible';
         bgVideo.style.opacity = '1';
         bgVideo.classList.add('visible');
-        bgVideo.currentTime = 0;
 
-        // Wait for video to have enough data before hiding image
-        // readyState >= 2 means HAVE_CURRENT_DATA (has at least current frame)
-        if (bgVideo.readyState >= 2) {
-          startPlayback();
+        // Hide image and play - using play() promise to ensure video is ready
+        const playPromise = bgVideo.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            // Video is playing, safe to hide image
+            bgImage.style.visibility = 'hidden';
+            bgImage.style.opacity = '0';
+            bgImage.classList.add('hidden');
+          }).catch(() => {
+            // Autoplay failed, hide image anyway and try to continue
+            bgImage.style.visibility = 'hidden';
+            bgImage.style.opacity = '0';
+            bgImage.classList.add('hidden');
+          });
         } else {
-          bgVideo.addEventListener('canplay', startPlayback, { once: true });
+          // Fallback for older browsers
+          bgImage.style.visibility = 'hidden';
+          bgImage.style.opacity = '0';
+          bgImage.classList.add('hidden');
         }
 
         // When video ends, swap back to image
@@ -429,27 +434,32 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         isVideoPlaying = true;
         document.body.classList.add('video-playing');
 
-        // Helper to hide image and start video playback
-        const startPlayback = () => {
-          // Now safe to hide image - video has pixels ready
-          bgImage.style.visibility = 'hidden';
-          bgImage.style.opacity = '0';
-          bgImage.classList.add('hidden');
-          bgVideoBack.play().catch(() => {});
-        };
-
-        // Prepare video element (visible but layered, image still on top visually)
+        // Prepare video element
+        bgVideoBack.currentTime = 0;
         bgVideoBack.style.visibility = 'visible';
         bgVideoBack.style.opacity = '1';
         bgVideoBack.classList.add('visible');
-        bgVideoBack.currentTime = 0;
 
-        // Wait for video to have enough data before hiding image
-        // readyState >= 2 means HAVE_CURRENT_DATA (has at least current frame)
-        if (bgVideoBack.readyState >= 2) {
-          startPlayback();
+        // Hide image and play - using play() promise to ensure video is ready
+        const playPromise = bgVideoBack.play();
+        
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            // Video is playing, safe to hide image
+            bgImage.style.visibility = 'hidden';
+            bgImage.style.opacity = '0';
+            bgImage.classList.add('hidden');
+          }).catch(() => {
+            // Autoplay failed, hide image anyway and try to continue
+            bgImage.style.visibility = 'hidden';
+            bgImage.style.opacity = '0';
+            bgImage.classList.add('hidden');
+          });
         } else {
-          bgVideoBack.addEventListener('canplay', startPlayback, { once: true });
+          // Fallback for older browsers
+          bgImage.style.visibility = 'hidden';
+          bgImage.style.opacity = '0';
+          bgImage.classList.add('hidden');
         }
 
         // When video ends, swap back to image
