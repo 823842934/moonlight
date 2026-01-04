@@ -377,24 +377,35 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         return videoTriggerItems.includes(itemName.toLowerCase());
       };
 
-      // Play video transition: hide image -> show & play video -> on end, hide video -> show image
+      // Play video transition: wait for video ready, then hide image -> play video -> on end, show image
       const playVideoTransition = () => {
         if (!bgImage || !bgVideo || isVideoPlaying) return;
 
         isVideoPlaying = true;
         document.body.classList.add('video-playing');
 
-        // IMMEDIATELY hide image and show video - no waiting
-        bgImage.style.visibility = 'hidden';
-        bgImage.style.opacity = '0';
+        // Helper to hide image and start video playback
+        const startPlayback = () => {
+          // Now safe to hide image - video has pixels ready
+          bgImage.style.visibility = 'hidden';
+          bgImage.style.opacity = '0';
+          bgImage.classList.add('hidden');
+          bgVideo.play().catch(() => {});
+        };
+
+        // Prepare video element (visible but layered, image still on top visually)
         bgVideo.style.visibility = 'visible';
         bgVideo.style.opacity = '1';
-        bgImage.classList.add('hidden');
         bgVideo.classList.add('visible');
-        
-        // Reset and play video
         bgVideo.currentTime = 0;
-        bgVideo.play().catch(() => {});
+
+        // Wait for video to have enough data before hiding image
+        // readyState >= 2 means HAVE_CURRENT_DATA (has at least current frame)
+        if (bgVideo.readyState >= 2) {
+          startPlayback();
+        } else {
+          bgVideo.addEventListener('canplay', startPlayback, { once: true });
+        }
 
         // When video ends, swap back to image
         const onEnded = () => {
@@ -418,17 +429,28 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
         isVideoPlaying = true;
         document.body.classList.add('video-playing');
 
-        // IMMEDIATELY hide image and show video - no waiting
-        bgImage.style.visibility = 'hidden';
-        bgImage.style.opacity = '0';
+        // Helper to hide image and start video playback
+        const startPlayback = () => {
+          // Now safe to hide image - video has pixels ready
+          bgImage.style.visibility = 'hidden';
+          bgImage.style.opacity = '0';
+          bgImage.classList.add('hidden');
+          bgVideoBack.play().catch(() => {});
+        };
+
+        // Prepare video element (visible but layered, image still on top visually)
         bgVideoBack.style.visibility = 'visible';
         bgVideoBack.style.opacity = '1';
-        bgImage.classList.add('hidden');
         bgVideoBack.classList.add('visible');
-        
-        // Reset and play video
         bgVideoBack.currentTime = 0;
-        bgVideoBack.play().catch(() => {});
+
+        // Wait for video to have enough data before hiding image
+        // readyState >= 2 means HAVE_CURRENT_DATA (has at least current frame)
+        if (bgVideoBack.readyState >= 2) {
+          startPlayback();
+        } else {
+          bgVideoBack.addEventListener('canplay', startPlayback, { once: true });
+        }
 
         // When video ends, swap back to image
         const onEnded = () => {
