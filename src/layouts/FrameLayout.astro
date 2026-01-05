@@ -447,36 +447,48 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           }
           
           if (activeVideo) {
-            const playPromise = activeVideo.play();
+            // Store current time before reload
+            const currentTime = activeVideo.currentTime;
             
-            if (playPromise !== undefined) {
-              playPromise.catch(() => {
-                // Resume failed (mobile autoplay restriction) - skip to end state
-                if (bgVideoIntro) {
-                  bgVideoIntro.classList.remove('visible');
-                }
-                if (bgVideo) {
-                  bgVideo.classList.remove('visible');
-                  bgVideo.style.visibility = '';
-                  bgVideo.style.opacity = '';
-                }
-                if (bgVideoBack) {
-                  bgVideoBack.classList.remove('visible');
-                  bgVideoBack.style.visibility = '';
-                  bgVideoBack.style.opacity = '';
-                }
-                if (splashOverlay) {
-                  splashOverlay.classList.add('hidden');
-                }
-                if (bgImage) {
-                  bgImage.classList.remove('hidden');
-                  bgImage.style.visibility = '';
-                  bgImage.style.opacity = '';
-                }
-                isVideoPlaying = false;
-                document.body.classList.remove('video-playing');
-              });
-            }
+            // Force muted via JS (helps Safari)
+            activeVideo.muted = true;
+            
+            // Small timeout to let browser settle
+            setTimeout(() => {
+              // Restore position and try to play
+              activeVideo.currentTime = currentTime;
+              
+              const playPromise = activeVideo.play();
+              
+              if (playPromise !== undefined) {
+                playPromise.catch(() => {
+                  // Resume failed (mobile autoplay restriction) - skip to end state
+                  if (bgVideoIntro) {
+                    bgVideoIntro.classList.remove('visible');
+                  }
+                  if (bgVideo) {
+                    bgVideo.classList.remove('visible');
+                    bgVideo.style.visibility = '';
+                    bgVideo.style.opacity = '';
+                  }
+                  if (bgVideoBack) {
+                    bgVideoBack.classList.remove('visible');
+                    bgVideoBack.style.visibility = '';
+                    bgVideoBack.style.opacity = '';
+                  }
+                  if (splashOverlay) {
+                    splashOverlay.classList.add('hidden');
+                  }
+                  if (bgImage) {
+                    bgImage.classList.remove('hidden');
+                    bgImage.style.visibility = '';
+                    bgImage.style.opacity = '';
+                  }
+                  isVideoPlaying = false;
+                  document.body.classList.remove('video-playing');
+                });
+              }
+            }, 100);
           }
         }
       });
