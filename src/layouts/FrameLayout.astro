@@ -447,48 +447,52 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           }
           
           if (activeVideo) {
-            // Store current time before reload
-            const currentTime = activeVideo.currentTime;
-            
             // Force muted via JS (helps Safari)
             activeVideo.muted = true;
             
-            // Small timeout to let browser settle
+            let didResume = false;
+            
+            // Listen for actual playback starting
+            const onPlaying = () => {
+              didResume = true;
+              activeVideo.removeEventListener('playing', onPlaying);
+            };
+            activeVideo.addEventListener('playing', onPlaying);
+            
+            // Try to play
+            activeVideo.play().catch(() => {});
+            
+            // If video hasn't resumed within 500ms, skip to end
             setTimeout(() => {
-              // Restore position and try to play
-              activeVideo.currentTime = currentTime;
-              
-              const playPromise = activeVideo.play();
-              
-              if (playPromise !== undefined) {
-                playPromise.catch(() => {
-                  // Resume failed (mobile autoplay restriction) - skip to end state
-                  if (bgVideoIntro) {
-                    bgVideoIntro.classList.remove('visible');
-                  }
-                  if (bgVideo) {
-                    bgVideo.classList.remove('visible');
-                    bgVideo.style.visibility = '';
-                    bgVideo.style.opacity = '';
-                  }
-                  if (bgVideoBack) {
-                    bgVideoBack.classList.remove('visible');
-                    bgVideoBack.style.visibility = '';
-                    bgVideoBack.style.opacity = '';
-                  }
-                  if (splashOverlay) {
-                    splashOverlay.classList.add('hidden');
-                  }
-                  if (bgImage) {
-                    bgImage.classList.remove('hidden');
-                    bgImage.style.visibility = '';
-                    bgImage.style.opacity = '';
-                  }
-                  isVideoPlaying = false;
-                  document.body.classList.remove('video-playing');
-                });
+              if (!didResume && activeVideo.paused) {
+                activeVideo.removeEventListener('playing', onPlaying);
+                
+                // Skip to end state
+                if (bgVideoIntro) {
+                  bgVideoIntro.classList.remove('visible');
+                }
+                if (bgVideo) {
+                  bgVideo.classList.remove('visible');
+                  bgVideo.style.visibility = '';
+                  bgVideo.style.opacity = '';
+                }
+                if (bgVideoBack) {
+                  bgVideoBack.classList.remove('visible');
+                  bgVideoBack.style.visibility = '';
+                  bgVideoBack.style.opacity = '';
+                }
+                if (splashOverlay) {
+                  splashOverlay.classList.add('hidden');
+                }
+                if (bgImage) {
+                  bgImage.classList.remove('hidden');
+                  bgImage.style.visibility = '';
+                  bgImage.style.opacity = '';
+                }
+                isVideoPlaying = false;
+                document.body.classList.remove('video-playing');
               }
-            }, 100);
+            }, 500);
           }
         }
       });
