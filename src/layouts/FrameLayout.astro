@@ -438,55 +438,47 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           // User returned and video was playing - try to resume
           let activeVideo = null;
           
-          if (bgVideoIntro && bgVideoIntro.classList.contains('visible') && bgVideoIntro.paused) {
+          if (bgVideoIntro && bgVideoIntro.classList.contains('visible')) {
             activeVideo = bgVideoIntro;
-          } else if (bgVideo && bgVideo.classList.contains('visible') && bgVideo.paused) {
+          } else if (bgVideo && bgVideo.classList.contains('visible')) {
             activeVideo = bgVideo;
-          } else if (bgVideoBack && bgVideoBack.classList.contains('visible') && bgVideoBack.paused) {
+          } else if (bgVideoBack && bgVideoBack.classList.contains('visible')) {
             activeVideo = bgVideoBack;
           }
           
           if (activeVideo) {
-            const currentTime = activeVideo.currentTime;
+            const startTime = activeVideo.currentTime;
             
             // Force muted
             activeVideo.muted = true;
-            activeVideo.setAttribute('muted', '');
-            activeVideo.setAttribute('playsinline', '');
-            activeVideo.setAttribute('webkit-playsinline', '');
             
-            // Nudge the time slightly to wake up decoder
-            activeVideo.currentTime = currentTime + 0.001;
-            
-            let didResume = false;
-            
-            const onPlaying = () => {
-              didResume = true;
-              activeVideo.removeEventListener('playing', onPlaying);
-            };
-            activeVideo.addEventListener('playing', onPlaying);
+            // Nudge time to wake up decoder
+            activeVideo.currentTime = startTime + 0.001;
             
             // Try to play
             activeVideo.play().catch(() => {});
             
-            // If video hasn't resumed within 500ms, skip to end
+            // Check if video is actually progressing after 300ms
             setTimeout(() => {
-              if (!didResume && activeVideo.paused) {
-                activeVideo.removeEventListener('playing', onPlaying);
-                
-                // Skip to end state
+              const hasProgressed = activeVideo.currentTime > startTime + 0.01;
+              
+              if (!hasProgressed) {
+                // Video is stuck - skip to end state
                 if (bgVideoIntro) {
                   bgVideoIntro.classList.remove('visible');
+                  bgVideoIntro.pause();
                 }
                 if (bgVideo) {
                   bgVideo.classList.remove('visible');
                   bgVideo.style.visibility = '';
                   bgVideo.style.opacity = '';
+                  bgVideo.pause();
                 }
                 if (bgVideoBack) {
                   bgVideoBack.classList.remove('visible');
                   bgVideoBack.style.visibility = '';
                   bgVideoBack.style.opacity = '';
+                  bgVideoBack.pause();
                 }
                 if (splashOverlay) {
                   splashOverlay.classList.add('hidden');
@@ -499,7 +491,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
                 isVideoPlaying = false;
                 document.body.classList.remove('video-playing');
               }
-            }, 500);
+            }, 300);
           }
         }
       });
