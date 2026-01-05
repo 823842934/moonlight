@@ -447,12 +447,19 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           }
           
           if (activeVideo) {
-            // Force muted via JS (helps Safari)
+            const currentTime = activeVideo.currentTime;
+            
+            // Force muted
             activeVideo.muted = true;
+            activeVideo.setAttribute('muted', '');
+            activeVideo.setAttribute('playsinline', '');
+            activeVideo.setAttribute('webkit-playsinline', '');
+            
+            // Nudge the time slightly to wake up decoder
+            activeVideo.currentTime = currentTime + 0.001;
             
             let didResume = false;
             
-            // Listen for actual playback starting
             const onPlaying = () => {
               didResume = true;
               activeVideo.removeEventListener('playing', onPlaying);
