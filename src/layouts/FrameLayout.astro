@@ -463,33 +463,61 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
               const hasProgressed = activeVideo.currentTime > startTime + 0.01;
               
               if (!hasProgressed) {
-                // Video is stuck - skip to end state
-                if (bgVideoIntro) {
-                  bgVideoIntro.classList.remove('visible');
-                  bgVideoIntro.pause();
-                }
-                if (bgVideo) {
-                  bgVideo.classList.remove('visible');
-                  bgVideo.style.visibility = '';
-                  bgVideo.style.opacity = '';
-                  bgVideo.pause();
-                }
-                if (bgVideoBack) {
-                  bgVideoBack.classList.remove('visible');
-                  bgVideoBack.style.visibility = '';
-                  bgVideoBack.style.opacity = '';
-                  bgVideoBack.pause();
-                }
-                if (splashOverlay) {
-                  splashOverlay.classList.add('hidden');
-                }
-                if (bgImage) {
-                  bgImage.classList.remove('hidden');
-                  bgImage.style.visibility = '';
-                  bgImage.style.opacity = '';
-                }
-                isVideoPlaying = false;
-                document.body.classList.remove('video-playing');
+                // Video is stuck - try reload from current position
+                const stuckTime = activeVideo.currentTime;
+                
+                activeVideo.load();
+                
+                // Wait for video to be ready after load
+                const onCanPlay = () => {
+                  activeVideo.removeEventListener('canplay', onCanPlay);
+                  activeVideo.currentTime = stuckTime;
+                  activeVideo.muted = true;
+                  activeVideo.play().catch(() => {});
+                  
+                  // Check again if it's progressing after reload
+                  const timeAfterReload = activeVideo.currentTime;
+                  setTimeout(() => {
+                    const progressedAfterReload = activeVideo.currentTime > timeAfterReload + 0.01;
+                    
+                    if (!progressedAfterReload) {
+                      // Still stuck - skip to end state
+                      if (bgVideoIntro) {
+                        bgVideoIntro.classList.remove('visible');
+                        bgVideoIntro.pause();
+                      }
+                      if (bgVideo) {
+                        bgVideo.classList.remove('visible');
+                        bgVideo.style.visibility = '';
+                        bgVideo.style.opacity = '';
+                        bgVideo.pause();
+                      }
+                      if (bgVideoBack) {
+                        bgVideoBack.classList.remove('visible');
+                        bgVideoBack.style.visibility = '';
+                        bgVideoBack.style.opacity = '';
+                        bgVideoBack.pause();
+                      }
+                      if (splashOverlay) {
+                        splashOverlay.classList.add('hidden');
+                      }
+                      if (bgImage) {
+                        bgImage.classList.remove('hidden');
+                        bgImage.style.visibility = '';
+                        bgImage.style.opacity = '';
+                      }
+                      isVideoPlaying = false;
+                      document.body.classList.remove('video-playing');
+                    }
+                  }, 300);
+                };
+                
+                activeVideo.addEventListener('canplay', onCanPlay);
+                
+                // Fallback if canplay never fires
+                setTimeout(() => {
+                  activeVideo.removeEventListener('canplay', onCanPlay);
+                }, 2000);
               }
             }, 300);
           }
