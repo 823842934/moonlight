@@ -427,44 +427,57 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       // Set body class for cursor
       document.body.classList.add('video-playing');
 
-      // Handle tab visibility change - skip to end state if video is stuck
+      // Handle tab visibility change - pause/resume video
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible' && isVideoPlaying) {
-          // User returned and video was playing - skip to final state
+        if (document.visibilityState === 'hidden') {
+          // User left - pause any playing video
+          if (bgVideoIntro && !bgVideoIntro.paused) bgVideoIntro.pause();
+          if (bgVideo && !bgVideo.paused) bgVideo.pause();
+          if (bgVideoBack && !bgVideoBack.paused) bgVideoBack.pause();
+        } else if (document.visibilityState === 'visible' && isVideoPlaying) {
+          // User returned and video was playing - try to resume
+          let activeVideo = null;
           
-          // Hide all videos
-          if (bgVideoIntro) {
-            bgVideoIntro.pause();
-            bgVideoIntro.classList.remove('visible');
-          }
-          if (bgVideo) {
-            bgVideo.pause();
-            bgVideo.classList.remove('visible');
-            bgVideo.style.visibility = '';
-            bgVideo.style.opacity = '';
-          }
-          if (bgVideoBack) {
-            bgVideoBack.pause();
-            bgVideoBack.classList.remove('visible');
-            bgVideoBack.style.visibility = '';
-            bgVideoBack.style.opacity = '';
+          if (bgVideoIntro && bgVideoIntro.classList.contains('visible') && bgVideoIntro.paused) {
+            activeVideo = bgVideoIntro;
+          } else if (bgVideo && bgVideo.classList.contains('visible') && bgVideo.paused) {
+            activeVideo = bgVideo;
+          } else if (bgVideoBack && bgVideoBack.classList.contains('visible') && bgVideoBack.paused) {
+            activeVideo = bgVideoBack;
           }
           
-          // Hide splash if still visible
-          if (splashOverlay) {
-            splashOverlay.classList.add('hidden');
+          if (activeVideo) {
+            const playPromise = activeVideo.play();
+            
+            if (playPromise !== undefined) {
+              playPromise.catch(() => {
+                // Resume failed (mobile autoplay restriction) - skip to end state
+                if (bgVideoIntro) {
+                  bgVideoIntro.classList.remove('visible');
+                }
+                if (bgVideo) {
+                  bgVideo.classList.remove('visible');
+                  bgVideo.style.visibility = '';
+                  bgVideo.style.opacity = '';
+                }
+                if (bgVideoBack) {
+                  bgVideoBack.classList.remove('visible');
+                  bgVideoBack.style.visibility = '';
+                  bgVideoBack.style.opacity = '';
+                }
+                if (splashOverlay) {
+                  splashOverlay.classList.add('hidden');
+                }
+                if (bgImage) {
+                  bgImage.classList.remove('hidden');
+                  bgImage.style.visibility = '';
+                  bgImage.style.opacity = '';
+                }
+                isVideoPlaying = false;
+                document.body.classList.remove('video-playing');
+              });
+            }
           }
-          
-          // Show background image
-          if (bgImage) {
-            bgImage.classList.remove('hidden');
-            bgImage.style.visibility = '';
-            bgImage.style.opacity = '';
-          }
-          
-          // Unlock interactions
-          isVideoPlaying = false;
-          document.body.classList.remove('video-playing');
         }
       });
 
