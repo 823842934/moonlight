@@ -118,6 +118,26 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       overflow-x: clip;
     }
 
+    /* White preload screen - shows FIRST before anything */
+    .preload-screen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      background: #ffffff !important;
+      z-index: 100000 !important; /* Above splash */
+      pointer-events: none;
+    }
+
+    .preload-screen.hidden {
+      display: none !important;
+    }
+
     /* Splash intro overlay */
     .splash-overlay {
       position: fixed !important;
@@ -153,6 +173,11 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       height: auto;
       object-fit: contain;
       margin: 0 auto;
+      opacity: 0; /* Hidden initially until preload ends */
+    }
+
+    .splash-image.visible {
+      opacity: 1;
     }
 
     body.video-playing,
@@ -318,10 +343,14 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 </head>
 
 <body>
-  <!-- Splash intro image (shows first, fades to white) -->
+  <!-- White preload screen (shows FIRST for 1.3s) -->
+  <div class="preload-screen" id="preload-screen"></div>
+
+  <!-- Splash intro image (shows after preload, fades to white) -->
   <div class="splash-overlay" id="splash-overlay">
     <img 
       class="splash-image" 
+      id="splash-image"
       src="/brandyura-intro-logo.png" 
       alt=""
       aria-hidden="true"
@@ -392,12 +421,27 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     (() => {
       const root = document.documentElement;
 
+      // Preload screen logic (white screen for 1.3s before anything)
+      const preloadScreen = document.getElementById('preload-screen');
+      const splashImage = document.getElementById('splash-image');
+
       // Splash screen logic
       const splashOverlay = document.getElementById('splash-overlay');
       const bgVideoIntro = document.getElementById('bg-video-intro');
       
+      // After 1.5s, hide preload and show the splash image instantly
+      if (preloadScreen && splashImage) {
+        setTimeout(() => {
+          // Hide the white preload screen instantly
+          preloadScreen.classList.add('hidden');
+          
+          // Show the splash image instantly
+          splashImage.classList.add('visible');
+        }, 1000); // 1 second white screen
+      }
+      
       if (splashOverlay) {
-        // Show splash for 3 seconds, then fade to white
+        // Show splash for 3 seconds AFTER preload ends (1.3s + 3s = 4.3s total), then fade to white
         setTimeout(() => {
           splashOverlay.classList.add('fade-out');
           
@@ -412,7 +456,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           setTimeout(() => {
             splashOverlay.classList.add('hidden');
           }, 500); // matches transition duration
-        }, 3000);
+        }, 4000); // 1s preload + 3s splash display
       }
 
       // Video transition elements
