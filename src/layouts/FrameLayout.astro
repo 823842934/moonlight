@@ -437,26 +437,50 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           
           // Show the splash image instantly
           splashImage.classList.add('visible');
-        }, 1000); // 1 second white screen
+        }, 500); // 0.5 second white screen
+      }
+      
+      // Preload the intro video during splash screen
+      if (bgVideoIntro) {
+        bgVideoIntro.load();
       }
       
       if (splashOverlay) {
-        // Show splash for 3 seconds AFTER preload ends (1.3s + 3s = 4.3s total), then fade to white
+        // Show splash for 3 seconds AFTER preload ends, then fade to white
         setTimeout(() => {
           splashOverlay.classList.add('fade-out');
           
-          // Start video partway through fade so first frame is ready
-          setTimeout(() => {
+          // Function to play video when ready
+          const playWhenReady = () => {
             if (bgVideoIntro) {
-              bgVideoIntro.play().catch(() => {});
+              // Check if video can play
+              if (bgVideoIntro.readyState >= 3) { // HAVE_FUTURE_DATA or better
+                bgVideoIntro.play().catch(() => {});
+              } else {
+                // Wait for video to be ready
+                const onCanPlay = () => {
+                  bgVideoIntro.removeEventListener('canplaythrough', onCanPlay);
+                  bgVideoIntro.play().catch(() => {});
+                };
+                bgVideoIntro.addEventListener('canplaythrough', onCanPlay);
+                
+                // Fallback: try to play anyway after 500ms
+                setTimeout(() => {
+                  bgVideoIntro.removeEventListener('canplaythrough', onCanPlay);
+                  bgVideoIntro.play().catch(() => {});
+                }, 500);
+              }
             }
-          }, 250); // Start video 250ms into the 500ms fade
+          };
+          
+          // Start video partway through fade so first frame is ready
+          setTimeout(playWhenReady, 250); // Start video 250ms into the 500ms fade
           
           // After fade completes, hide splash
           setTimeout(() => {
             splashOverlay.classList.add('hidden');
           }, 500); // matches transition duration
-        }, 4000); // 1s preload + 3s splash display
+        }, 3500); // 0.5s preload + 3s splash display
       }
 
       // Video transition elements
