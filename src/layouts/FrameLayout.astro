@@ -154,21 +154,15 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       display: flex !important;
       align-items: center !important;
       justify-content: center !important;
-      transition: opacity 0.5s ease-out;
-    }
-
-    .splash-overlay.fade-out {
-      opacity: 0;
-      pointer-events: none;
     }
 
     .splash-overlay.hidden {
       display: none !important;
     }
 
-    .splash-image {
-      max-width: 80%;
-      max-height: 80%;
+    .splash-video {
+      max-width: 60%;
+      max-height: 60%;
       width: auto;
       height: auto;
       object-fit: contain;
@@ -176,7 +170,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
       opacity: 0; /* Hidden initially until preload ends */
     }
 
-    .splash-image.visible {
+    .splash-video.visible {
       opacity: 1;
     }
 
@@ -348,18 +342,21 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
   <!-- Splash intro image (shows after preload, fades to white) -->
   <div class="splash-overlay" id="splash-overlay">
-    <img 
-      class="splash-image" 
-      id="splash-image"
-      src="/brandyura-intro-logo.png" 
-      alt=""
-      aria-hidden="true"
-    />
+    <video 
+      class="splash-video" 
+      id="splash-video"
+      autoplay
+      muted
+      playsinline
+      preload="auto"
+    >
+      <source src="/intromp4b.mp4" type="video/mp4" />
+    </video>
   </div>
 
-  <!-- Intro video (plays after splash screen) -->
+  <!-- Second intro video (plays after splash video + delay) -->
   <video
-    class="bg-video visible"
+    class="bg-video"
     id="bg-video-intro"
     muted
     playsinline
@@ -371,7 +368,7 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
     <source src="/0000-0051.mp4" type="video/mp4" />
   </video>
 
-  <!-- Background image (hidden until intro video ends) -->
+  <!-- Background image (shown after splash video ends) -->
   <img
     class="bg-image hidden"
     id="bg-image"
@@ -423,92 +420,70 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
 
       // Preload screen logic (white screen for 1.3s before anything)
       const preloadScreen = document.getElementById('preload-screen');
-      const splashImage = document.getElementById('splash-image');
+      const splashVideo = document.getElementById('splash-video');
+      const bgImage = document.getElementById('bg-image');
+      const bgVideoIntro = document.getElementById('bg-video-intro');
 
       // Splash screen logic
       const splashOverlay = document.getElementById('splash-overlay');
-      const bgVideoIntro = document.getElementById('bg-video-intro');
       
-      // After 1.5s, hide preload and show the splash image instantly
-      if (preloadScreen && splashImage) {
+      // After 0.5s, hide preload and show the splash video instantly
+      if (preloadScreen && splashVideo) {
         setTimeout(() => {
           // Hide the white preload screen instantly
           preloadScreen.classList.add('hidden');
           
-          // Show the splash image instantly
-          splashImage.classList.add('visible');
+          // Show the splash video instantly and play it
+          splashVideo.classList.add('visible');
+          splashVideo.play().catch(() => {});
+          
+          // When splash video ends, show white screen for 1.3s then play second video
+          splashVideo.addEventListener('ended', () => {
+            // Hide the video but keep the white overlay visible
+            splashVideo.classList.remove('visible');
+            
+            // Wait 1.3 seconds with white screen showing
+            setTimeout(() => {
+              // Now hide the white overlay
+              splashOverlay.classList.add('hidden');
+              
+              // Play the second intro video
+              if (bgVideoIntro) {
+                bgVideoIntro.currentTime = 0;
+                bgVideoIntro.classList.add('visible');
+                bgVideoIntro.play().catch(() => {});
+                
+                // When second video ends, show the website
+                bgVideoIntro.addEventListener('ended', () => {
+                  bgVideoIntro.classList.remove('visible');
+                  if (bgImage) {
+                    bgImage.classList.remove('hidden');
+                  }
+                });
+              }
+            }, 1300); // 1.3 second white screen pause
+          });
         }, 500); // 0.5 second white screen
       }
       
-      // Preload the intro video during splash screen
-      if (bgVideoIntro) {
-        bgVideoIntro.load();
-      }
-      
-      if (splashOverlay) {
-        // Show splash for 3 seconds AFTER preload ends, then fade to white
-        setTimeout(() => {
-          splashOverlay.classList.add('fade-out');
-          
-          // Function to play video when ready
-          const playWhenReady = () => {
-            if (bgVideoIntro) {
-              // Check if video can play
-              if (bgVideoIntro.readyState >= 3) { // HAVE_FUTURE_DATA or better
-                bgVideoIntro.play().catch(() => {});
-              } else {
-                // Wait for video to be ready
-                const onCanPlay = () => {
-                  bgVideoIntro.removeEventListener('canplaythrough', onCanPlay);
-                  bgVideoIntro.play().catch(() => {});
-                };
-                bgVideoIntro.addEventListener('canplaythrough', onCanPlay);
-                
-                // Fallback: try to play anyway after 500ms
-                setTimeout(() => {
-                  bgVideoIntro.removeEventListener('canplaythrough', onCanPlay);
-                  bgVideoIntro.play().catch(() => {});
-                }, 500);
-              }
-            }
-          };
-          
-          // Start video partway through fade so first frame is ready
-          setTimeout(playWhenReady, 250); // Start video 250ms into the 500ms fade
-          
-          // After fade completes, hide splash
-          setTimeout(() => {
-            splashOverlay.classList.add('hidden');
-          }, 500); // matches transition duration
-        }, 3500); // 0.5s preload + 3s splash display
-      }
-
-      // Video transition elements
-      const bgImage = document.getElementById('bg-image');
+      // NUCLEAR OPTION: Fetch the entire video file first, then play from blob
       const bgVideo = document.getElementById('bg-video');
       const bgVideoBack = document.getElementById('bg-video-back');
-      // bgVideoIntro already declared above for splash logic
 
       // Lock to prevent clicks during video playback
-      let isVideoPlaying = true; // Start locked during splash
-
-      // Set body class for cursor
-      document.body.classList.add('video-playing');
+      let isVideoPlaying = false; // Start unlocked, splash video doesn't block interaction
 
       // Handle tab visibility change - pause/resume video
       document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'hidden') {
           // User left - pause any playing video
-          if (bgVideoIntro && !bgVideoIntro.paused) bgVideoIntro.pause();
           if (bgVideo && !bgVideo.paused) bgVideo.pause();
           if (bgVideoBack && !bgVideoBack.paused) bgVideoBack.pause();
         } else if (document.visibilityState === 'visible' && isVideoPlaying) {
           // User returned and video was playing - try to resume
           let activeVideo = null;
           
-          if (bgVideoIntro && bgVideoIntro.classList.contains('visible')) {
-            activeVideo = bgVideoIntro;
-          } else if (bgVideo && bgVideo.classList.contains('visible')) {
+          if (bgVideo && bgVideo.classList.contains('visible')) {
             activeVideo = bgVideo;
           } else if (bgVideoBack && bgVideoBack.classList.contains('visible')) {
             activeVideo = bgVideoBack;
@@ -550,10 +525,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
                     
                     if (!progressedAfterReload) {
                       // Still stuck - skip to end state
-                      if (bgVideoIntro) {
-                        bgVideoIntro.classList.remove('visible');
-                        bgVideoIntro.pause();
-                      }
                       if (bgVideo) {
                         bgVideo.classList.remove('visible');
                         bgVideo.style.visibility = '';
@@ -591,17 +562,6 @@ const ogImageAbs = new URL(ogImage, siteUrl).toString();
           }
         }
       });
-
-      // Handle intro video ending
-      if (bgVideoIntro) {
-        bgVideoIntro.addEventListener('ended', () => {
-          bgVideoIntro.classList.remove('visible');
-          bgImage.classList.remove('hidden');
-          bgImage.classList.add('fade-in');
-          isVideoPlaying = false;
-          document.body.classList.remove('video-playing');
-        });
-      }
 
       // Trigger items that should play the video
       const videoTriggerItems = ['studies', 'biography', 'statement', 'process', 'social', 'info'];
